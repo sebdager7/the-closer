@@ -238,3 +238,4 @@ Example prompts for Claude Code:
 Private — all rights reserved.
 # the-closer
 # the-closer
+# the-closer
