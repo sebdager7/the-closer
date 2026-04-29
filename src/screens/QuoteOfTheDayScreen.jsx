@@ -160,7 +160,7 @@ export default function QuoteOfTheDayScreen({ onDone }) {
             }}
           >"</span>
           <p
-            className="font-nunito text-white px-3"
+            className="text-white px-3"
             style={{
               fontWeight: 800,
               fontSize: 'clamp(17px, 4.5vw, 24px)',

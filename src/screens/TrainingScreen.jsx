@@ -15,7 +15,7 @@ function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
   useEffect(() => { vibrateBlitz(100); if (isWin) zapSound() }, [])
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3 font-dm-mono">
+    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3">
       <div className="bg-navy-800/60 border border-white/10 rounded-2xl p-4 text-center">
         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3 border-2 ${cls}`}>
           {data.score}
@@ -85,7 +85,7 @@ function ProspectPreview({ profile }) {
   }, [])
 
   return (
-    <div className="flex flex-col h-full items-center justify-center p-5 font-dm-mono bg-navy-950">
+    <div className="flex flex-col h-full items-center justify-center p-5 bg-navy-950">
       <div className="text-center mb-5">
         <p className="text-[10px] font-bubble text-gold-400 uppercase tracking-widest mb-2">
           📞 Call starting in {countdown}s...
@@ -559,7 +559,7 @@ Respond in ${language}. Start with your opening line now.`
   // ── Loading profile screen
   if (generatingProfile) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-6 text-center font-dm-mono">
+      <div className="flex flex-col h-full items-center justify-center p-6 text-center">
         <BlitzIcon size={42} className="mb-4" />
         <p className="text-white font-bubble text-base mb-1">Building your prospect...</p>
         <p className="text-white/40 text-sm">Generating a real character profile</p>
@@ -578,7 +578,7 @@ Respond in ${language}. Start with your opening line now.`
   // ── Autopsy loading screen
   if (autopsyLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-6 text-center font-dm-mono">
+      <div className="flex flex-col h-full items-center justify-center p-6 text-center">
         <div className="text-3xl mb-4">🔍</div>
         <BlitzIcon size={52} className="mb-3" />
         <p className="text-white font-bubble text-base mb-1">Blitz is analyzing your call...</p>
@@ -592,7 +592,7 @@ Respond in ${language}. Start with your opening line now.`
   }
 
   return (
-    <div className="flex flex-col h-full relative font-dm-mono">
+    <div className="flex flex-col h-full relative">
       {/* Call header */}
       <div className="bg-navy-900 px-3 py-2.5 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -801,7 +801,7 @@ export default function TrainingScreen() {
   const modeMsg = TRAINING_MODES.find(m => m.id === mode)?.blitzMsg || ''
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 font-dm-mono">
+    <div className="flex flex-col h-full overflow-y-auto p-4">
       <BlitzBar message={`<strong>Blitz:</strong> ${modeMsg}`} />
 
       <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Training Mode</div>

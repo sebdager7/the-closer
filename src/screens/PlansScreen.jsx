@@ -6,7 +6,7 @@ export default function PlansScreen() {
   const { state, dispatch } = useApp()
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 font-sora">
+    <div className="flex flex-col h-full overflow-y-auto p-4">
       <h2 className="text-base font-bubble text-white mb-1">Plans & Pricing</h2>
       <p className="text-xs text-white/40 mb-4">Cancel or upgrade anytime</p>
 

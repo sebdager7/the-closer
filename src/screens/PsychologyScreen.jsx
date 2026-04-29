@@ -407,7 +407,7 @@ export default function PsychologyScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a1a] relative font-space-grotesk">
+    <div className="flex flex-col h-full bg-[#0a0a1a] relative">
       <Hud xp={state.xp} gems={state.gems} streak={state.streak} />
 
       <div className="flex-1 overflow-y-auto pb-4">

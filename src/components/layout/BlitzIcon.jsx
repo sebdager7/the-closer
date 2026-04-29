@@ -1,49 +1,111 @@
-import React, { useState } from 'react'
-import { vibrateBlitz, zapSound } from '../../utils/blitz'
+import React, { useRef } from 'react'
 
-export default function BlitzIcon({ size = 32, className = '' }) {
-  const [bouncing, setBouncing] = useState(false)
+export default function BlitzIcon({ size = 32, className = '', onClick }) {
+  const svgRef = useRef(null)
   const w = size
-  const h = Math.round(size * 1.1)
+  const h = Math.round(size * 1.15)
 
-  const handleClick = () => {
-    vibrateBlitz(40)
-    zapSound()
-    setBouncing(true)
-    setTimeout(() => setBouncing(false), 500)
+  const handleBlitzTap = (e) => {
+    if (navigator.vibrate) navigator.vibrate([30, 20, 60, 20, 30])
+
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const masterGain = ctx.createGain()
+      masterGain.gain.setValueAtTime(0.4, ctx.currentTime)
+      masterGain.connect(ctx.destination)
+
+      const osc1 = ctx.createOscillator()
+      const gain1 = ctx.createGain()
+      osc1.type = 'sawtooth'
+      osc1.frequency.setValueAtTime(1200, ctx.currentTime)
+      osc1.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.25)
+      gain1.gain.setValueAtTime(0.5, ctx.currentTime)
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28)
+      osc1.connect(gain1); gain1.connect(masterGain)
+      osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.28)
+
+      const osc2 = ctx.createOscillator()
+      const gain2 = ctx.createGain()
+      osc2.type = 'sine'
+      osc2.frequency.setValueAtTime(220, ctx.currentTime)
+      gain2.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+      osc2.connect(gain2); gain2.connect(masterGain)
+      osc2.start(ctx.currentTime); osc2.stop(ctx.currentTime + 0.3)
+
+      setTimeout(() => ctx.close(), 400)
+    } catch (err) {}
+
+    const el = svgRef.current
+    if (el) {
+      el.classList.remove('blitz-bounce')
+      void el.offsetWidth
+      el.classList.add('blitz-bounce')
+      setTimeout(() => el.classList.remove('blitz-bounce'), 600)
+    }
+
+    onClick?.(e)
   }
 
-  // If caller passes a blitz-* animation class, respect it; otherwise idle
-  const hasAnimClass = /blitz-(speaking|celebrate|idle|bounce)/.test(className)
-  const animClass = bouncing ? 'blitz-bounce' : (hasAnimClass ? '' : 'blitz-idle')
+  // Separate blitz-* animation classes from utility classes (margins etc.)
+  const blitzSpecialMatch = className.match(/blitz-(speaking|celebrate)/)
+  const svgAnimClass = blitzSpecialMatch ? blitzSpecialMatch[0] : ''
+  const wrapperUtilClasses = className.replace(/blitz-\S+/g, '').trim()
+  const hasSpecialAnim = Boolean(blitzSpecialMatch)
 
   return (
-    <svg
-      width={w} height={h} viewBox="0 0 80 88" fill="none"
-      className={`${animClass} ${className}`.trim()}
-      onClick={handleClick}
-      style={{ flexShrink: 0, cursor: 'pointer' }}
+    <div
+      className={`${hasSpecialAnim ? '' : 'blitz-idle'} inline-flex ${wrapperUtilClasses}`.trim()}
+      style={{ flexShrink: 0 }}
     >
-      <path d="M12 62 C12 38 20 24 40 24 C60 24 68 38 68 62 C68 74 55 82 40 82 C25 82 12 74 12 62 Z" fill="#111122"/>
-      <path d="M22 38 L14 16 L28 28 Z" fill="#111122"/>
-      <path d="M58 38 L66 16 L52 28 Z" fill="#111122"/>
-      <path d="M23 36 L17 18 L27 27 Z" fill="#252540"/>
-      <path d="M57 36 L63 18 L53 27 Z" fill="#252540"/>
-      <path d="M14 58 C14 40 22 28 40 28 C58 28 66 40 66 58 C66 68 54 76 40 76 C26 76 14 68 14 58 Z" fill="#181830"/>
-      <ellipse cx="30" cy="49" rx="9" ry="8" fill="#fff"/>
-      <ellipse cx="50" cy="49" rx="9" ry="8" fill="#fff"/>
-      <ellipse cx="30" cy="49" rx="5.5" ry="5.5" fill="#1a6bbf"/>
-      <ellipse cx="50" cy="49" rx="5.5" ry="5.5" fill="#1a6bbf"/>
-      <ellipse cx="30.5" cy="49" rx="3" ry="3.2" fill="#04040e"/>
-      <ellipse cx="50.5" cy="49" rx="3" ry="3.2" fill="#04040e"/>
-      <circle cx="31.5" cy="47.5" r="1.1" fill="#fff"/>
-      <circle cx="51.5" cy="47.5" r="1.1" fill="#fff"/>
-      <path d="M22 43 L37 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
-      <path d="M58 43 L43 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
-      <ellipse cx="40" cy="62" rx="9" ry="6" fill="#252540"/>
-      <ellipse cx="40" cy="62" rx="3" ry="2" fill="#d05040"/>
-      <circle cx="32" cy="65" r="1.4" fill="#c8a84a"/>
-      <circle cx="48" cy="65" r="1.4" fill="#c8a84a"/>
-    </svg>
+      <svg
+        ref={svgRef}
+        id="blitz-icon-main"
+        width={w}
+        height={h}
+        viewBox="0 0 80 92"
+        fill="none"
+        className={svgAnimClass}
+        onClick={handleBlitzTap}
+        style={{ cursor: 'pointer' }}
+      >
+        {/* Body */}
+        <path d="M12 62 C12 38 20 24 40 24 C60 24 68 38 68 62 C68 74 55 82 40 82 C25 82 12 74 12 62 Z" fill="#111122"/>
+        {/* Ears */}
+        <path d="M22 38 L14 16 L28 28 Z" fill="#111122"/>
+        <path d="M58 38 L66 16 L52 28 Z" fill="#111122"/>
+        <path d="M23 36 L17 18 L27 27 Z" fill="#252540"/>
+        <path d="M57 36 L63 18 L53 27 Z" fill="#252540"/>
+        {/* Face */}
+        <path d="M14 58 C14 40 22 28 40 28 C58 28 66 40 66 58 C66 68 54 76 40 76 C26 76 14 68 14 58 Z" fill="#181830"/>
+        {/* Eyes — whites */}
+        <ellipse cx="30" cy="49" rx="9" ry="8" fill="#fff"/>
+        <ellipse cx="50" cy="49" rx="9" ry="8" fill="#fff"/>
+        {/* Eyes — irises */}
+        <ellipse cx="30" cy="49" rx="5.5" ry="5.5" fill="#1a6bbf"/>
+        <ellipse cx="50" cy="49" rx="5.5" ry="5.5" fill="#1a6bbf"/>
+        {/* Eyes — pupils */}
+        <ellipse cx="30.5" cy="49" rx="3" ry="3.2" fill="#04040e"/>
+        <ellipse cx="50.5" cy="49" rx="3" ry="3.2" fill="#04040e"/>
+        {/* Eyes — shine */}
+        <circle cx="31.5" cy="47.5" r="1.1" fill="#fff"/>
+        <circle cx="51.5" cy="47.5" r="1.1" fill="#fff"/>
+        {/* Whiskers */}
+        <path d="M22 43 L37 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M58 43 L43 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
+        {/* Mouth — teeth bar */}
+        <rect x="33" y="61" width="14" height="5" rx="2.5" fill="#ffffff"/>
+        {/* Mouth — upper lip */}
+        <path d="M31 61 Q40 58 49 61" stroke="#1a1020" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        {/* Mouth — lower lip / smile */}
+        <path d="M31 66 Q35 70 40 71 Q45 70 49 66" stroke="#1a1020" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        {/* Tongue body */}
+        <ellipse cx="40" cy="73" rx="5" ry="4" fill="#e8607a"/>
+        {/* Tongue split line */}
+        <line x1="40" y1="70" x2="40" y2="76" stroke="#c04060" strokeWidth="1" strokeLinecap="round"/>
+        {/* Tongue highlight */}
+        <ellipse cx="38" cy="71.5" rx="1.5" ry="1" fill="#f090a0" opacity="0.7"/>
+      </svg>
+    </div>
   )
 }

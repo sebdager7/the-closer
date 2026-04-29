@@ -32,7 +32,7 @@ export default function ObjectionsScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 font-sora">
+    <div className="flex flex-col h-full overflow-y-auto p-4">
       <BlitzBar message="Type any objection you're getting crushed on. I'll give you 3 battle-tested scripts — Andy Elliott soft close, Belfort direct, Cardone aggressive. Real frameworks, real money." />
 
       {/* Industry pills */}

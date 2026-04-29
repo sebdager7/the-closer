@@ -70,7 +70,7 @@ export default function PitchScreen() {
   )
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 font-sora">
+    <div className="flex flex-col h-full overflow-y-auto p-4">
       <BlitzBar message="I build pitches using <strong>Andy Elliott's 10-step</strong>, <strong>Belfort's Straight Line</strong>, <strong>Cardone's tonality</strong>. Real patterns. Not AI theory." />
 
       {/* Mode tabs */}
