@@ -168,6 +168,7 @@ function getBestVoice() {
 
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
   const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [secs, setSecs] = useState(0)
   const [closePct, setClosePct] = useState(30)
@@ -491,8 +492,17 @@ Respond in ${language}. Start with your opening line now.`
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
       await showBotReply(reply, true)
-    } catch (e) {}
+    } catch (e) {
+      addMsg('brutal', '⚠️ Connection error. Check your API key and internet, then restart the call.', true)
+    }
     setLoading(false)
+  }
+
+  const handleTextSend = () => {
+    const text = input.trim()
+    if (!text || loading) return
+    setInput('')
+    handleVoiceSend(text)
   }
 
   const handleVoiceSend = async (text) => {
@@ -511,7 +521,9 @@ Respond in ${language}. Start with your opening line now.`
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
       await showBotReply(reply, false)
-    } catch (e) {}
+    } catch (e) {
+      addMsg('brutal', '⚠️ No response. Check your connection and try again.', true)
+    }
     setLoading(false)
   }
 
@@ -702,6 +714,24 @@ Respond in ${language}. Start with your opening line now.`
             : isSpeaking ? 'AI speaking...'
             : holdToTalk ? 'Hold to speak' : 'Tap to speak'}
         </p>
+
+        {/* Text input fallback */}
+        <div className="flex gap-2 w-full mt-1">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleTextSend() }}
+            placeholder="Or type your response..."
+            className="flex-1 bg-white/8 border border-white/10 rounded-xl px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none focus:border-closer-blue"
+          />
+          <button
+            onClick={handleTextSend}
+            disabled={loading || !input.trim()}
+            className="px-3 py-2 bg-closer-blue/80 text-white font-bold rounded-xl text-xs disabled:opacity-40 hover:bg-closer-blue transition-colors"
+          >
+            Send
+          </button>
+        </div>
       </div>
 
       {/* Reframe popup */}

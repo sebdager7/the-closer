@@ -9,6 +9,7 @@ export default function PitchScreen() {
   const [mode, setMode] = useState('create')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
+  const [error, setError] = useState('')
   const [lastPromptArgs, setLastPromptArgs] = useState(null)
 
   // Create form state
@@ -25,30 +26,30 @@ export default function PitchScreen() {
 
   const handleGenerate = async () => {
     if (!product.trim()) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
       const args = { product, industry: pitchIndustry, framework, audience, keywords, language: state.language, customBrain: state.customBrain }
       setLastPromptArgs({ type: 'create', ...args })
       const data = await generatePitch(product, pitchIndustry, framework, audience, keywords, state.language, state.customBrain)
       setResult(data)
-    } catch (e) { console.error(e) }
+    } catch (e) { setError(e.message || 'Something went wrong. Check your connection and try again.') }
     setLoading(false)
   }
 
   const handleImprove = async () => {
     if (!existing.trim()) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
       setLastPromptArgs({ type: 'improve', existing, industry: improveIndustry, framework: rebuildFw, language: state.language })
       const data = await improvePitch(existing, improveIndustry, rebuildFw, state.language)
       setResult(data)
-    } catch (e) { console.error(e) }
+    } catch (e) { setError(e.message || 'Something went wrong. Check your connection and try again.') }
     setLoading(false)
   }
 
   const handleRedo = async () => {
     if (!lastPromptArgs) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
       let data
       if (lastPromptArgs.type === 'create') {
@@ -57,7 +58,7 @@ export default function PitchScreen() {
         data = await improvePitch(lastPromptArgs.existing, lastPromptArgs.industry, lastPromptArgs.framework, lastPromptArgs.language)
       }
       setResult(data)
-    } catch (e) { console.error(e) }
+    } catch (e) { setError(e.message || 'Something went wrong. Check your connection and try again.') }
     setLoading(false)
   }
 
@@ -138,6 +139,12 @@ export default function PitchScreen() {
           <button onClick={handleImprove} disabled={loading || !existing.trim()} className="w-full py-3 rounded-xl bg-closer-blue text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-600 transition-colors">
             {loading ? '⏳ Rebuilding...' : '🔧 Rebuild my pitch'}
           </button>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3.5 py-3 mb-3">
+          <p className="text-xs text-red-400 leading-relaxed">{error}</p>
         </div>
       )}
 

@@ -17,6 +17,7 @@ export async function callClaude(prompt, maxTokens = 1200) {
     }),
   })
   const data = await response.json()
+  if (!data.content) throw new Error(data.error?.message || `API error ${response.status}`)
   return data.content.map(c => c.text || '').join('')
 }
 
@@ -32,11 +33,15 @@ export async function callClaudeConversation(messages, maxTokens = 200) {
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
   })
   const data = await response.json()
+  if (!data.content) throw new Error(data.error?.message || `API error ${response.status}`)
   return data.content.map(c => c.text || '').join('')
 }
 
 export function parseJSON(text) {
-  return JSON.parse(text.replace(/```json|```/g, '').trim())
+  const cleaned = text.replace(/```json\n?|```/g, '').trim()
+  // Extract the JSON object even if the model wraps it in explanatory text
+  const match = cleaned.match(/\{[\s\S]*\}/)
+  return JSON.parse(match ? match[0] : cleaned)
 }
 
 export async function getRebuttal(objection, industry, language, customBrain = {}) {
