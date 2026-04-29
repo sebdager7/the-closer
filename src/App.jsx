@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 
@@ -8,6 +8,7 @@ import BottomNav from './components/layout/BottomNav'
 
 // Screens
 import LoginScreen from './screens/LoginScreen'
+import QuoteOfTheDayScreen from './screens/QuoteOfTheDayScreen'
 import ObjectionsScreen from './screens/ObjectionsScreen'
 import PitchScreen from './screens/PitchScreen'
 import PsychologyScreen from './screens/PsychologyScreen'
@@ -47,9 +48,19 @@ function MainApp() {
 
 function AppRouter() {
   const { state } = useApp()
+  const [quoteShown, setQuoteShown] = useState(() => {
+    const today = new Date().toDateString()
+    const alreadySeen = localStorage.getItem('closer_quote_date') === today
+    if (!alreadySeen) localStorage.setItem('closer_quote_date', today)
+    return alreadySeen
+  })
 
   if (!state.isAuthenticated) {
     return <LoginScreen />
+  }
+
+  if (!quoteShown) {
+    return <QuoteOfTheDayScreen onDone={() => setQuoteShown(true)} />
   }
 
   return (

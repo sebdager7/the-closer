@@ -12,6 +12,7 @@ export default function LoginScreen() {
   const [tutStep, setTutStep] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [appleLoading, setAppleLoading] = useState(false)
 
   // Vibrate on every tutorial page (when step becomes 'tutorial' or tutStep advances)
   useEffect(() => {
@@ -19,6 +20,18 @@ export default function LoginScreen() {
   }, [step, tutStep])
 
   const plan = PLANS.find(p => p.id === selectedPlan)
+
+  // TODO: Replace with real Sign In with Apple using Apple JS SDK
+  // Docs: https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js
+  // Requires: Apple Developer account, Services ID, domain verification
+  const handleAppleAuth = () => {
+    setAppleLoading(true)
+    setTimeout(() => {
+      setAppleLoading(false)
+      dispatch({ type: 'SET_USER', payload: { name: 'Apple User', email: 'user@icloud.com' } })
+      if (!isSignIn) setStep('plans')
+    }, 1000)
+  }
 
   const handleAuth = () => {
     if (isSignIn) {
@@ -354,6 +367,24 @@ export default function LoginScreen() {
 
           <h2 className="text-xl font-bold text-white mb-1">{isSignIn ? 'Welcome back' : 'Create account'}</h2>
           <p className="text-white/40 text-sm mb-5">{isSignIn ? 'Sign in to continue your closer journey' : 'Join thousands of closers leveling up'}</p>
+
+          {/* Apple button — shown first per Apple HIG */}
+          <button
+            onClick={handleAppleAuth}
+            disabled={appleLoading}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-black border border-white/20 hover:bg-white/5 text-white text-sm font-medium transition-colors mb-3 disabled:opacity-60"
+          >
+            {appleLoading ? (
+              <span>Signing in...</span>
+            ) : (
+              <>
+                <svg width="15" height="18" viewBox="0 0 24 24" fill="white">
+                  <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.453 2.208 3.09 3.792 3.029 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.94 1.156-1.672 1.636-3.295 1.662-3.402-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+                </svg>
+                {isSignIn ? 'Sign in with Apple' : 'Sign up with Apple'}
+              </>
+            )}
+          </button>
 
           {/* Google button */}
           <button
