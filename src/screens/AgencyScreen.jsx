@@ -68,7 +68,7 @@ function Dashboard() {
       <div className="bg-navy-800/60 border border-white/10 rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-white">Tier Progress</span>
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-navy-900 to-navy-800 text-gold-400 border border-gold-500/40">🔥 Elite Partner · 40%</span>
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-navy-900 to-navy-800 text-gold-400 border border-gold-500/40">🔥 Elite Partner · 35%</span>
         </div>
         <div className="flex items-center gap-3 mb-1">
           <span className="text-[9px] text-white/40 w-24">Active members</span>
