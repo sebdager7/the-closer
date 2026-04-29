@@ -4,14 +4,17 @@ import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
 import { callClaudeConversation, getBrutalFeedback, getReframes, runAutopsy } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
+import { vibrateBlitz } from '../utils/blitz'
 
 // ─── DEAL AUTOPSY ─────────────────────────────────────────────────────────────
 function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
   const isWin = data.score >= 70, isMid = data.score >= 40
   const cls = isWin ? 'border-green-500 text-green-400 bg-green-500/10' : isMid ? 'border-yellow-500 text-yellow-400 bg-yellow-500/10' : 'border-red-500 text-red-400 bg-red-500/10'
 
+  useEffect(() => { vibrateBlitz(100) }, [])
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3">
+    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3 font-dm-mono">
       {/* Hero */}
       <div className="bg-navy-800/60 border border-white/10 rounded-2xl p-4 text-center">
         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3 border-3 ${cls}`}>
@@ -38,7 +41,7 @@ function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
       </div>
 
       {/* Blitz coaching */}
-      <BlitzBar message={data.blitz_coaching} />
+      <BlitzBar message={data.blitz_coaching} vibrate />
 
       {/* Key moments */}
       <div>
@@ -93,14 +96,54 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [callMsgs, setCallMsgs] = useState([])
   const [autopsy, setAutopsy] = useState(null)
   const [autopsyLoading, setAutopsyLoading] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const chatRef = useRef([])
   const msgsEndRef = useRef(null)
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
+  const muteRef = useRef(false)
   const prospect = PROSPECT_NAMES[Math.floor(Math.random() * PROSPECT_NAMES.length)]
   const prospectRef = useRef(prospect)
 
+  // ── Voice synthesis ──────────────────────────────────────────────
+  const speakMessage = (text) => {
+    if (muteRef.current || !window.speechSynthesis) return
+    window.speechSynthesis.cancel()
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.rate = 1.0
+    utter.pitch = 1.0
+    utter.volume = 1.0
+
+    const doSpeak = () => {
+      const voices = window.speechSynthesis.getVoices()
+      const voice = voices.find(v => v.name === 'Google US English')
+        || voices.find(v => v.name === 'Samantha')
+        || voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'))
+        || voices.find(v => v.lang.startsWith('en'))
+      if (voice) utter.voice = voice
+      utter.onstart = () => setIsSpeaking(true)
+      utter.onend = () => setIsSpeaking(false)
+      utter.onerror = () => setIsSpeaking(false)
+      window.speechSynthesis.speak(utter)
+    }
+
+    if (window.speechSynthesis.getVoices().length > 0) {
+      doSpeak()
+    } else {
+      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+    }
+  }
+
+  const toggleMute = () => {
+    const next = !isMuted
+    muteRef.current = next
+    setIsMuted(next)
+    if (next) { window.speechSynthesis?.cancel(); setIsSpeaking(false) }
+  }
+
   useEffect(() => {
+    vibrateBlitz([40, 40, 40, 40, 40])
     timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
     if (mode === 'one') {
       oneshotRef.current = setInterval(() => setOneShotSecs(s => {
@@ -109,7 +152,11 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       }), 1000)
     }
     startCall()
-    return () => { clearInterval(timerRef.current); clearInterval(oneshotRef.current) }
+    return () => {
+      clearInterval(timerRef.current)
+      clearInterval(oneshotRef.current)
+      window.speechSynthesis?.cancel()
+    }
   }, [])
 
   useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
@@ -154,6 +201,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       chatRef.current.push({ role: 'assistant', content: reply })
       addMsg('bot', reply)
       updateTone(reply, 'bot')
+      speakMessage(reply)
     } catch (e) { }
     setLoading(false)
   }
@@ -176,12 +224,14 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       chatRef.current.push({ role: 'assistant', content: reply })
       addMsg('bot', reply)
       updateTone(reply, 'bot')
+      speakMessage(reply)
     } catch (e) { }
     setLoading(false)
   }
 
   const handleEnd = async () => {
     clearInterval(timerRef.current); clearInterval(oneshotRef.current)
+    window.speechSynthesis?.cancel(); setIsSpeaking(false)
     if (callMsgs.length >= 4) {
       setAutopsyLoading(true)
       const transcript = callMsgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'} [${Math.floor(m.time / 60)}:${(m.time % 60).toString().padStart(2, '0')}]: ${m.text}`).join('\n')
@@ -211,7 +261,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   if (autopsyLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-6 text-center">
+      <div className="flex flex-col h-full items-center justify-center p-6 text-center font-dm-mono">
         <div className="text-3xl mb-4">🔍</div>
         <BlitzIcon size={52} className="mb-3" />
         <p className="text-white font-bold text-base mb-1">Blitz is analyzing your call...</p>
@@ -225,7 +275,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative font-dm-mono">
       {/* Call header */}
       <div className="bg-navy-900 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -233,7 +283,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
           <span className="text-xs text-red-400 font-bold tracking-wider">LIVE</span>
         </div>
         <span className="text-lg font-bold text-white font-mono">{fmt(secs)}</span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {isSpeaking && <BlitzIcon size={16} className="blitz-speaking" />}
+          <button
+            onClick={toggleMute}
+            className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20"
+            title={isMuted ? 'Unmute voice' : 'Mute voice'}
+          >
+            {isMuted ? '🔇' : '🔊'}
+          </button>
           <button onClick={() => onEnd(closePct, 'restart')} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺ Restart</button>
           <button onClick={handleEnd} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-red-700 text-white hover:bg-red-600">✕ End</button>
         </div>
@@ -261,7 +319,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       {/* Prospect */}
       <div className="flex flex-col items-center py-3 bg-gray-900/60 border-b border-white/10 flex-shrink-0">
         <div className="w-10 h-10 rounded-full bg-closer-blue flex items-center justify-center text-white font-bold text-sm mb-1">{prospectRef.current[1]}</div>
-        <p className="text-sm font-bold text-white">{prospectRef.current[0]}</p>
+        <p className="text-sm font-bold text-white flex items-center gap-1.5">
+          {prospectRef.current[0]}
+          {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
+        </p>
         <p className="text-[10px] text-white/40">{persona}</p>
       </div>
 
@@ -382,7 +443,7 @@ export default function TrainingScreen() {
   const modeMsg = TRAINING_MODES.find(m => m.id === mode)?.blitzMsg || ''
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4">
+    <div className="flex flex-col h-full overflow-y-auto p-4 font-dm-mono">
       <BlitzBar message={`<strong>Blitz:</strong> ${modeMsg}`} />
 
       <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Training Mode</div>

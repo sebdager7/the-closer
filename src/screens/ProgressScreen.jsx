@@ -36,7 +36,7 @@ export default function ProgressScreen() {
   const { state } = useApp()
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4">
+    <div className="flex flex-col h-full overflow-y-auto p-4 font-sora">
       <BlitzBar message={`<strong>Blitz:</strong> Your real progress. Every call you do moves these bars. <strong>Close rate is king</strong> — the rest follows when that number goes up.`} />
 
       <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-3">Performance Metrics</div>

@@ -1,7 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import BlitzIcon from './BlitzIcon'
+import { vibrateBlitz } from '../../utils/blitz'
 
-export default function BlitzBar({ message, gold = false, className = '' }) {
+export default function BlitzBar({ message, gold = false, className = '', vibrate = false }) {
+  useEffect(() => {
+    if (vibrate) vibrateBlitz(60)
+  }, [message]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className={`flex items-start gap-3 p-3 rounded-xl mb-3 border ${
       gold

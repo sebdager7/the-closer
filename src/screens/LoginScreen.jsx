@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
 import { PLANS } from '../data/constants'
+import { vibrateBlitz } from '../utils/blitz'
 
 export default function LoginScreen() {
   const { dispatch } = useApp()
@@ -11,6 +12,11 @@ export default function LoginScreen() {
   const [tutStep, setTutStep] = useState(0)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+
+  // Vibrate on every tutorial page (when step becomes 'tutorial' or tutStep advances)
+  useEffect(() => {
+    if (step === 'tutorial') vibrateBlitz([30, 50, 30])
+  }, [step, tutStep])
 
   const plan = PLANS.find(p => p.id === selectedPlan)
 

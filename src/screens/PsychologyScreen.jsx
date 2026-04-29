@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
 import { ZONES, ELITE_QUOTES, LESSON_DATA } from '../data/constants'
+import { vibrateBlitz } from '../utils/blitz'
 
 // ─── HUD ──────────────────────────────────────────────────────────────────────
 function Hud({ xp, gems, streak }) {
@@ -332,10 +333,13 @@ function LessonOverlay({ act, zone, onClose, onComplete }) {
 function CompleteOverlay({ elapsed, accuracy, xpEarned, streak, onContinue }) {
   const m = Math.floor(elapsed / 60), s = elapsed % 60
   const trophy = accuracy >= 90 ? '🏆' : accuracy >= 70 ? '🥈' : '🥉'
+
+  useEffect(() => { vibrateBlitz([50, 30, 50, 30, 100]) }, [])
+
   return (
     <div className="absolute inset-0 z-70 bg-gray-950 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
       <div className="text-5xl mb-2 animate-scale-in">{trophy}</div>
-      <BlitzIcon size={52} className="mb-2" />
+      <BlitzIcon size={52} className="blitz-celebrate mb-2" />
       <h3 className="text-lg font-bold text-white mb-1">{accuracy >= 90 ? 'Zone Cleared! 🔥' : accuracy >= 70 ? 'Act Complete! 💪' : 'Keep Running! 🎮'}</h3>
       <p className="text-sm text-white/50 mb-5">+{xpEarned} XP · {streak} day streak · Blitz is proud!</p>
       <div className="grid grid-cols-3 gap-3 w-full max-w-[200px] mb-5">
@@ -403,7 +407,7 @@ export default function PsychologyScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a1a] relative">
+    <div className="flex flex-col h-full bg-[#0a0a1a] relative font-space-grotesk">
       <Hud xp={state.xp} gems={state.gems} streak={state.streak} />
 
       <div className="flex-1 overflow-y-auto pb-4">

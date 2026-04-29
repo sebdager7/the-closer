@@ -206,7 +206,7 @@ export default function AgencyScreen() {
   const [view, setView] = useState('landing') // landing | dashboard | apply
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto font-nunito">
       {view !== 'landing' && (
         <div className="bg-navy-900 px-4 py-3 flex items-center gap-3 border-b border-white/10 flex-shrink-0">
           <button onClick={() => setView('landing')} className="w-6 h-6 rounded-lg bg-white/10 text-white/60 flex items-center justify-center text-xs hover:bg-white/20">←</button>

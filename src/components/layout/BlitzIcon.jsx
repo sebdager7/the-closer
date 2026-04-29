@@ -1,10 +1,29 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { vibrateBlitz, zapSound } from '../../utils/blitz'
 
 export default function BlitzIcon({ size = 32, className = '' }) {
+  const [bouncing, setBouncing] = useState(false)
   const w = size
   const h = Math.round(size * 1.1)
+
+  const handleClick = () => {
+    vibrateBlitz(40)
+    zapSound()
+    setBouncing(true)
+    setTimeout(() => setBouncing(false), 500)
+  }
+
+  // If caller passes a blitz-* animation class, respect it; otherwise idle
+  const hasAnimClass = /blitz-(speaking|celebrate|idle|bounce)/.test(className)
+  const animClass = bouncing ? 'blitz-bounce' : (hasAnimClass ? '' : 'blitz-idle')
+
   return (
-    <svg width={w} height={h} viewBox="0 0 80 88" fill="none" className={className} style={{ flexShrink: 0 }}>
+    <svg
+      width={w} height={h} viewBox="0 0 80 88" fill="none"
+      className={`${animClass} ${className}`.trim()}
+      onClick={handleClick}
+      style={{ flexShrink: 0, cursor: 'pointer' }}
+    >
       <path d="M12 62 C12 38 20 24 40 24 C60 24 68 38 68 62 C68 74 55 82 40 82 C25 82 12 74 12 62 Z" fill="#111122"/>
       <path d="M22 38 L14 16 L28 28 Z" fill="#111122"/>
       <path d="M58 38 L66 16 L52 28 Z" fill="#111122"/>

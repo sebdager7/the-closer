@@ -216,7 +216,7 @@ export default function TeamChatScreen() {
   ]
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden font-nunito">
       {/* Sidebar — hidden on mobile, shown as overlay */}
       <div className={`${showSidebar ? 'fixed inset-0 z-50 flex' : 'hidden'} md:relative md:flex md:z-auto md:inset-auto`}>
         {showSidebar && <div className="flex-1 bg-black/60" onClick={() => setShowSidebar(false)} />}
