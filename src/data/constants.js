@@ -329,7 +329,7 @@ export const PLANS = [
       'White-label options',
     ],
     locked: [],
-    agencyNote: '🏢 Agency Growth Program eligible. Earn 20–35% monthly recurring per member you bring in.',
+    agencyNote: '🏢 Agency Growth Program eligible. Earn 20–40% monthly recurring per member you bring in.',
   },
 ]
 
@@ -360,7 +360,7 @@ export const AGENCY_TIERS = [
     tier: 'Tier 3 — Elite',
     name: 'Elite Partner',
     req: '50+ active members',
-    pct: 35,
+    pct: 40,
     detail: 'Forever recurring',
     perks: ['Pro: $7.20/user/mo', 'Elite: $20.00/user/mo', 'White-label', 'Dedicated account mgr'],
     style: 't3',
