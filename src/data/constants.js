@@ -445,11 +445,25 @@ export const CONF_METRICS = [
   { key: 'oneShotClose', lbl: 'One Shot Close %' },
 ]
 
-export const PROSPECT_NAMES = [
-  ['James Mitchell', 'JM'],
-  ['Sarah Patterson', 'SP'],
-  ['Robert Chen', 'RC'],
-  ['Maria Gonzalez', 'MG'],
-  ['David Thompson', 'DT'],
-  ['Karen Williams', 'KW'],
-]
+export const PROSPECT_NAMES = {
+  male: [
+    ['James Mitchell', 'JM'],
+    ['Robert Chen', 'RC'],
+    ['David Thompson', 'DT'],
+    ['Marcus Wright', 'MW'],
+    ['Carlos Rivera', 'CR'],
+    ['Tyler Brooks', 'TB'],
+    ['Kevin Hayes', 'KH'],
+    ['Brian Foster', 'BF'],
+  ],
+  female: [
+    ['Sarah Patterson', 'SP'],
+    ['Maria Gonzalez', 'MG'],
+    ['Karen Williams', 'KW'],
+    ['Aisha Johnson', 'AJ'],
+    ['Priya Patel', 'PP'],
+    ['Jessica Moore', 'JM'],
+    ['Rachel Torres', 'RT'],
+    ['Amanda Chen', 'AC'],
+  ],
+}

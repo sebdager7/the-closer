@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 import { CHAT_META, CHAT_USERS, INITIAL_CHAT_DATA } from '../data/constants'
+import { ReactionEmoji } from '../components/icons/CustomEmoji'
 
 const ME = { name: 'You (Owner)', initials: 'YN', color: '#c8a84a', role: 'owner' }
 
@@ -91,7 +92,7 @@ function MessageGroup({ msg, idx, channel, chatData, setChatData }) {
                 const reacted = state.chatReacted[key]
                 return (
                   <button key={ri} onClick={() => toggleReact(ri)} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] transition-all ${reacted ? 'border-closer-blue bg-closer-blue/20 text-closer-blue' : 'border-white/15 bg-white/5 text-white/50 hover:bg-white/10'}`}>
-                    {r.e} {r.n + (reacted ? 1 : 0)}
+                    <ReactionEmoji emoji={r.e} size={11} /> {r.n + (reacted ? 1 : 0)}
                   </button>
                 )
               })}
@@ -122,7 +123,7 @@ function MessageGroup({ msg, idx, channel, chatData, setChatData }) {
                 const reacted = state.chatReacted[key]
                 return (
                   <button key={ri} onClick={() => toggleReact(ri)} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] transition-all ${reacted ? 'border-closer-blue bg-closer-blue/20 text-closer-blue' : 'border-white/15 bg-white/5 text-white/50 hover:bg-white/10'}`}>
-                    {r.e} {r.n + (reacted ? 1 : 0)}
+                    <ReactionEmoji emoji={r.e} size={11} /> {r.n + (reacted ? 1 : 0)}
                   </button>
                 )
               })}
@@ -216,11 +217,13 @@ export default function TeamChatScreen() {
   ]
 
   return (
-    <div className="flex h-full overflow-hidden">
-      {/* Sidebar — hidden on mobile, shown as overlay */}
-      <div className={`${showSidebar ? 'fixed inset-0 z-50 flex' : 'hidden'} md:relative md:flex md:z-auto md:inset-auto`}>
-        {showSidebar && <div className="flex-1 bg-black/60" onClick={() => setShowSidebar(false)} />}
-        <div className="w-52 bg-gray-900 border-r border-white/10 flex flex-col overflow-hidden flex-shrink-0">
+    <div className="flex h-full overflow-hidden relative">
+      {/* Overlay — mobile only, behind sidebar */}
+      {showSidebar && (
+        <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setShowSidebar(false)} />
+      )}
+      {/* Sidebar — slides in from LEFT */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-52 bg-gray-900 border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ease-out md:relative md:inset-auto md:z-auto md:translate-x-0 md:flex ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
           {SIDEBAR_ITEMS.map(sec => (
             <div key={sec.section}>
               <div className="px-3 pt-3 pb-1 text-[8px] font-bold text-white/30 uppercase tracking-widest">{sec.section}</div>
@@ -248,7 +251,7 @@ export default function TeamChatScreen() {
             </div>
           </div>
         </div>
-      </div>
+      {/* end sidebar */}
 
       {/* Main chat */}
       <div className="flex flex-col flex-1 overflow-hidden">

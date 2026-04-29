@@ -2,14 +2,15 @@ const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-20250514'
 
 export async function callClaude(prompt, maxTokens = 1200) {
+  console.log('[callClaude] maxTokens:', maxTokens, '| prompt length:', prompt.length)
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
-  'Content-Type': 'application/json',
-  'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-  'anthropic-version': '2023-06-01',
-  'anthropic-dangerous-direct-browser-access': 'true',
-},
+      'Content-Type': 'application/json',
+      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
@@ -17,24 +18,29 @@ export async function callClaude(prompt, maxTokens = 1200) {
     }),
   })
   const data = await response.json()
-  if (!data.content) throw new Error(data.error?.message || `API error ${response.status}`)
-  return data.content.map(c => c.text || '').join('')
+  console.log('[callClaude] response status:', response.status, '| has content:', !!data.content)
+  const text = data.content?.[0]?.text || ''
+  if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
+  return text
 }
 
 export async function callClaudeConversation(messages, maxTokens = 200) {
+  console.log('[callClaudeConversation] msgs:', messages.length, '| maxTokens:', maxTokens)
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
-  'Content-Type': 'application/json',
-  'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-  'anthropic-version': '2023-06-01',
-  'anthropic-dangerous-direct-browser-access': 'true',
-},
+      'Content-Type': 'application/json',
+      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
   })
   const data = await response.json()
-  if (!data.content) throw new Error(data.error?.message || `API error ${response.status}`)
-  return data.content.map(c => c.text || '').join('')
+  console.log('[callClaudeConversation] status:', response.status, '| has content:', !!data.content)
+  const text = data.content?.[0]?.text || ''
+  if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
+  return text
 }
 
 export function parseJSON(text) {
@@ -63,27 +69,61 @@ const CLOSER_KB = {
   Voss:     { tech: ['tactical empathy', 'mirroring', 'emotion labeling', 'calibrated how/what questions'], pattern: 'Label their hesitation to defuse it → mirror words back → guide to yes with questions → no pressure close' },
 }
 
+const FRAMEWORK_DETAIL = {
+  'Andy Elliott 10-Step': `Andy Elliott 10-Step: (1) EXPLOSIVE pattern-interrupt opener — something they've never heard, stops them cold. (2) Sincere explosive rapport — genuine personal connection in 10 seconds. (3) Pain discovery — "What's the biggest frustration you have right now with X?" (4) Amplify pain — make staying the same cost more emotionally than changing. (5) Credibility stack — one specific client result story with a number. (6) Bridge to dream outcome. (7) Assumptive present-tense pitch — talk as if they already own it. (8) Tie-down questions after every benefit — "makes sense, right?" / "you'd agree that...?" (9) Pre-close — "If I could solve X for you today, what would stop you from moving forward?" (10) Hard assumptive close — "So when do we get started?" — no question mark energy.`,
+  'Belfort Straight Line': `Jordan Belfort Straight Line: Open with certainty — zero stumble, zero hesitation, own the call in 4 seconds. Gather intel fast with sharp targeted questions. Build the THREE certainties in order: (1) Product is the best solution for their problem, (2) You personally are an expert they can trust, (3) Your company is solid and will deliver. Loop any objection back into certainty — never get knocked off the line. Use loaded tonality throughout: enthusiastic but never pushy. Signature pattern: "I know you're probably a bit skeptical — and that's exactly why I want to show you..."`,
+  'Cardone Tonality': `Grant Cardone: Agree with EVERYTHING, then overwhelm with stacked value. Never reduce price — always add more. 10X energy from word one — match their energy and then raise it. Price stack: "It's not $X — it's $X that gives you A, B, C, D, and E." After every objection: "You're absolutely right — and here's exactly WHY that's the reason most people in your situation end up..." Never accept the first no — treat it as a request for more information. Make inaction feel like the real financial risk.`,
+  'Ziglar Story-Close': `Zig Ziglar Story-Close: Genuine warmth and interest in THEM first — they must feel truly seen. Build real trust through sincere curiosity. Tell a specific client story: someone who had their exact same hesitation, almost said no, and ended up grateful they moved forward. Future-pace vividly with sensory detail: "Picture yourself 90 days from now..." Assume the sale with quiet unshakeable confidence: "So when would work best to get you started?" — zero pressure, total certainty.`,
+  'Hormozi Value Stack': `Alex Hormozi Grand Slam Offer: Lead with DREAM OUTCOME, not product features. Stack every benefit as a separate line-item value. Anchor each item with a dollar figure. Then reverse the risk completely with a guarantee that makes saying no feel stupid. ROI anchor: "What would it honestly be worth to you if we could get you [specific outcome] in [timeframe]?" Make NOT buying feel like the irrational, expensive choice.`,
+  'Problem/Agitate/Solve': `Problem/Agitate/Solve: Open by naming their exact problem so precisely they feel you read their mind — specificity creates instant trust. Agitate: paint the full cost of staying stuck — time lost, money left on the table, stress compounding, regret building. Then solve: present your solution as the only logical escape from that trap. Close before they can overthink it — momentum is everything.`,
+}
+
 export async function generatePitch(product, industry, framework, audience, keywords, language, customBrain = {}) {
   const names = Object.keys(CLOSER_KB)
   const shuffled = [...names].sort(() => Math.random() - 0.5)
   const selected = shuffled.slice(0, 2 + Math.floor(Math.random() * 2))
-  const blend = selected.join(' × ')
-  const closerDetail = selected.map(n => `${n}: ${CLOSER_KB[n].tech.slice(0, 3).join(', ')}. Pattern: ${CLOSER_KB[n].pattern}.`).join('\n')
-  const brainCtx = customBrain.offer ? `\nCustom offer: ${customBrain.offer}. ICP: ${customBrain.icp}.` : ''
-  const prompt = `You are an elite pitch writer fusing the exact techniques of: ${blend}.
+  const closerDetail = selected.map(n => {
+    const kb = CLOSER_KB[n]
+    return `${n}:\n  Techniques: ${kb.tech.join(', ')}\n  Pattern: ${kb.pattern}`
+  }).join('\n\n')
+  const brainCtx = customBrain.offer ? `\nCustom offer context: ${customBrain.offer}. Target ICP: ${customBrain.icp}.` : ''
+  const fwDetail = FRAMEWORK_DETAIL[framework] || `Apply ${framework} principles throughout.`
 
-CLOSER TECHNIQUES TO BLEND:
+  const prompt = `You are the world's most elite pitch writer, trained on the exact systems of ${selected.join(', ')}.
+
+PRIMARY FRAMEWORK: ${framework}
+${fwDetail}
+
+CLOSER BLEND TO WEAVE THROUGHOUT:
 ${closerDetail}
 
-Framework: ${framework} | Product: ${product} | Industry: ${industry} | Audience: ${audience} | Keywords: ${keywords}${brainCtx}
-Language: ${language}
+PITCH SPECS:
+- Product/service: ${product}
+- Industry: ${industry}
+- Audience: ${audience || 'prospects'}
+- Power keywords to include: ${keywords || 'value, results, now'}${brainCtx}
+- Language: ${language}
 
-Write a 150-250 word pitch that authentically blends these styles. Identify 2-3 POWER MOMENTS — exact lines where a specific closer technique fires at maximum impact.
+MANDATORY REQUIREMENTS:
+1. Open with a PATTERN INTERRUPT — an unexpected question or bold statement that stops them cold, not "Hi, how are you"
+2. Include pain amplification — the emotional cost of NOT acting, not just product features
+3. Use an ASSUMPTIVE close — treat yes as the natural inevitable outcome
+4. Include at least 2 tie-down moments ("...makes sense, right?" / "you'd agree that..." style)
+5. EXACTLY 180-250 words — count carefully
+6. Sound like a real elite human salesperson speaking live, not a marketing script
 
-Return ONLY valid JSON with no markdown:
-{"pitch":"full pitch text","hook_score":85,"confidence_score":78,"close_score":82,"feedback":"how the closer blend was applied","strength_tags":["tag1","tag2","tag3"],"closer_blend":"${blend}","technique_used":"primary technique name","power_moments":[{"line":"exact quote from pitch","technique":"closer name + technique","impact":"why this line closes"}]}`
-  const raw = await callClaude(prompt, 1700)
-  return parseJSON(raw)
+Identify exactly 3 POWER MOMENT lines from your pitch where a specific closer technique fires at maximum impact — copy the exact line from the pitch.
+
+Return ONLY valid JSON, no markdown, no extra text, starting with {:
+{"pitch":"complete pitch text 180-250 words","hook_score":number 1-100,"confidence_score":number 1-100,"close_score":number 1-100,"feedback":"specific explanation of how each closer's techniques appear in this exact pitch","strength_tags":["tag1","tag2","tag3"],"closer_blend":["${selected.join('","')}"],"technique_used":"name of the single most dominant technique in this pitch","power_moments":["exact line from pitch showing closer technique 1","exact line showing technique 2","exact line showing technique 3"]}`
+
+  console.log('[generatePitch] product:', product, '| blend:', selected.join(' × '))
+  const raw = await callClaude(prompt, 1900)
+  const result = parseJSON(raw)
+  if (!Array.isArray(result.closer_blend)) result.closer_blend = [result.closer_blend].filter(Boolean)
+  if (!Array.isArray(result.power_moments)) result.power_moments = []
+  result.power_moments = result.power_moments.map(pm => typeof pm === 'string' ? pm : pm.line || JSON.stringify(pm))
+  return result
 }
 
 export async function improvePitch(existingPitch, industry, framework, language) {
@@ -104,10 +144,14 @@ STEP 2 — REBUILD using ${framework} patterns. Inject real closer power. Langua
 Original pitch: "${existingPitch}"
 Industry: ${industry}
 
-Return ONLY valid JSON with no markdown:
-{"pitch":"completely rebuilt 150-250 word pitch","hook_score":90,"confidence_score":85,"close_score":88,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":[{"line":"exact quote from rebuilt pitch","technique":"specific technique","impact":"why this now works"}]}`
-  const raw = await callClaude(prompt, 1700)
-  return parseJSON(raw)
+Return ONLY valid JSON with no markdown, starting with {:
+{"pitch":"completely rebuilt 180-250 word pitch","hook_score":number,"confidence_score":number,"close_score":number,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":["exact quote from rebuilt pitch showing elite technique 1","exact quote showing technique 2","exact quote showing technique 3"]}`
+  console.log('[improvePitch] framework:', framework, '| industry:', industry)
+  const raw = await callClaude(prompt, 1900)
+  const result = parseJSON(raw)
+  if (!Array.isArray(result.power_moments)) result.power_moments = []
+  result.power_moments = result.power_moments.map(pm => typeof pm === 'string' ? pm : pm.line || JSON.stringify(pm))
+  return result
 }
 
 export async function getBrutalFeedback(userText) {

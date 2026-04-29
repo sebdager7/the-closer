@@ -149,21 +149,17 @@ function analyzeMood(text) {
   return '😐'
 }
 
-function getBestVoice() {
+function getHumanVoice(gender = 'female') {
   const voices = window.speechSynthesis?.getVoices() || []
-  const scored = voices
-    .filter(v => v.lang.startsWith('en'))
-    .map(v => ({
-      voice: v,
-      score: (v.name.includes('Google') ? 30 : 0)
-           + (v.lang === 'en-US' ? 20 : 0)
-           + (v.name.includes('Samantha') ? 15 : 0)
-           + (v.name.includes('Karen') || v.name.includes('Daniel') ? 5 : 0)
-           + (v.name.toLowerCase().includes('espeak') ? -30 : 0)
-           + (v.lang === 'en-GB' ? -5 : 0),
-    }))
-    .sort((a, b) => b.score - a.score)
-  return scored[0]?.voice || null
+  const femalePriority = ['Google US English', 'Google UK English Female', 'Samantha', 'Karen', 'Moira', 'Tessa', 'Fiona']
+  const malePriority   = ['Google US English', 'Google UK English Male', 'Daniel', 'Alex', 'Tom', 'Fred']
+  const priority = gender === 'female' ? femalePriority : malePriority
+  for (const name of priority) {
+    const match = voices.find(v => v.name === name || v.name.startsWith(name))
+    if (match) return match
+  }
+  const eng = voices.filter(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'))
+  return eng[0] || voices[0] || null
 }
 
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
@@ -200,6 +196,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const audioCtxRef = useRef(null)
   const staticRef = useRef(null)
   const profileRef = useRef(null)
+  const prospectGenderRef = useRef('female')
   const recognitionRef = useRef(null)
   const canvasRef = useRef(null)
   const analyserRef = useRef(null)
@@ -278,20 +275,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   // ── Voice synthesis ──────────────────────────────────────────
   const speakMessage = (text, isOpener = false) => {
     if (muteRef.current || !window.speechSynthesis) return
-    const delayMs = isOpener
-      ? 1500 + Math.random() * 500
-      : 700 + Math.random() * 600
+    const delayMs = isOpener ? 1500 + Math.random() * 500 : 700 + Math.random() * 600
+    const gender = prospectGenderRef.current
 
     setTimeout(() => {
       window.speechSynthesis.cancel()
       const utter = new SpeechSynthesisUtterance(text)
-      const p = profileRef.current
-      utter.rate  = 0.92 + ((p?.age  || 40) % 10) * 0.013
-      utter.pitch = 0.95 + ((p?.name?.length || 8) % 6) * 0.025
+      utter.rate   = gender === 'female' ? 0.95 : 0.9
+      utter.pitch  = gender === 'female' ? 1.1  : 0.88
       utter.volume = 1.0
 
       const doSpeak = () => {
-        const v = getBestVoice()
+        const v = getHumanVoice(gender)
         if (v) utter.voice = v
         utter.onstart = () => setIsSpeaking(true)
         utter.onend   = () => setIsSpeaking(false)
@@ -357,10 +352,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       setGeneratingProfile(true)
       try {
         const profile = await generateProspectProfile(industry, difficulty)
-        if (!cancelled) { profileRef.current = profile; setProspectProfile(profile) }
+        if (!cancelled) {
+          const gender = Math.random() > 0.5 ? 'female' : 'male'
+          prospectGenderRef.current = gender
+          profileRef.current = profile
+          setProspectProfile(profile)
+        }
       } catch (e) {
         if (!cancelled) {
-          const fb = PROSPECT_NAMES[Math.floor(Math.random() * PROSPECT_NAMES.length)]
+          const gender = Math.random() > 0.5 ? 'female' : 'male'
+          prospectGenderRef.current = gender
+          const nameList = PROSPECT_NAMES[gender] || PROSPECT_NAMES.female
+          const fb = nameList[Math.floor(Math.random() * nameList.length)]
           const fallback = {
             name: fb[0], age: 42, occupation: 'Business Owner', location: 'Phoenix, AZ',
             personality: 'Direct and skeptical. Values their time above all else.',
@@ -425,20 +428,33 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   const updateTone = (text) => {
     const t = text.toLowerCase()
+    const TONE_RULES = [
+      { kws: ["let's do it", "i'll take it", "sign me up", "ready to start", "how do we get started", "yes deal", "where do i sign", "let's move forward"], delta: 25 },
+      { kws: ["sounds good", "i like that", "makes sense", "could work", "that's fair", "i'm in", "okay i'm open", "fair enough", "that's interesting"], delta: 15 },
+      { kws: ["tell me more", "how does it work", "what's included", "walk me through", "could be", "not bad", "what are my options", "explain that"], delta: 10 },
+      { kws: ["hmm", "maybe", "possibly", "i suppose", "not sure yet", "i'll consider it"], delta: 3 },
+      { kws: ["need to think", "think about it", "call me back later", "not right now", "maybe later", "not today", "talk to my", "check with my"], delta: -8 },
+      { kws: ["expensive", "too much", "over budget", "can't afford", "price is too high", "not in the budget", "costs too much"], delta: -12 },
+      { kws: ["not interested", "don't need it", "stop calling me", "no thanks", "happy with what i have", "already have something", "not looking"], delta: -20 },
+      { kws: ["hang up", "leave me alone", "don't ever call again", "remove me", "waste of my time", "goodbye", "get out"], delta: -28 },
+    ]
+
+    let delta = 0
+    for (const rule of TONE_RULES) {
+      if (rule.kws.some(k => t.includes(k))) { delta = rule.delta; break }
+    }
+
     setClosePct(prev => {
-      let p = prev
-      if (t.includes('not interested') || t.includes('leave') || t.includes('frustrated')) p = Math.max(p - 18, 5)
-      else if (t.includes('not sure') || t.includes('expensive') || t.includes('think about')) p = Math.max(p - 8, 5)
-      else if (t.includes('tell me more') || t.includes('interesting') || t.includes('how does')) p = Math.min(p + 10, 90)
-      else if (t.includes("let's do") || t.includes("i'll take") || t.includes("sounds good")) p = Math.min(p + 25, 98)
-      return p
+      const next = Math.max(5, Math.min(98, prev + delta))
+      if (next >= 70) setMood({ label: 'Warming up', cls: 'bg-green-900/60 text-green-300' })
+      else if (next >= 45) setMood({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
+      else if (next >= 25) setMood({ label: 'Skeptical', cls: 'bg-yellow-900/60 text-yellow-300' })
+      else setMood({ label: 'Frustrated', cls: 'bg-red-900/60 text-red-300' })
+      return next
     })
-    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready']
+
+    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget']
     if (objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
-    if (closePct >= 70) setMood({ label: 'Warming up', cls: 'bg-green-900/60 text-green-300' })
-    else if (closePct >= 45) setMood({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
-    else if (closePct >= 25) setMood({ label: 'Skeptical', cls: 'bg-yellow-900/60 text-yellow-300' })
-    else setMood({ label: 'Frustrated', cls: 'bg-red-900/60 text-red-300' })
   }
 
   const addMsg = (role, text, isBrutal = false) => {
@@ -469,21 +485,34 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     const extras = { bru: '\nBRUTAL MODE: Be very skeptical and call out every weak word.', one: '\nONE SHOT: Highly resistant. Shut down fast if they blow the opening.', std: '', rfm: '' }
     const sys = `You are ${p.name}, ${p.age} years old, ${p.occupation} from ${p.location}.
 Personality: ${p.personality}
-Today: ${p.mood_today}
+Today's mood: ${p.mood_today}
 Backstory: ${p.backstory}
 Speech pattern: ${p.speech_pattern}
 ${brainCtx}${extras[mode] || ''}
-You are receiving an unexpected ${industry} sales call. React EXACTLY like a real human would:
+You are receiving an unexpected ${industry} sales call. Be a REAL human — not a helpful assistant.
+
+REACTIONS:
 - Start with your opening line: "${p.opening_line}"
-- Match your speech pattern perfectly. Use ums if you do. Be terse if you are.
 - Main objection when they pitch: ${p.main_objection}
 - What would make you buy: ${p.trigger_to_buy}
-- If the rep is skilled, warm up naturally. If bad, get cold, annoyed, or say you need to run.
-- Use real human reactions: "Hmm", "I mean...", "Look,", "Yeah but", "Actually..."
-- If pushed too hard, threaten to hang up or just say goodbye naturally.
+
+HUMAN SPEECH — use these naturally:
+- Filler words when hesitant: "um", "uh", "I mean", "you know", "so...", "honestly"
+- Pause reactions: "Hmm..." or "..." before answering tough questions
+- Good-point reactions: "Okay, I'll give you that", "That's... actually fair", "Huh, interesting"
+- Weak-pitch reactions: "Look, I really gotta get back to work", "Yeah I've heard that before", "Uh huh..."
+- Mid-thought changes: "Actually — wait, what was that price again?"
+
+MOOD ESCALATION:
+- Rep shows real specific value + numbers → warm up one level, show genuine interest
+- Rep is vague, uses filler, sounds scripted → pull back, get slightly more dismissive
+- Rep pushes after clear objection → pull back further, mention family or time
+- Rep genuinely acknowledges your concern → stay engaged, give them more time
+- If pushed too hard twice → threaten to hang up or simply say goodbye
+
 - NEVER say you're an AI. You ARE ${p.name}. Stay fully in character.
-- Keep responses 1-3 sentences like a real phone call. No bullet points.
-- Difficulty: ${difficulty}. Adjust resistance accordingly.
+- Keep responses 1-3 sentences — real phone call rhythm. No bullet points. No long speeches.
+- Difficulty: ${difficulty}. Harder = more resistant, more skeptical, shorter answers.
 Respond in ${language}. Start with your opening line now.`
 
     chatRef.current = [{ role: 'user', content: sys + `\n\n[Call starting. Respond in ${language}.]` }]
@@ -601,7 +630,7 @@ Respond in ${language}. Start with your opening line now.`
             {callConnected ? '📞 LIVE' : 'CONNECTING'}
           </span>
         </div>
-        <span className="text-lg font-bold text-white font-mono">{fmt(secs)}</span>
+        <span className="text-lg font-bold text-white font-mono tabular-nums">{fmt(secs)}</span>
         <div className="flex gap-1.5 items-center">
           {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
           <button onClick={toggleMute} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20" title={isMuted ? 'Unmute' : 'Mute'}>

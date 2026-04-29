@@ -24,6 +24,16 @@
     overscroll-behavior: none;
     font-family: 'Fredoka One', 'Fredoka', cursive;
     letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* DM Mono for all number contexts */
+  .font-mono,
+  .text-mono,
+  [class*="timer"],
+  [class*="countdown"] {
+    font-family: 'DM Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Custom scrollbar */

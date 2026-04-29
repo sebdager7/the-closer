@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import { useApp } from '../context/AppContext'
-import { generatePitch, improvePitch } from '../utils/api'
+import { generatePitch, improvePitch, callClaude } from '../utils/api'
 import { INDUSTRIES, PITCH_FRAMEWORKS, REBUILD_FRAMEWORKS } from '../data/constants'
 
 export default function PitchScreen() {
@@ -11,6 +11,19 @@ export default function PitchScreen() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [lastPromptArgs, setLastPromptArgs] = useState(null)
+  const [testResult, setTestResult] = useState(null)
+  const [testLoading, setTestLoading] = useState(false)
+
+  const handleTest = async () => {
+    setTestLoading(true); setTestResult(null)
+    try {
+      const r = await callClaude('Reply with exactly: API OK', 20)
+      setTestResult({ ok: true, msg: r.trim().slice(0, 60) })
+    } catch (e) {
+      setTestResult({ ok: false, msg: e.message.slice(0, 80) })
+    }
+    setTestLoading(false)
+  }
 
   // Create form state
   const [product, setProduct] = useState('')
@@ -72,6 +85,18 @@ export default function PitchScreen() {
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4">
       <BlitzBar message="I build pitches using <strong>Andy Elliott's 10-step</strong>, <strong>Belfort's Straight Line</strong>, <strong>Cardone's tonality</strong>. Real patterns. Not AI theory." />
+
+      {/* Test API */}
+      <div className="flex items-center gap-2 mb-3">
+        <button onClick={handleTest} disabled={testLoading} className="px-3 py-1.5 rounded-lg bg-white/8 border border-white/15 text-white/50 text-xs hover:bg-white/12 disabled:opacity-40 transition-colors">
+          {testLoading ? '⏳' : '🔌'} Test API
+        </button>
+        {testResult && (
+          <span className={`text-xs ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+            {testResult.ok ? `✓ Connected — ${testResult.msg}` : `✗ ${testResult.msg}`}
+          </span>
+        )}
+      </div>
 
       {/* Mode tabs */}
       <div className="flex gap-2 mb-4">
@@ -178,12 +203,14 @@ export default function PitchScreen() {
             </div>
           )}
 
-          {result.closer_blend && mode === 'create' && (
+          {result.closer_blend?.length > 0 && mode === 'create' && (
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[9px] font-bubble text-white/40 uppercase tracking-wider">Closer Blend</span>
-              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-gold-500/20 to-gold-400/10 border border-gold-500/40 text-gold-400">
-                ⚡ {result.closer_blend}
-              </span>
+              {(Array.isArray(result.closer_blend) ? result.closer_blend : [result.closer_blend]).map((c, i) => (
+                <span key={i} className="px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-gold-500/20 to-gold-400/10 border border-gold-500/40 text-gold-400">
+                  ⚡ {c}
+                </span>
+              ))}
             </div>
           )}
 
@@ -193,9 +220,8 @@ export default function PitchScreen() {
               <div className="space-y-2">
                 {result.power_moments.map((pm, i) => (
                   <div key={i} className="bg-gold-500/5 border border-gold-500/25 rounded-xl px-3.5 py-2.5">
-                    <p className="text-sm text-gold-300 font-medium leading-relaxed italic">"{pm.line}"</p>
-                    <p className="text-[9px] text-gold-500/70 font-bold uppercase tracking-wider mt-1.5">{pm.technique}</p>
-                    <p className="text-[9px] text-white/40 mt-0.5">{pm.impact}</p>
+                    <p className="text-sm text-gold-300 font-medium leading-relaxed italic">"{typeof pm === 'string' ? pm : pm.line}"</p>
+                    {pm.technique && <p className="text-[9px] text-gold-500/70 font-bold uppercase tracking-wider mt-1.5">{pm.technique}</p>}
                   </div>
                 ))}
               </div>

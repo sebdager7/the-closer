@@ -122,3 +122,70 @@ export function TargetEmoji({ size = 16 }) {
     </svg>
   )
 }
+
+export function FlameEmoji({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <path d="M16 2C13 8 8 11 8 17a8 8 0 0016 0c0-3-2-5-3-7-1.5 3-2.5 4.5-2.5 7a2 2 0 01-4 0c0-4 3-7 3-15z"
+        fill="#f97316" stroke="#ea580c" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M16 10c-1.5 3-2 4.5-2 7a2 2 0 004 0c0-2.5-.5-4.5-2-7z" fill="#fbbf24"/>
+      <ellipse cx="16" cy="20" rx="2" ry="2.5" fill="#fef08a" opacity="0.9"/>
+    </svg>
+  )
+}
+
+export function MuscleEmoji({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <path d="M6 20C6 12 10 8 16 8C22 8 26 12 26 20C26 22 24 24 22 24"
+        fill="#f97316" stroke="#ea580c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M22 24C20 26 18 27 16 27C12 27 9 25 8 22C7 20 8 18 10 17"
+        fill="#f97316" stroke="#ea580c" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <ellipse cx="16" cy="14" rx="5" ry="4" fill="#fb923c" opacity="0.5"/>
+      <path d="M13 12Q14 10 16 11" stroke="white" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+    </svg>
+  )
+}
+
+export function HundredEmoji({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <rect x="1" y="5" width="30" height="16" rx="3" fill="#ef4444" fillOpacity="0.15" stroke="#ef4444" strokeWidth="1.5"/>
+      <text x="4" y="17" fontSize="11" fontWeight="900" fill="#ef4444" fontFamily="Arial,sans-serif">100</text>
+      <line x1="3" y1="24" x2="29" y2="24" stroke="#ef4444" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="5" y1="28" x2="27" y2="28" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function LightbulbEmoji({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+      <circle cx="16" cy="13" r="9" fill="#fde047" fillOpacity="0.18"/>
+      <path d="M11 15C11 11 13 7 16 7C19 7 21 11 21 15C21 17 20 18.5 19 20L13 20C12 18.5 11 17 11 15Z"
+        fill="#fde047" stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round"/>
+      <rect x="13" y="20" width="6" height="2" rx="1" fill="#f59e0b"/>
+      <rect x="13.5" y="22" width="5" height="2" rx="1" fill="#f59e0b"/>
+      <path d="M13 13Q14 9 16 10" stroke="white" strokeWidth="1.3" strokeLinecap="round" opacity="0.7"/>
+      <line x1="16" y1="3" x2="16" y2="5" stroke="#fde047" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="22" y1="5.5" x2="20.5" y2="7" stroke="#fde047" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="10" y1="5.5" x2="11.5" y2="7" stroke="#fde047" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+export function ReactionEmoji({ emoji, size = 14 }) {
+  const map = {
+    '🔥': FlameEmoji,
+    '💰': MoneyEmoji,
+    '💪': MuscleEmoji,
+    '💯': HundredEmoji,
+    '🏆': TrophyEmoji,
+    '⚡': LightningEmoji,
+    '💡': LightbulbEmoji,
+    '🎯': TargetEmoji,
+  }
+  const Component = map[emoji]
+  if (Component) return <Component size={size} />
+  return <span style={{ fontSize: size, lineHeight: 1 }}>{emoji}</span>
+}
