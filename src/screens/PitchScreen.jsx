@@ -170,6 +170,57 @@ export default function PitchScreen() {
               ))}
             </div>
           )}
+
+          {result.closer_blend && mode === 'create' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[9px] font-bubble text-white/40 uppercase tracking-wider">Closer Blend</span>
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-gold-500/20 to-gold-400/10 border border-gold-500/40 text-gold-400">
+                ⚡ {result.closer_blend}
+              </span>
+            </div>
+          )}
+
+          {result.power_moments?.length > 0 && (
+            <div>
+              <div className="text-[9px] font-bubble text-gold-400/70 uppercase tracking-widest mb-2">Power Moments</div>
+              <div className="space-y-2">
+                {result.power_moments.map((pm, i) => (
+                  <div key={i} className="bg-gold-500/5 border border-gold-500/25 rounded-xl px-3.5 py-2.5">
+                    <p className="text-sm text-gold-300 font-medium leading-relaxed italic">"{pm.line}"</p>
+                    <p className="text-[9px] text-gold-500/70 font-bold uppercase tracking-wider mt-1.5">{pm.technique}</p>
+                    <p className="text-[9px] text-white/40 mt-0.5">{pm.impact}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {mode === 'improve' && result.what_was_wrong?.length > 0 && (
+            <div className="space-y-2">
+              <div className="bg-red-500/8 border border-red-500/25 rounded-xl p-3">
+                <div className="text-[9px] font-bubble text-red-400 uppercase tracking-wider mb-2">What was wrong</div>
+                <ul className="space-y-1">
+                  {result.what_was_wrong.map((w, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-red-300/80">
+                      <span className="text-red-500 mt-0.5 flex-shrink-0">✕</span> {w}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {result.what_was_fixed?.length > 0 && (
+                <div className="bg-green-500/8 border border-green-500/25 rounded-xl p-3">
+                  <div className="text-[9px] font-bubble text-green-400 uppercase tracking-wider mb-2">What was fixed</div>
+                  <ul className="space-y-1">
+                    {result.what_was_fixed.map((w, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-green-300/80">
+                        <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span> {w}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

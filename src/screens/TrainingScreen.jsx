@@ -168,7 +168,6 @@ function getBestVoice() {
 
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
   const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [secs, setSecs] = useState(0)
   const [closePct, setClosePct] = useState(30)
@@ -184,6 +183,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [autopsyLoading, setAutopsyLoading] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [micState, setMicState] = useState('idle')
+  const [interimText, setInterimText] = useState('')
+  const [holdToTalk, setHoldToTalk] = useState(false)
   const [prospectProfile, setProspectProfile] = useState(null)
   const [showPreview, setShowPreview] = useState(true)
   const [generatingProfile, setGeneratingProfile] = useState(true)
@@ -197,6 +199,11 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const audioCtxRef = useRef(null)
   const staticRef = useRef(null)
   const profileRef = useRef(null)
+  const recognitionRef = useRef(null)
+  const canvasRef = useRef(null)
+  const analyserRef = useRef(null)
+  const waveStreamRef = useRef(null)
+  const animFrameRef = useRef(null)
 
   // ── Phone static ──────────────────────────────────────────────
   const startPhoneStatic = () => {
@@ -221,6 +228,50 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const stopPhoneStatic = () => {
     try { staticRef.current?.stop() } catch (e) {}
     try { audioCtxRef.current?.close() } catch (e) {}
+  }
+
+  // ── Waveform visualizer ──────────────────────────────────────
+  const startWaveform = async () => {
+    if (!canvasRef.current) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      waveStreamRef.current = stream
+      const wCtx = new (window.AudioContext || window.webkitAudioContext)()
+      const src = wCtx.createMediaStreamSource(stream)
+      const analyser = wCtx.createAnalyser()
+      analyser.fftSize = 512
+      src.connect(analyser)
+      analyserRef.current = { analyser, ctx: wCtx }
+      const canvas = canvasRef.current
+      const cCtx = canvas.getContext('2d')
+      const buf = new Uint8Array(analyser.frequencyBinCount)
+      const draw = () => {
+        animFrameRef.current = requestAnimationFrame(draw)
+        if (!canvasRef.current) return
+        analyser.getByteTimeDomainData(buf)
+        cCtx.clearRect(0, 0, canvas.width, canvas.height)
+        cCtx.strokeStyle = '#1a6bbf'
+        cCtx.lineWidth = 2.5
+        cCtx.beginPath()
+        const sw = canvas.width / buf.length
+        let x = 0
+        buf.forEach((val, i) => {
+          const y = (val / 128) * (canvas.height / 2)
+          if (i === 0) cCtx.moveTo(x, y); else cCtx.lineTo(x, y)
+          x += sw
+        })
+        cCtx.stroke()
+      }
+      draw()
+    } catch (e) {}
+  }
+
+  const stopWaveform = () => {
+    if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null }
+    try { analyserRef.current?.ctx?.close() } catch (e) {}
+    try { waveStreamRef.current?.getTracks().forEach(t => t.stop()) } catch (e) {}
+    waveStreamRef.current = null; analyserRef.current = null
+    if (canvasRef.current) canvasRef.current.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
   }
 
   // ── Voice synthesis ──────────────────────────────────────────
@@ -257,6 +308,45 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     muteRef.current = next
     setIsMuted(next)
     if (next) { window.speechSynthesis?.cancel(); setIsSpeaking(false) }
+  }
+
+  // ── Voice recognition ────────────────────────────────────────
+  const startListening = () => {
+    if (loading) return
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) { setMicState('unsupported'); return }
+    window.speechSynthesis?.cancel(); setIsSpeaking(false)
+    const r = new SR()
+    r.continuous = false; r.interimResults = true; r.lang = 'en-US'
+    r.onstart = () => { setMicState('listening'); setTimeout(() => startWaveform(), 80) }
+    r.onresult = (event) => {
+      let interim = '', final = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) final += event.results[i][0].transcript
+        else interim += event.results[i][0].transcript
+      }
+      setInterimText(interim || final)
+      if (final) {
+        setInterimText('')
+        try { r.abort() } catch (e) {}
+        handleVoiceSend(final.trim())
+      }
+    }
+    r.onerror = (e) => {
+      setMicState(e.error === 'not-allowed' ? 'error' : 'idle')
+      setInterimText(''); stopWaveform()
+    }
+    r.onend = () => { setMicState(s => s === 'error' ? 'error' : 'idle'); stopWaveform() }
+    recognitionRef.current = r
+    try { r.start() } catch (e) { setMicState('idle') }
+  }
+
+  const handleMicClick = () => {
+    if (micState === 'listening') {
+      try { recognitionRef.current?.stop() } catch (e) {}
+    } else {
+      startListening()
+    }
   }
 
   // ── Generate prospect profile ────────────────────────────────
@@ -325,6 +415,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       clearInterval(oneshotRef.current)
       window.speechSynthesis?.cancel()
       stopPhoneStatic()
+      try { recognitionRef.current?.abort() } catch (e) {}
+      stopWaveform()
     }
   }, [])
 
@@ -354,6 +446,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   const showBotReply = async (reply, isOpener = false) => {
+    try { recognitionRef.current?.abort() } catch (e) {}
+    setMicState(s => s === 'error' ? 'error' : 'idle')
+    setInterimText(''); stopWaveform()
     const delay = isOpener ? 1600 + Math.random() * 500 : 700 + Math.random() * 600
     await new Promise(res => setTimeout(res, delay))
     addMsg('bot', reply)
@@ -400,10 +495,9 @@ Respond in ${language}. Start with your opening line now.`
     setLoading(false)
   }
 
-  const handleSend = async () => {
-    const text = input.trim()
+  const handleVoiceSend = async (text) => {
     if (!text || loading) return
-    setInput('')
+    setMicState('idle'); setInterimText(''); stopWaveform()
     addMsg('usr', text)
     chatRef.current.push({ role: 'user', content: text })
     const userCount = callMsgs.filter(m => m.role === 'usr').length + 1
@@ -501,6 +595,9 @@ Respond in ${language}. Start with your opening line now.`
           <button onClick={toggleMute} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20" title={isMuted ? 'Unmute' : 'Mute'}>
             {isMuted ? '🔇' : '🔊'}
           </button>
+          <button onClick={() => setHoldToTalk(h => !h)} className={`px-2 py-1.5 text-[10px] font-bold rounded-lg transition-all ${holdToTalk ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30' : 'bg-white/10 text-white/50 hover:bg-white/20'}`} title="Switch mic mode">
+            {holdToTalk ? 'HOLD' : 'TAP'}
+          </button>
           <button onClick={() => onEnd(closePct, 'restart')} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺</button>
           <button onClick={handleEnd} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-red-700 text-white hover:bg-red-600">✕ End</button>
         </div>
@@ -568,21 +665,48 @@ Respond in ${language}. Start with your opening line now.`
         <div ref={msgsEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex gap-2 px-3 py-3 bg-gray-900 border-t border-white/10 flex-shrink-0">
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
-          placeholder="Type your response..."
-          className="flex-1 bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-closer-blue"
-        />
-        <button onClick={handleSend} disabled={loading || !input.trim()} className="px-4 py-2.5 bg-closer-blue text-white font-bold rounded-xl text-sm disabled:opacity-40">Send</button>
+      {/* Voice controls */}
+      <div className="flex flex-col items-center gap-2 px-4 pt-3 pb-4 bg-gray-900 border-t border-white/10 flex-shrink-0">
+        {interimText ? (
+          <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-2 text-sm text-white/80 italic w-full text-center">
+            "{interimText}"
+          </div>
+        ) : null}
+        <canvas ref={canvasRef} width={280} height={28} className={`w-full rounded opacity-80 ${micState === 'listening' ? '' : 'hidden'}`} />
+        {micState === 'error' && (
+          <p className="text-xs text-red-400 text-center">Microphone access is required. Enable in browser settings.</p>
+        )}
+        {micState === 'unsupported' && (
+          <p className="text-xs text-yellow-400 text-center">Voice training requires Chrome or Safari.</p>
+        )}
+        <button
+          onPointerDown={holdToTalk ? (e) => { e.preventDefault(); startListening() } : undefined}
+          onPointerUp={holdToTalk ? () => { try { recognitionRef.current?.stop() } catch (e) {} } : undefined}
+          onClick={!holdToTalk ? handleMicClick : undefined}
+          disabled={loading || micState === 'unsupported'}
+          className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-30 ${
+            micState === 'listening'
+              ? 'bg-red-600 scale-110 shadow-xl shadow-red-500/50 mic-pulse'
+              : micState === 'error'
+              ? 'bg-red-900/50 border-2 border-red-500/50'
+              : isSpeaking
+              ? 'bg-navy-700 border border-white/20'
+              : 'bg-closer-blue hover:bg-blue-600 active:scale-95'
+          }`}
+        >
+          {micState === 'listening' ? '🎙' : micState === 'error' ? '⚠️' : isSpeaking ? '🔇' : '🎤'}
+        </button>
+        <p className="text-[9px] text-white/30">
+          {micState === 'listening'
+            ? (holdToTalk ? 'Release to send' : 'Listening... tap to stop')
+            : isSpeaking ? 'AI speaking...'
+            : holdToTalk ? 'Hold to speak' : 'Tap to speak'}
+        </p>
       </div>
 
       {/* Reframe popup */}
       {reframeOpen && (
-        <div className="absolute bottom-20 left-3 right-3 bg-navy-900 border border-closer-blue rounded-xl p-3 z-30 shadow-2xl shadow-closer-blue/20">
+        <div className="absolute bottom-28 left-3 right-3 bg-navy-900 border border-closer-blue rounded-xl p-3 z-30 shadow-2xl shadow-closer-blue/20">
           <div className="flex items-center gap-2 mb-2">
             <BlitzIcon size={18} />
             <p className="text-[10px] text-gold-400 font-bold flex-1"><LightningEmoji size={12}/> Objection detected — tap for reframes</p>

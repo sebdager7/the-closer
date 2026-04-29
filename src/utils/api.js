@@ -48,18 +48,60 @@ export async function getRebuttal(objection, industry, language, customBrain = {
   return parseJSON(raw)
 }
 
+const CLOSER_KB = {
+  Elliott:  { tech: ['10-step conviction transfer', 'tie-down questions', 'assumptive close', 'mirror rapport'], pattern: 'Build massive rapport → amplify pain → stack value → close with absolute certainty' },
+  Belfort:  { tech: ['Straight Line control', 'certainty looping', 'tonality mastery', 'logical+emotional+urgency stack'], pattern: 'Take control of the line → build certainty on product/you/company → loop objections until bought in' },
+  Cardone:  { tech: ['10X close', 'agree-and-overwhelm', 'price stacking', 'never-leave-without-a-deal'], pattern: 'Dominate with energy → agree with everything then reframe → make price irrelevant → never accept first no' },
+  Hormozi:  { tech: ['Grand Slam Offer stacking', 'dream outcome framing', 'risk reversal', 'ROI anchoring'], pattern: 'Define dream outcome → stack insane value → crush risk with guarantees → make NOT buying seem stupid' },
+  Ziglar:   { tech: ['sincere warmth disarm', 'story selling', 'benefit stacking', 'assumptive questioning'], pattern: 'Disarm with genuine trust → mirror their situation in a story → paint a vivid better future → assume the sale' },
+  Robbins:  { tech: ['state elevation', 'values elicitation', 'future pacing', 'pain-pleasure reframe'], pattern: 'Match and lead emotional state → elicit core identity values → future pace into ideal life → make inaction hurt' },
+  Voss:     { tech: ['tactical empathy', 'mirroring', 'emotion labeling', 'calibrated how/what questions'], pattern: 'Label their hesitation to defuse it → mirror words back → guide to yes with questions → no pressure close' },
+}
+
 export async function generatePitch(product, industry, framework, audience, keywords, language, customBrain = {}) {
-  const brainCtx = customBrain.offer
-    ? `\nCustom offer: ${customBrain.offer}. ICP: ${customBrain.icp}.`
-    : ''
-  const prompt = `Elite pitch writer using the ${framework} framework. Product: ${product}. Industry: ${industry}. Audience: ${audience}. Keywords: ${keywords}. ${brainCtx} Language: ${language}. Apply REAL ${framework} patterns. Return ONLY valid JSON: {"pitch":"150-250 word pitch","hook_score":85,"confidence_score":78,"close_score":82,"feedback":"how ${framework} was applied","strength_tags":["Elliott Hook","Belfort Certainty","Cardone Close"]}`
-  const raw = await callClaude(prompt, 1400)
+  const names = Object.keys(CLOSER_KB)
+  const shuffled = [...names].sort(() => Math.random() - 0.5)
+  const selected = shuffled.slice(0, 2 + Math.floor(Math.random() * 2))
+  const blend = selected.join(' × ')
+  const closerDetail = selected.map(n => `${n}: ${CLOSER_KB[n].tech.slice(0, 3).join(', ')}. Pattern: ${CLOSER_KB[n].pattern}.`).join('\n')
+  const brainCtx = customBrain.offer ? `\nCustom offer: ${customBrain.offer}. ICP: ${customBrain.icp}.` : ''
+  const prompt = `You are an elite pitch writer fusing the exact techniques of: ${blend}.
+
+CLOSER TECHNIQUES TO BLEND:
+${closerDetail}
+
+Framework: ${framework} | Product: ${product} | Industry: ${industry} | Audience: ${audience} | Keywords: ${keywords}${brainCtx}
+Language: ${language}
+
+Write a 150-250 word pitch that authentically blends these styles. Identify 2-3 POWER MOMENTS — exact lines where a specific closer technique fires at maximum impact.
+
+Return ONLY valid JSON with no markdown:
+{"pitch":"full pitch text","hook_score":85,"confidence_score":78,"close_score":82,"feedback":"how the closer blend was applied","strength_tags":["tag1","tag2","tag3"],"closer_blend":"${blend}","technique_used":"primary technique name","power_moments":[{"line":"exact quote from pitch","technique":"closer name + technique","impact":"why this line closes"}]}`
+  const raw = await callClaude(prompt, 1700)
   return parseJSON(raw)
 }
 
 export async function improvePitch(existingPitch, industry, framework, language) {
-  const prompt = `Rebuild this pitch using ${framework} patterns: "${existingPitch}". Industry: ${industry}. Language: ${language}. Inject real closer power. Return ONLY valid JSON: {"pitch":"rebuilt pitch","hook_score":88,"confidence_score":82,"close_score":79,"feedback":"what was wrong and how ${framework} fixed it","strength_tags":["tag1","tag2"]}`
-  const raw = await callClaude(prompt, 1400)
+  const prompt = `You are an elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, Zig Ziglar, Tony Robbins, and Chris Voss.
+
+STEP 1 — DIAGNOSE this pitch for these 8 specific weaknesses:
+1. Weak or missing hook (no pattern interrupt)
+2. No pain amplification (inaction doesn't hurt)
+3. Missing certainty (sounds hesitant)
+4. No urgency driver (prospect can sleep on it)
+5. Feature dumping (benefits not tied to outcomes)
+6. Weak close (no assumptive language)
+7. Missing social proof or authority
+8. No tonality direction (reads flat)
+
+STEP 2 — REBUILD using ${framework} patterns. Inject real closer power. Language: ${language}.
+
+Original pitch: "${existingPitch}"
+Industry: ${industry}
+
+Return ONLY valid JSON with no markdown:
+{"pitch":"completely rebuilt 150-250 word pitch","hook_score":90,"confidence_score":85,"close_score":88,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":[{"line":"exact quote from rebuilt pitch","technique":"specific technique","impact":"why this now works"}]}`
+  const raw = await callClaude(prompt, 1700)
   return parseJSON(raw)
 }
 
