@@ -37,7 +37,7 @@ export default function ObjectionsScreen() {
 
       {/* Industry pills */}
       <div className="mb-1">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Industry</div>
+        <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Industry</div>
         <div className="flex flex-wrap gap-1.5 mb-3">
           {INDUSTRIES.map(ind => (
             <button
@@ -57,7 +57,7 @@ export default function ObjectionsScreen() {
 
       {/* Objection input */}
       <div className="mb-1">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Objection</div>
+        <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Objection</div>
         <textarea
           value={objText}
           onChange={e => setObjText(e.target.value)}

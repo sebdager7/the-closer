@@ -26,11 +26,13 @@ export default {
       },
       fontFamily: {
         sans: ['Inter var', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['DM Mono', 'JetBrains Mono', 'monospace'],
         sora: ['Sora', 'system-ui', 'sans-serif'],
         'space-grotesk': ['Space Grotesk', 'system-ui', 'sans-serif'],
         'dm-mono': ['DM Mono', 'monospace'],
         nunito: ['Nunito', 'system-ui', 'sans-serif'],
+        bubble: ['Fredoka One', 'cursive'],
+        body: ['Nunito', 'system-ui', 'sans-serif'],
       },
       animation: {
         'pulse-dot': 'pulse-dot 2s cubic-bezier(0.4,0,0.6,1) infinite',

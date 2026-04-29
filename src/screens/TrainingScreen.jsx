@@ -2,31 +2,30 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, runAutopsy } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, runAutopsy, generateProspectProfile } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
-import { vibrateBlitz } from '../utils/blitz'
+import { vibrateBlitz, zapSound } from '../utils/blitz'
+import { TrophyEmoji, LightningEmoji, FireEmoji } from '../components/icons/CustomEmoji'
 
 // ─── DEAL AUTOPSY ─────────────────────────────────────────────────────────────
 function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
   const isWin = data.score >= 70, isMid = data.score >= 40
   const cls = isWin ? 'border-green-500 text-green-400 bg-green-500/10' : isMid ? 'border-yellow-500 text-yellow-400 bg-yellow-500/10' : 'border-red-500 text-red-400 bg-red-500/10'
 
-  useEffect(() => { vibrateBlitz(100) }, [])
+  useEffect(() => { vibrateBlitz(100); if (isWin) zapSound() }, [])
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3 font-dm-mono">
-      {/* Hero */}
       <div className="bg-navy-800/60 border border-white/10 rounded-2xl p-4 text-center">
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3 border-3 ${cls}`}>
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3 border-2 ${cls}`}>
           {data.score}
         </div>
-        <h3 className="text-base font-bold text-white mb-1">
-          {isWin ? '🏆 Deal Closed!' : isMid ? '⚡ Almost — Close Call' : '❌ Deal Lost'}
+        <h3 className="text-base font-bubble text-white mb-1">
+          {isWin ? <><TrophyEmoji size={18}/> Deal Closed!</> : isMid ? <><LightningEmoji size={16}/> Almost — Close Call</> : '❌ Deal Lost'}
         </h3>
         <p className="text-xs text-white/50 leading-relaxed">{data.overall_feedback}</p>
       </div>
 
-      {/* Revenue grid */}
       <div className="grid grid-cols-3 gap-2">
         {[
           { v: data.close_probability + '%', l: 'Close Prob', cls: isWin ? 'text-green-400' : isMid ? 'text-closer-blue' : 'text-red-400' },
@@ -40,12 +39,10 @@ function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
         ))}
       </div>
 
-      {/* Blitz coaching */}
       <BlitzBar message={data.blitz_coaching} vibrate />
 
-      {/* Key moments */}
       <div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Call Replay — Key Moments</div>
+        <div className="text-[9px] font-bubble text-white/40 uppercase tracking-widest mb-2">Call Replay — Key Moments</div>
         {(data.key_moments || []).map((m, i) => (
           <div key={i} className={`border rounded-xl p-3 mb-2 ${m.type === 'bad' ? 'border-l-2 border-l-red-500 border-white/10' : 'border-l-2 border-l-green-500 border-white/10'} bg-navy-800/40`}>
             <div className={`text-[8px] font-bold uppercase tracking-wider mb-1 ${m.type === 'bad' ? 'text-red-400' : 'text-green-400'}`}>
@@ -59,28 +56,116 @@ function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
         ))}
       </div>
 
-      {/* Mistake / Strength */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-3">
-          <div className="text-[8px] font-bold text-red-400 uppercase tracking-wider mb-1">Biggest Mistake</div>
+          <div className="text-[8px] font-bubble text-red-400 uppercase tracking-wider mb-1">Biggest Mistake</div>
           <p className="text-[10px] text-white/70 leading-relaxed">{data.biggest_mistake}</p>
         </div>
         <div className="bg-green-500/10 border border-green-500/40 rounded-xl p-3">
-          <div className="text-[8px] font-bold text-green-400 uppercase tracking-wider mb-1">Top Strength</div>
+          <div className="text-[8px] font-bubble text-green-400 uppercase tracking-wider mb-1">Top Strength</div>
           <p className="text-[10px] text-white/70 leading-relaxed">{data.top_strength}</p>
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3 pb-2">
-        <button onClick={onRetry} className="flex-1 py-3 bg-closer-blue text-white font-bold rounded-xl text-sm">↺ Retry this call</button>
-        <button onClick={onBack} className="flex-1 py-3 bg-white/10 border border-white/15 text-white/60 font-bold rounded-xl text-sm">← Back</button>
+        <button onClick={onRetry} className="flex-1 py-3 bg-closer-blue text-white font-bubble rounded-xl text-sm">↺ Retry this call</button>
+        <button onClick={onBack} className="flex-1 py-3 bg-white/10 border border-white/15 text-white/60 font-bubble rounded-xl text-sm">← Back</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── PROSPECT PREVIEW ─────────────────────────────────────────────────────────
+function ProspectPreview({ profile }) {
+  const [countdown, setCountdown] = useState(3)
+
+  useEffect(() => {
+    const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  return (
+    <div className="flex flex-col h-full items-center justify-center p-5 font-dm-mono bg-navy-950">
+      <div className="text-center mb-5">
+        <p className="text-[10px] font-bubble text-gold-400 uppercase tracking-widest mb-2">
+          📞 Call starting in {countdown}s...
+        </p>
+        <div className="w-16 h-16 rounded-full bg-closer-blue/20 border-2 border-closer-blue flex items-center justify-center text-2xl font-bold text-white mx-auto mb-3">
+          {profile.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+        </div>
+        <h2 className="text-xl font-bubble text-white">{profile.name}</h2>
+        <p className="text-sm text-white/60">{profile.age} · {profile.occupation}</p>
+        <p className="text-xs text-white/40">{profile.location}</p>
+      </div>
+
+      <div className="w-full bg-navy-800/70 border border-white/10 rounded-2xl p-4 space-y-3 max-w-xs">
+        <div>
+          <div className="text-[8px] font-bubble text-gold-400 uppercase tracking-wider mb-1">Today's mood</div>
+          <p className="text-xs text-white/80 leading-relaxed">{profile.mood_today}</p>
+        </div>
+        <div>
+          <div className="text-[8px] font-bubble text-white/40 uppercase tracking-wider mb-1">Personality</div>
+          <p className="text-[11px] text-white/60 leading-relaxed">{profile.personality}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+            <div className="text-[8px] font-bubble text-red-400 uppercase tracking-wider mb-1">Will object to</div>
+            <p className="text-[10px] text-red-300/80 leading-tight">{profile.main_objection}</p>
+          </div>
+          <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2">
+            <div className="text-[8px] font-bubble text-green-400 uppercase tracking-wider mb-1">Will buy if</div>
+            <p className="text-[10px] text-green-300/80 leading-tight">{profile.trigger_to_buy}</p>
+          </div>
+        </div>
+        <div className="bg-white/5 border border-white/10 rounded-lg p-2">
+          <div className="text-[8px] font-bubble text-closer-blue uppercase tracking-wider mb-1">Speech pattern</div>
+          <p className="text-[10px] text-white/60 italic">"{profile.speech_pattern}"</p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-4">
+        {[3, 2, 1].map(n => (
+          <div key={n} className={`w-2 h-2 rounded-full transition-all duration-300 ${countdown === n ? 'bg-gold-400 scale-125' : countdown < n ? 'bg-white/20' : 'bg-closer-blue'}`} />
+        ))}
       </div>
     </div>
   )
 }
 
 // ─── CALL SCREEN ──────────────────────────────────────────────────────────────
+const MOOD_MAP = [
+  { pattern: /hang up|stop calling|remove me|don't call|not calling back/i, emoji: '😡' },
+  { pattern: /annoyed|frustrated|gotta go|got to go|busy right now|waste.*time/i,  emoji: '😤' },
+  { pattern: /not sure|expensive|think about|budget|spouse|not ready|maybe later/i, emoji: '🤨' },
+  { pattern: /hmm|interesting|tell me more|how does|could be|possibly|not bad/i, emoji: '🤔' },
+  { pattern: /sounds good|i like|makes sense|could work|sure|okay.*give/i, emoji: '😊' },
+  { pattern: /let's do|i'll take|sign me up|ready|how do we|yes.*deal/i, emoji: '🤑' },
+]
+
+function analyzeMood(text) {
+  for (const { pattern, emoji } of MOOD_MAP) {
+    if (pattern.test(text)) return emoji
+  }
+  return '😐'
+}
+
+function getBestVoice() {
+  const voices = window.speechSynthesis?.getVoices() || []
+  const scored = voices
+    .filter(v => v.lang.startsWith('en'))
+    .map(v => ({
+      voice: v,
+      score: (v.name.includes('Google') ? 30 : 0)
+           + (v.lang === 'en-US' ? 20 : 0)
+           + (v.name.includes('Samantha') ? 15 : 0)
+           + (v.name.includes('Karen') || v.name.includes('Daniel') ? 5 : 0)
+           + (v.name.toLowerCase().includes('espeak') ? -30 : 0)
+           + (v.lang === 'en-GB' ? -5 : 0),
+    }))
+    .sort((a, b) => b.score - a.score)
+  return scored[0]?.voice || null
+}
+
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -88,6 +173,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [secs, setSecs] = useState(0)
   const [closePct, setClosePct] = useState(30)
   const [mood, setMood] = useState({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
+  const [moodEmoji, setMoodEmoji] = useState('😐')
   const [oneShotSecs, setOneShotSecs] = useState(90)
   const [reframeOpen, setReframeOpen] = useState(false)
   const [reframeLoading, setReframeLoading] = useState(false)
@@ -98,41 +184,72 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [autopsyLoading, setAutopsyLoading] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [prospectProfile, setProspectProfile] = useState(null)
+  const [showPreview, setShowPreview] = useState(true)
+  const [generatingProfile, setGeneratingProfile] = useState(true)
+  const [callConnected, setCallConnected] = useState(false)
+
   const chatRef = useRef([])
   const msgsEndRef = useRef(null)
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
   const muteRef = useRef(false)
-  const prospect = PROSPECT_NAMES[Math.floor(Math.random() * PROSPECT_NAMES.length)]
-  const prospectRef = useRef(prospect)
+  const audioCtxRef = useRef(null)
+  const staticRef = useRef(null)
+  const profileRef = useRef(null)
 
-  // ── Voice synthesis ──────────────────────────────────────────────
-  const speakMessage = (text) => {
+  // ── Phone static ──────────────────────────────────────────────
+  const startPhoneStatic = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      audioCtxRef.current = ctx
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
+      const data = buf.getChannelData(0)
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+      const src = ctx.createBufferSource()
+      src.buffer = buf; src.loop = true
+      const filter = ctx.createBiquadFilter()
+      filter.type = 'bandpass'; filter.frequency.value = 1400; filter.Q.value = 0.6
+      const gainNode = ctx.createGain()
+      gainNode.gain.value = 0.015
+      src.connect(filter); filter.connect(gainNode); gainNode.connect(ctx.destination)
+      src.start()
+      staticRef.current = src
+    } catch (e) {}
+  }
+
+  const stopPhoneStatic = () => {
+    try { staticRef.current?.stop() } catch (e) {}
+    try { audioCtxRef.current?.close() } catch (e) {}
+  }
+
+  // ── Voice synthesis ──────────────────────────────────────────
+  const speakMessage = (text, isOpener = false) => {
     if (muteRef.current || !window.speechSynthesis) return
-    window.speechSynthesis.cancel()
-    const utter = new SpeechSynthesisUtterance(text)
-    utter.rate = 1.0
-    utter.pitch = 1.0
-    utter.volume = 1.0
+    const delayMs = isOpener
+      ? 1500 + Math.random() * 500
+      : 700 + Math.random() * 600
 
-    const doSpeak = () => {
-      const voices = window.speechSynthesis.getVoices()
-      const voice = voices.find(v => v.name === 'Google US English')
-        || voices.find(v => v.name === 'Samantha')
-        || voices.find(v => v.lang.startsWith('en') && !v.name.toLowerCase().includes('espeak'))
-        || voices.find(v => v.lang.startsWith('en'))
-      if (voice) utter.voice = voice
-      utter.onstart = () => setIsSpeaking(true)
-      utter.onend = () => setIsSpeaking(false)
-      utter.onerror = () => setIsSpeaking(false)
-      window.speechSynthesis.speak(utter)
-    }
+    setTimeout(() => {
+      window.speechSynthesis.cancel()
+      const utter = new SpeechSynthesisUtterance(text)
+      const p = profileRef.current
+      utter.rate  = 0.92 + ((p?.age  || 40) % 10) * 0.013
+      utter.pitch = 0.95 + ((p?.name?.length || 8) % 6) * 0.025
+      utter.volume = 1.0
 
-    if (window.speechSynthesis.getVoices().length > 0) {
-      doSpeak()
-    } else {
-      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-    }
+      const doSpeak = () => {
+        const v = getBestVoice()
+        if (v) utter.voice = v
+        utter.onstart = () => setIsSpeaking(true)
+        utter.onend   = () => setIsSpeaking(false)
+        utter.onerror = () => setIsSpeaking(false)
+        window.speechSynthesis.speak(utter)
+      }
+
+      if ((window.speechSynthesis.getVoices() || []).length > 0) doSpeak()
+      else window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
+    }, delayMs)
   }
 
   const toggleMute = () => {
@@ -142,42 +259,89 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (next) { window.speechSynthesis?.cancel(); setIsSpeaking(false) }
   }
 
+  // ── Generate prospect profile ────────────────────────────────
   useEffect(() => {
-    vibrateBlitz([40, 40, 40, 40, 40])
-    timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
-    if (mode === 'one') {
-      oneshotRef.current = setInterval(() => setOneShotSecs(s => {
-        if (s <= 1) { clearInterval(oneshotRef.current); return 0 }
-        return s - 1
-      }), 1000)
+    let cancelled = false
+    const load = async () => {
+      setGeneratingProfile(true)
+      try {
+        const profile = await generateProspectProfile(industry, difficulty)
+        if (!cancelled) { profileRef.current = profile; setProspectProfile(profile) }
+      } catch (e) {
+        if (!cancelled) {
+          const fb = PROSPECT_NAMES[Math.floor(Math.random() * PROSPECT_NAMES.length)]
+          const fallback = {
+            name: fb[0], age: 42, occupation: 'Business Owner', location: 'Phoenix, AZ',
+            personality: 'Direct and skeptical. Values their time above all else.',
+            mood_today: 'Busy and slightly stressed — in the middle of a workday.',
+            main_objection: 'Budget concerns and time constraints.',
+            trigger_to_buy: 'Clear ROI with specific numbers and fast results.',
+            speech_pattern: 'Short, direct answers. Few pleasantries. Gets to the point.',
+            backstory: 'Has dealt with many salespeople. Usually hangs up in 30 seconds.',
+            opening_line: 'Yeah?',
+          }
+          profileRef.current = fallback
+          setProspectProfile(fallback)
+        }
+      }
+      if (!cancelled) setGeneratingProfile(false)
     }
-    startCall()
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Start call after preview ─────────────────────────────────
+  useEffect(() => {
+    if (!prospectProfile || showPreview) return
+    let t
+    // Wait a tick then start
+    t = setTimeout(() => {
+      vibrateBlitz([40, 40, 40, 40, 40])
+      zapSound()
+      timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
+      if (mode === 'one') {
+        oneshotRef.current = setInterval(() => setOneShotSecs(s => {
+          if (s <= 1) { clearInterval(oneshotRef.current); return 0 }
+          return s - 1
+        }), 1000)
+      }
+      startPhoneStatic()
+      setCallConnected(true)
+      startCall()
+    }, 50)
+    return () => clearTimeout(t)
+  }, [showPreview])
+
+  // ── Auto-advance preview after 3 s ──────────────────────────
+  useEffect(() => {
+    if (!prospectProfile) return
+    const t = setTimeout(() => setShowPreview(false), 3000)
+    return () => clearTimeout(t)
+  }, [prospectProfile])
+
+  useEffect(() => {
     return () => {
       clearInterval(timerRef.current)
       clearInterval(oneshotRef.current)
       window.speechSynthesis?.cancel()
+      stopPhoneStatic()
     }
   }, [])
 
   useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  const updateTone = (text, role) => {
+  const updateTone = (text) => {
     const t = text.toLowerCase()
     setClosePct(prev => {
       let p = prev
-      if (role === 'bot') {
-        if (t.includes('not interested') || t.includes('leave') || t.includes('frustrated')) p = Math.max(p - 18, 5)
-        else if (t.includes('not sure') || t.includes('expensive') || t.includes('think about')) p = Math.max(p - 8, 5)
-        else if (t.includes('tell me more') || t.includes('interesting') || t.includes('how does')) p = Math.min(p + 10, 90)
-        else if (t.includes("let's do") || t.includes("i'll take") || t.includes("sounds good")) p = Math.min(p + 25, 98)
-      } else {
-        if (t.includes('i understand') || t.includes('i hear you')) p = Math.min(p + 5, 90)
-        if (t.includes('um ') || t.includes('uh ')) p = Math.max(p - 3, 5)
-      }
+      if (t.includes('not interested') || t.includes('leave') || t.includes('frustrated')) p = Math.max(p - 18, 5)
+      else if (t.includes('not sure') || t.includes('expensive') || t.includes('think about')) p = Math.max(p - 8, 5)
+      else if (t.includes('tell me more') || t.includes('interesting') || t.includes('how does')) p = Math.min(p + 10, 90)
+      else if (t.includes("let's do") || t.includes("i'll take") || t.includes("sounds good")) p = Math.min(p + 25, 98)
       return p
     })
     const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready']
-    if (role === 'bot' && objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
+    if (objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
     if (closePct >= 70) setMood({ label: 'Warming up', cls: 'bg-green-900/60 text-green-300' })
     else if (closePct >= 45) setMood({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
     else if (closePct >= 25) setMood({ label: 'Skeptical', cls: 'bg-yellow-900/60 text-yellow-300' })
@@ -189,20 +353,50 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (!isBrutal) setCallMsgs(m => [...m, { role, text, time: secs }])
   }
 
+  const showBotReply = async (reply, isOpener = false) => {
+    const delay = isOpener ? 1600 + Math.random() * 500 : 700 + Math.random() * 600
+    await new Promise(res => setTimeout(res, delay))
+    addMsg('bot', reply)
+    updateTone(reply)
+    const emoji = analyzeMood(reply)
+    setMoodEmoji(emoji)
+    speakMessage(reply, isOpener)
+    if (emoji === '😡') {
+      setTimeout(() => handleEnd(), 3000)
+    }
+  }
+
   const startCall = async () => {
-    const p = prospectRef.current
+    const p = profileRef.current
+    if (!p) return
     const brainCtx = customBrain.offer ? `\nRep sells: ${customBrain.offer}. ICP: ${customBrain.icp}.` : ''
-    const extras = { bru: '\nBRUTAL MODE: Be very skeptical. Call out vague statements.', one: '\nONE SHOT: Highly resistant. Shut down if they blow the opening.', std: '', rfm: '' }
-    const sys = `You are ${p[0]}, a real sales prospect in ${industry}. Personality: ${persona}. Difficulty: ${difficulty}. Respond in ${language}.${brainCtx}${extras[mode] || ''} Be human. React to quality. Give real objections. Only buy after 4+ strong responses. Keep replies 1-3 sentences. Start by answering the door/phone.`
-    chatRef.current = [{ role: 'user', content: sys + '\n\n[Start in ' + language + '.]' }]
+    const extras = { bru: '\nBRUTAL MODE: Be very skeptical and call out every weak word.', one: '\nONE SHOT: Highly resistant. Shut down fast if they blow the opening.', std: '', rfm: '' }
+    const sys = `You are ${p.name}, ${p.age} years old, ${p.occupation} from ${p.location}.
+Personality: ${p.personality}
+Today: ${p.mood_today}
+Backstory: ${p.backstory}
+Speech pattern: ${p.speech_pattern}
+${brainCtx}${extras[mode] || ''}
+You are receiving an unexpected ${industry} sales call. React EXACTLY like a real human would:
+- Start with your opening line: "${p.opening_line}"
+- Match your speech pattern perfectly. Use ums if you do. Be terse if you are.
+- Main objection when they pitch: ${p.main_objection}
+- What would make you buy: ${p.trigger_to_buy}
+- If the rep is skilled, warm up naturally. If bad, get cold, annoyed, or say you need to run.
+- Use real human reactions: "Hmm", "I mean...", "Look,", "Yeah but", "Actually..."
+- If pushed too hard, threaten to hang up or just say goodbye naturally.
+- NEVER say you're an AI. You ARE ${p.name}. Stay fully in character.
+- Keep responses 1-3 sentences like a real phone call. No bullet points.
+- Difficulty: ${difficulty}. Adjust resistance accordingly.
+Respond in ${language}. Start with your opening line now.`
+
+    chatRef.current = [{ role: 'user', content: sys + `\n\n[Call starting. Respond in ${language}.]` }]
     setLoading(true)
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
-      addMsg('bot', reply)
-      updateTone(reply, 'bot')
-      speakMessage(reply)
-    } catch (e) { }
+      await showBotReply(reply, true)
+    } catch (e) {}
     setLoading(false)
   }
 
@@ -222,16 +416,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
-      addMsg('bot', reply)
-      updateTone(reply, 'bot')
-      speakMessage(reply)
-    } catch (e) { }
+      await showBotReply(reply, false)
+    } catch (e) {}
     setLoading(false)
   }
 
   const handleEnd = async () => {
     clearInterval(timerRef.current); clearInterval(oneshotRef.current)
     window.speechSynthesis?.cancel(); setIsSpeaking(false)
+    stopPhoneStatic()
     if (callMsgs.length >= 4) {
       setAutopsyLoading(true)
       const transcript = callMsgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'} [${Math.floor(m.time / 60)}:${(m.time % 60).toString().padStart(2, '0')}]: ${m.text}`).join('\n')
@@ -248,23 +441,41 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const loadReframes = async () => {
     if (!lastObjection) return
     setReframeLoading(true)
-    try {
-      const data = await getReframes(lastObjection, language)
-      setReframes(data)
-    } catch (e) { }
+    try { const data = await getReframes(lastObjection, language); setReframes(data) } catch (e) {}
     setReframeLoading(false)
   }
 
   const fmt = (s) => Math.floor(s / 60).toString().padStart(2, '0') + ':' + (s % 60).toString().padStart(2, '0')
   const toneColor = closePct >= 70 ? '#22c55e' : closePct >= 40 ? '#f59e0b' : '#ef4444'
-  const toneStatus = closePct >= 80 ? '🔥 HOT — push the close now' : closePct >= 60 ? 'Warming — keep building value' : closePct >= 35 ? 'Neutral — you need more conviction' : closePct >= 15 ? 'Cold — slow down, use empathy' : '❌ Shutting down — reframe immediately'
+  const toneStatus = closePct >= 80 ? '🔥 HOT — push the close now' : closePct >= 60 ? 'Warming — keep building value' : closePct >= 35 ? 'Neutral — more conviction needed' : closePct >= 15 ? 'Cold — use empathy now' : '❌ Shutting down — reframe immediately'
+  const prospectName = prospectProfile?.name || 'Prospect'
 
+  // ── Loading profile screen
+  if (generatingProfile) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center p-6 text-center font-dm-mono">
+        <BlitzIcon size={42} className="mb-4" />
+        <p className="text-white font-bubble text-base mb-1">Building your prospect...</p>
+        <p className="text-white/40 text-sm">Generating a real character profile</p>
+        <div className="flex gap-1.5 mt-4">
+          {[0,1,2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-closer-blue/60 typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />)}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Prospect preview screen
+  if (showPreview && prospectProfile) {
+    return <ProspectPreview profile={prospectProfile} />
+  }
+
+  // ── Autopsy loading screen
   if (autopsyLoading) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 text-center font-dm-mono">
         <div className="text-3xl mb-4">🔍</div>
         <BlitzIcon size={52} className="mb-3" />
-        <p className="text-white font-bold text-base mb-1">Blitz is analyzing your call...</p>
+        <p className="text-white font-bubble text-base mb-1">Blitz is analyzing your call...</p>
         <p className="text-white/40 text-sm">Building your full Deal Autopsy</p>
       </div>
     )
@@ -277,22 +488,20 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   return (
     <div className="flex flex-col h-full relative font-dm-mono">
       {/* Call header */}
-      <div className="bg-navy-900 px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+      <div className="bg-navy-900 px-3 py-2.5 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-red-500 live-dot" />
-          <span className="text-xs text-red-400 font-bold tracking-wider">LIVE</span>
+          <span className="text-xs text-red-400 font-bold tracking-wider">
+            {callConnected ? '📞 LIVE' : 'CONNECTING'}
+          </span>
         </div>
         <span className="text-lg font-bold text-white font-mono">{fmt(secs)}</span>
-        <div className="flex gap-2 items-center">
-          {isSpeaking && <BlitzIcon size={16} className="blitz-speaking" />}
-          <button
-            onClick={toggleMute}
-            className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20"
-            title={isMuted ? 'Unmute voice' : 'Mute voice'}
-          >
+        <div className="flex gap-1.5 items-center">
+          {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
+          <button onClick={toggleMute} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20" title={isMuted ? 'Unmute' : 'Mute'}>
             {isMuted ? '🔇' : '🔊'}
           </button>
-          <button onClick={() => onEnd(closePct, 'restart')} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺ Restart</button>
+          <button onClick={() => onEnd(closePct, 'restart')} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺</button>
           <button onClick={handleEnd} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-red-700 text-white hover:bg-red-600">✕ End</button>
         </div>
       </div>
@@ -316,21 +525,23 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         <p className="text-[9px] text-white/40 italic">{toneStatus}</p>
       </div>
 
-      {/* Prospect */}
-      <div className="flex flex-col items-center py-3 bg-gray-900/60 border-b border-white/10 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-closer-blue flex items-center justify-center text-white font-bold text-sm mb-1">{prospectRef.current[1]}</div>
-        <p className="text-sm font-bold text-white flex items-center gap-1.5">
-          {prospectRef.current[0]}
-          {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
-        </p>
-        <p className="text-[10px] text-white/40">{persona}</p>
-      </div>
-
-      {/* Mood + close prob */}
-      <div className="flex items-center gap-3 px-4 py-1.5 bg-white/5 border-b border-white/10 flex-shrink-0">
-        <span className="text-[9px] text-white/40">Mood:</span>
-        <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${mood.cls}`}>{mood.label}</span>
-        <span className="ml-auto text-[9px] text-white/40">Close prob: {closePct}%</span>
+      {/* Prospect card */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-900/60 border-b border-white/10 flex-shrink-0">
+        <div className="w-10 h-10 rounded-full bg-closer-blue flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          {prospectProfile?.name?.split(' ').map(w => w[0]).join('').slice(0,2) || '??'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white flex items-center gap-1.5">
+            {prospectName}
+            {isSpeaking && <BlitzIcon size={12} className="blitz-speaking" />}
+          </p>
+          <p className="text-[10px] text-white/40 truncate">{prospectProfile?.occupation || persona}</p>
+        </div>
+        {/* Mood indicator */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-base">{moodEmoji}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${mood.cls}`}>{mood.label}</span>
+        </div>
       </div>
 
       {/* Messages */}
@@ -340,8 +551,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
             {m.isBrutal ? (
               <div className="max-w-[90%] bg-red-900/40 border border-red-500/50 rounded-xl px-3 py-2 text-xs text-red-300 font-bold text-center">{m.text}</div>
             ) : (
-              <div className={`max-w-[80%] ${m.role === 'usr' ? '' : ''}`}>
-                <p className="text-[9px] text-white/30 mb-1">{m.role === 'usr' ? 'You' : prospectRef.current[0]}</p>
+              <div className="max-w-[80%]">
+                <p className="text-[9px] text-white/30 mb-1">{m.role === 'usr' ? 'You' : prospectName}</p>
                 <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${m.role === 'usr' ? 'bg-closer-blue text-white rounded-br-sm' : 'bg-white/10 text-white rounded-bl-sm'}`}>{m.text}</div>
               </div>
             )}
@@ -358,7 +569,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       </div>
 
       {/* Input */}
-      <div className="flex gap-2 px-3 py-3 bg-gray-900 border-t border-white/10 flex-shrink-0 relative">
+      <div className="flex gap-2 px-3 py-3 bg-gray-900 border-t border-white/10 flex-shrink-0">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -374,7 +585,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         <div className="absolute bottom-20 left-3 right-3 bg-navy-900 border border-closer-blue rounded-xl p-3 z-30 shadow-2xl shadow-closer-blue/20">
           <div className="flex items-center gap-2 mb-2">
             <BlitzIcon size={18} />
-            <p className="text-[10px] text-gold-400 font-bold flex-1">⚡ Objection detected — tap for reframes</p>
+            <p className="text-[10px] text-gold-400 font-bold flex-1"><LightningEmoji size={12}/> Objection detected — tap for reframes</p>
             <button onClick={() => setReframeOpen(false)} className="text-white/30 text-sm hover:text-white/60">✕</button>
           </div>
           {!reframes ? (
@@ -383,11 +594,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
             </button>
           ) : (
             <div className="space-y-1.5">
-              {[
-                { text: reframes.r1, label: 'Andy Elliott' },
-                { text: reframes.r2, label: 'Jordan Belfort' },
-                { text: reframes.r3, label: 'Grant Cardone' },
-              ].map((r, i) => (
+              {[{ text: reframes.r1, label: 'Andy Elliott' }, { text: reframes.r2, label: 'Jordan Belfort' }, { text: reframes.r3, label: 'Grant Cardone' }].map((r, i) => (
                 <div key={i} className="bg-closer-blue/15 border border-closer-blue/25 rounded-lg p-2">
                   <p className="text-xs text-white/85 leading-relaxed">{r.text}</p>
                   <p className="text-[8px] font-bold text-gold-500 mt-1">{r.label}</p>
@@ -417,11 +624,8 @@ export default function TrainingScreen() {
     if (action !== 'restart') {
       dispatch({ type: 'COMPLETE_CALL', payload: { closed: closePct >= 70, dealValue: dealVal } })
     }
-    if (action === 'restart') {
-      setRestartKey(k => k + 1)
-    } else {
-      setInCall(false)
-    }
+    if (action === 'restart') setRestartKey(k => k + 1)
+    else setInCall(false)
   }
 
   if (inCall) {
@@ -446,12 +650,10 @@ export default function TrainingScreen() {
     <div className="flex flex-col h-full overflow-y-auto p-4 font-dm-mono">
       <BlitzBar message={`<strong>Blitz:</strong> ${modeMsg}`} />
 
-      <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Training Mode</div>
+      <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Training Mode</div>
       <div className="grid grid-cols-2 gap-2 mb-4">
         {TRAINING_MODES.map(m => (
-          <button
-            key={m.id}
-            onClick={() => setMode(m.id)}
+          <button key={m.id} onClick={() => setMode(m.id)}
             className={`text-left p-3 rounded-xl border-2 transition-all ${
               mode === m.id
                 ? m.id === 'bru' ? 'border-red-500 bg-red-500/10' : m.id === 'one' ? 'border-yellow-500 bg-yellow-500/10' : 'border-closer-blue bg-closer-blue/10'
@@ -459,7 +661,7 @@ export default function TrainingScreen() {
             }`}
           >
             <div className="text-lg mb-1">{m.icon}</div>
-            <div className="text-xs font-bold text-white">{m.name}</div>
+            <div className="text-xs font-bubble text-white">{m.name}</div>
             <div className="text-[9px] text-white/40 mt-0.5 leading-relaxed">{m.desc}</div>
           </button>
         ))}
@@ -467,13 +669,13 @@ export default function TrainingScreen() {
 
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="block text-[9px] font-bold text-white/40 uppercase tracking-wider mb-1.5">Industry</label>
+          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Industry</label>
           <select value={industry} onChange={e => setIndustry(e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-[9px] font-bold text-white/40 uppercase tracking-wider mb-1.5">Prospect</label>
+          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Prospect</label>
           <select value={persona} onChange={e => setPersona(e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             {PROSPECTS.map(p => <option key={p}>{p}</option>)}
           </select>
@@ -481,18 +683,17 @@ export default function TrainingScreen() {
       </div>
 
       <div className="mb-3">
-        <label className="block text-[9px] font-bold text-white/40 uppercase tracking-wider mb-1.5">Deal value ($)</label>
+        <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Deal value ($)</label>
         <input type="number" value={dealVal} onChange={e => setDealVal(+e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-sm focus:outline-none focus:border-closer-blue" />
       </div>
 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Difficulty</label>
+          <label className="text-[9px] font-bubble text-white/40 uppercase tracking-wider">Difficulty</label>
           <span className="text-[10px] font-bold px-3 py-0.5 rounded-full bg-blue-900/60 text-blue-300">{DIFFICULTY_MAP[Math.round(difficulty)]}</span>
         </div>
         <div className="relative pt-1 pb-4">
-          <input
-            type="range" min="1" max="5" step="0.01" value={difficulty}
+          <input type="range" min="1" max="5" step="0.01" value={difficulty}
             onChange={e => setDifficulty(+e.target.value)}
             className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
             style={{ background: `linear-gradient(to right, #1a6bbf 0%, #1a6bbf ${((difficulty - 1) / 4) * 100}%, rgba(255,255,255,0.1) ${((difficulty - 1) / 4) * 100}%, rgba(255,255,255,0.1) 100%)` }}
@@ -507,11 +708,8 @@ export default function TrainingScreen() {
 
       <p className="text-[10px] text-white/30 italic mb-4">Training in {state.language}</p>
 
-      <button
-        onClick={() => setInCall(true)}
-        className="w-full py-3.5 bg-closer-blue text-white font-bold text-sm rounded-xl hover:bg-blue-600 transition-colors"
-      >
-        ▶ Start training call
+      <button onClick={() => setInCall(true)} className="w-full py-3.5 bg-closer-blue text-white font-bubble text-sm rounded-xl hover:bg-blue-600 transition-colors">
+        ▶ Start Training Call
       </button>
     </div>
   )

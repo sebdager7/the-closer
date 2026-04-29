@@ -19,7 +19,7 @@ export default function TopBar() {
       <div className="flex items-center gap-2">
         <BlitzIcon size={26} />
         <div>
-          <div className="text-sm font-bold text-gold-400 tracking-wide leading-none">THE CLOSER</div>
+          <div className="text-sm font-bubble text-gold-400 tracking-wide leading-none">THE CLOSER</div>
           <div className="text-[7px] text-white/30 tracking-[0.15em] uppercase mt-0.5">Elite Sales Intelligence</div>
         </div>
       </div>

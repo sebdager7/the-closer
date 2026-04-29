@@ -1,16 +1,20 @@
 import React from 'react'
 import { useApp } from '../../context/AppContext'
+import {
+  ObjectionsIcon, PitchIcon, PsychologyIcon, TrainingIcon,
+  ProgressIcon, BrainNavIcon, AgencyIcon, ChatIcon, PlansIcon,
+} from '../icons/NavIcons'
 
 const TABS = [
-  { id: 'objections', icon: '💬', label: 'Objections' },
-  { id: 'pitch', icon: '✍️', label: 'Pitch' },
-  { id: 'psychology', icon: '🎮', label: 'Psychology' },
-  { id: 'training', icon: '🤖', label: 'Training' },
-  { id: 'progress', icon: '📈', label: 'Progress' },
-  { id: 'brain', icon: '🧠', label: 'My Brain' },
-  { id: 'agency', icon: '🏢', label: 'Agency' },
-  { id: 'chat', icon: '💬', label: 'Chat' },
-  { id: 'plans', icon: '📋', label: 'Plans' },
+  { id: 'objections', Icon: ObjectionsIcon, label: 'Objections' },
+  { id: 'pitch',      Icon: PitchIcon,      label: 'Pitch'       },
+  { id: 'psychology', Icon: PsychologyIcon, label: 'Psychology'  },
+  { id: 'training',   Icon: TrainingIcon,   label: 'Training'    },
+  { id: 'progress',   Icon: ProgressIcon,   label: 'Progress'    },
+  { id: 'brain',      Icon: BrainNavIcon,   label: 'My Brain'    },
+  { id: 'agency',     Icon: AgencyIcon,     label: 'Agency'      },
+  { id: 'chat',       Icon: ChatIcon,       label: 'Chat'        },
+  { id: 'plans',      Icon: PlansIcon,      label: 'Plans'       },
 ]
 
 export default function BottomNav() {
@@ -20,25 +24,34 @@ export default function BottomNav() {
   return (
     <nav className="bg-navy-900 border-t border-navy-700 flex-shrink-0 safe-bottom">
       <div className="flex overflow-x-auto scrollbar-none">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab.id })}
-            className={`flex-shrink-0 flex flex-col items-center gap-0.5 py-2 px-3 min-w-[58px] transition-colors ${
-              active === tab.id
-                ? 'text-closer-blue'
-                : 'text-white/40 hover:text-white/70'
-            }`}
-          >
-            <span className="text-base leading-none">{tab.icon}</span>
-            <span className={`text-[9px] font-medium leading-none ${
-              active === tab.id ? 'text-closer-blue' : 'text-white/40'
-            }`}>{tab.label}</span>
-            {active === tab.id && (
-              <div className="w-1 h-1 rounded-full bg-closer-blue mt-0.5" />
-            )}
-          </button>
-        ))}
+        {TABS.map(({ id, Icon, label }) => {
+          const isActive = active === id
+          return (
+            <button
+              key={id}
+              onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: id })}
+              className={`flex-shrink-0 flex flex-col items-center gap-0.5 py-2 px-3 min-w-[58px] transition-all ${
+                isActive ? 'text-closer-blue' : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              <Icon size={20} active={isActive} />
+              <span
+                className="leading-none"
+                style={{
+                  fontFamily: "'Fredoka One', cursive",
+                  fontSize: '10px',
+                  letterSpacing: '0.03em',
+                  color: isActive ? '#1a6bbf' : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                {label}
+              </span>
+              {isActive && (
+                <div className="w-1 h-1 rounded-full bg-closer-blue mt-0.5" />
+              )}
+            </button>
+          )
+        })}
       </div>
     </nav>
   )

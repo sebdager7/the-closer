@@ -88,7 +88,7 @@ function Dashboard() {
 
       {/* Team table */}
       <div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Team Members (34 active)</div>
+        <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Team Members (34 active)</div>
         <div className="bg-navy-800/40 border border-white/10 rounded-xl overflow-hidden">
           <div className="grid grid-cols-4 gap-0 border-b border-white/10">
             {['Name', 'Plan', 'Close %', 'Status'].map(h => (
@@ -135,7 +135,7 @@ function ApplyForm() {
 
   return (
     <div className="space-y-3 pb-4">
-      <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-2">Apply to Partner Program</div>
+      <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Apply to Partner Program</div>
       <BlitzBar message={`We don't hand out partner codes to just anyone. We protect the program's quality so your name is attached to something worth promoting. Fill this out — it goes directly to the founder for review.`} gold />
 
       <div className="grid grid-cols-2 gap-3">
@@ -233,7 +233,7 @@ export default function AgencyScreen() {
             <>
               <BlitzBar message={`This is a real income stream tied to your team's growth. You earn monthly — as long as your people pay. A trained team stays subscribed longer. That's compounding income from the work you're already doing.`} gold />
 
-              <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-3">Commission Tiers</div>
+              <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-3">Commission Tiers</div>
               {AGENCY_TIERS.map(tier => <TierCard key={tier.id} tier={tier} />)}
 
               {/* Pricing */}

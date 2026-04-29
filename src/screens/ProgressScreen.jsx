@@ -39,7 +39,7 @@ export default function ProgressScreen() {
     <div className="flex flex-col h-full overflow-y-auto p-4 font-sora">
       <BlitzBar message={`<strong>Blitz:</strong> Your real progress. Every call you do moves these bars. <strong>Close rate is king</strong> — the rest follows when that number goes up.`} />
 
-      <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-3">Performance Metrics</div>
+      <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-3">Performance Metrics</div>
       <div className="mb-6">
         {CONF_METRICS.map(m => (
           <MetricBar key={m.key} label={m.lbl} val={state.metrics[m.key]} prev={state.metricsPrev[m.key]} />
@@ -47,7 +47,7 @@ export default function ProgressScreen() {
       </div>
 
       <div className="border-t border-white/10 pt-4">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-3">Session Stats</div>
+        <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-3">Session Stats</div>
         <div className="grid grid-cols-2 gap-3">
           {[
             { v: state.callCount, l: 'Calls', color: 'text-closer-blue' },
