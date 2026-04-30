@@ -133,14 +133,67 @@ function ProspectPreview({ profile }) {
   )
 }
 
-// ─── CALL SCREEN ──────────────────────────────────────────────────────────────
+// ─── INDUSTRY-SPECIFIC OBJECTIONS ─────────────────────────────────────────────
+const INDUSTRY_OBJECTIONS = {
+  'Solar': [
+    "I rent this house so I can't install anything",
+    "My neighbor got solar and had nothing but problems with the company",
+    "I just locked in a new rate with my electric company",
+    "I don't plan on staying in this house long enough to see the savings",
+    "I've heard the real savings never add up like they promise",
+  ],
+  'Life Insurance': [
+    "I already have coverage through my employer so I'm good",
+    "My wife handles all of the finances — I'd have to run it by her first",
+    "I'm young and healthy, I really don't think I need it yet",
+    "The last time I looked into this the premiums were way too high",
+    "Honestly I just don't trust insurance companies to actually pay out",
+  ],
+  'Door-to-Door': [
+    "I never buy anything from people who knock on my door, that's a firm rule",
+    "I need to research this myself online before I'd ever make a decision",
+    "I actually bought something similar about six months ago",
+    "Can you just leave some information and I'll look at it when I have time",
+    "Look I'm really just not interested today",
+  ],
+  'Car Sales': [
+    "I'm just browsing right now, I'm not ready to make any decisions today",
+    "I need to bring my husband with me before I commit to anything",
+    "I want to check out two or three other dealerships before I decide",
+    "That monthly payment you mentioned is honestly way over what I budgeted",
+    "I think I'm going to wait and see what the new models look like",
+  ],
+  'Real Estate': [
+    "The market is way too unpredictable right now for me to make a move",
+    "I need to sell my current place before I can even think about buying",
+    "I'm waiting for rates to come back down — they're just too high",
+    "My credit score took a hit last year and I need to fix that first",
+    "I'm still not sure if this neighborhood is the right fit for us",
+  ],
+  'B2B / SaaS': [
+    "We already have a solution in place that's working fine for our team",
+    "Our budget is completely locked for the rest of this fiscal year",
+    "I would need sign-off from our IT department and that takes months",
+    "We actually tried something like this two years ago and it was a disaster",
+    "Send me some information and I'll take a look when I have bandwidth",
+  ],
+  'Financial Services': [
+    "I already work with a financial advisor and I'm happy with them",
+    "I don't make financial decisions without running it by my accountant",
+    "I've been burned before and I'm really not looking to make changes right now",
+    "My portfolio is doing fine as-is, I'm not looking to touch anything",
+    "What's your fee structure? Because the last guy I talked to nickel-and-dimed me",
+  ],
+}
+
+// ─── MOOD MAP ─────────────────────────────────────────────────────────────────
 const MOOD_MAP = [
   { pattern: /hang up|stop calling|remove me|don't call|not calling back/i, emoji: '😡' },
   { pattern: /annoyed|frustrated|gotta go|got to go|busy right now|waste.*time/i, emoji: '😤' },
   { pattern: /not sure|expensive|think about|budget|spouse|not ready|maybe later/i, emoji: '🤨' },
   { pattern: /hmm|interesting|tell me more|how does|could be|possibly|not bad/i, emoji: '🤔' },
   { pattern: /sounds good|i like|makes sense|could work|sure|okay.*give/i, emoji: '😊' },
-  { pattern: /let's do|i'll take|sign me up|ready|how do we|yes.*deal/i, emoji: '🤑' },
+  { pattern: /let's do|i'll take|sign me up|ready|how do we|yes.*deal|alright.*let|okay.*let|you've made|good case/i, emoji: '🤑' },
 ]
 
 function analyzeMood(text) {
@@ -150,12 +203,14 @@ function analyzeMood(text) {
   return '😐'
 }
 
+// ─── CALL SCREEN ──────────────────────────────────────────────────────────────
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
+  const { dispatch } = useApp()
+
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [secs, setSecs] = useState(0)
   const [closePct, setClosePct] = useState(30)
-  const [mood, setMood] = useState({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
   const [moodEmoji, setMoodEmoji] = useState('😐')
   const [oneShotSecs, setOneShotSecs] = useState(90)
   const [reframeOpen, setReframeOpen] = useState(false)
@@ -174,6 +229,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [generatingProfile, setGeneratingProfile] = useState(true)
   const [callConnected, setCallConnected] = useState(false)
   const [lastBotText, setLastBotText] = useState('')
+  const [dealClosed, setDealClosed] = useState(false)
 
   const chatRef = useRef([])
   const msgsEndRef = useRef(null)
@@ -187,6 +243,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const staticRef = useRef(null)
   const profileRef = useRef(null)
   const recognitionRef = useRef(null)
+  const voicePersonalityRef = useRef(null)
+  const conversationStateRef = useRef('cold')
+  const exchangeCountRef = useRef(0)
+  const objectionHandledRef = useRef(false)
 
   // ── Phone static ──────────────────────────────────────────────
   const startPhoneStatic = () => {
@@ -195,17 +255,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       audioCtxRef.current = ctx
       const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
       const data = buf.getChannelData(0)
-      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.008
       const src = ctx.createBufferSource()
       src.buffer = buf; src.loop = true
       const filter = ctx.createBiquadFilter()
-      filter.type = 'bandpass'; filter.frequency.value = 1400; filter.Q.value = 0.6
+      filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 0.5
       const gainNode = ctx.createGain()
       gainNode.gain.value = 0.015
       src.connect(filter); filter.connect(gainNode); gainNode.connect(ctx.destination)
       src.start()
       staticRef.current = src
-    } catch (e) {}
+      console.log('[AMBIENCE] Phone static started')
+    } catch (e) { console.log('[AMBIENCE] Not supported') }
   }
 
   const stopPhoneStatic = () => {
@@ -225,12 +286,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
-    // Chrome loads voices async — retry to guarantee they're available
     const t1 = setTimeout(() => loadVoices(), 500)
     const t2 = setTimeout(() => loadVoices(), 1500)
     return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
+      clearTimeout(t1); clearTimeout(t2)
       window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
@@ -240,7 +299,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) {
-      alert('Voice training requires Chrome or Safari.\n\nPlease open this app in Google Chrome for the best experience.\n\nFirefox does not support the Web Speech API.')
+      alert('Voice training requires Chrome or Safari.\n\nPlease open this app in Google Chrome.')
       return
     }
     if (!window.speechSynthesis) {
@@ -251,79 +310,136 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     console.log('[VOICE] Browser supports speechSynthesis ✓')
   }, [])
 
+  // ── Voice helpers ─────────────────────────────────────────────
+  const generateVoicePersonality = (gender) => {
+    if (gender === 'male') {
+      return {
+        baseRate: 0.82 + Math.random() * 0.1,
+        basePitch: 0.82 + Math.random() * 0.1,
+        rateVariation: 0.04,
+        pitchVariation: 0.05,
+      }
+    }
+    return {
+      baseRate: 0.88 + Math.random() * 0.1,
+      basePitch: 1.05 + Math.random() * 0.14,
+      rateVariation: 0.04,
+      pitchVariation: 0.06,
+    }
+  }
+
+  const getHumanVoice = (voices, gender) => {
+    const femaleRanked = [
+      'Google US English',
+      'Microsoft Aria Online (Natural)',
+      'Microsoft Jenny Online (Natural)',
+      'Samantha',
+      'Karen',
+      'Moira',
+      'Tessa',
+      'Google UK English Female',
+      'Victoria',
+    ]
+    const maleRanked = [
+      'Google UK English Male',
+      'Microsoft Guy Online (Natural)',
+      'Microsoft Davis Online (Natural)',
+      'Daniel',
+      'Aaron',
+      'Gordon',
+      'Thomas',
+    ]
+    const ranked = gender === 'male' ? maleRanked : femaleRanked
+    for (const name of ranked) {
+      const found = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()))
+      if (found) { console.log('[VOICE] Selected:', found.name); return found }
+    }
+    const english = voices.find(v =>
+      v.lang.startsWith('en') &&
+      !v.name.includes('Zarvox') &&
+      !v.name.includes('Trinoids') &&
+      !v.name.includes('Cellos') &&
+      !v.name.includes('Pipe') &&
+      !v.name.includes('Whisper')
+    )
+    if (english) { console.log('[VOICE] Fallback:', english.name); return english }
+    console.warn('[VOICE] Using first available voice')
+    return voices[0] || null
+  }
+
+  const makeTextHuman = (text) => {
+    let t = text
+    t = t.replace(/\. /g, '.  ')
+    t = t.replace(/, but /gi, ', ... but ')
+    t = t.replace(/, I mean/gi, '... I mean')
+    t = t.replace(/Well, /gi, 'Well... ')
+    t = t.replace(/Look, /gi, 'Look... ')
+    t = t.replace(/Actually, /gi, 'Actually... ')
+    t = t.replace(/Honestly, /gi, 'Honestly... ')
+    t = t.replace(/Yeah, /gi, 'Yeah... ')
+    t = t.replace(/Hmm/gi, 'Hmm...')
+    t = t.replace(/\$(\d)/g, '... \$$1')
+    return t
+  }
+
+  const thinkingTime = (text) => {
+    const words = text.split(' ').length
+    return Math.min(600 + words * 30 + Math.random() * 400, 2500)
+  }
+
   // ── speakText ─────────────────────────────────────────────────
-  const speakText = (text, prospectGender = 'female') => {
+  const speakText = (text, gender = 'female') => {
     if (!text || !text.trim()) { console.log('[SPEECH] Empty text — skipping'); return Promise.resolve() }
     if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); return Promise.resolve() }
     console.log('[SPEECH] About to speak:', text.slice(0, 80))
 
     return new Promise((resolve) => {
       window.speechSynthesis.cancel()
-
       setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text)
-
-        // Always use fresh voice list — covers async load race
         const voices = window.speechSynthesis.getVoices()
-        console.log('[SPEECH] Picking voice from', voices.length, 'available')
+        console.log('[SPEECH] Available voices:', voices.length)
 
-        const femaleNames = [
-          'Google US English', 'Samantha', 'Karen', 'Moira', 'Tessa',
-          'Google UK English Female', 'Microsoft Aria Online (Natural)',
-          'Microsoft Jenny Online (Natural)',
-        ]
-        const maleNames = [
-          'Google UK English Male', 'Daniel', 'Fred',
-          'Microsoft Guy Online (Natural)', 'Microsoft Davis Online (Natural)',
-        ]
-        const priorityList = prospectGender === 'male' ? maleNames : femaleNames
+        const picked = getHumanVoice(voices, gender)
+        if (picked) utterance.voice = picked
+        else console.warn('[SPEECH] No voice found — using browser default')
 
-        let chosen = null
-        for (const name of priorityList) {
-          chosen = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()))
-          if (chosen) { console.log('[SPEECH] Using voice:', chosen.name); break }
-        }
-        if (!chosen) {
-          chosen = voices.find(v => v.lang.startsWith('en'))
-          if (chosen) console.log('[SPEECH] Fallback voice:', chosen.name)
-        }
-        if (!chosen && voices.length > 0) {
-          chosen = voices[0]
-          console.log('[SPEECH] Last resort voice:', chosen.name)
-        }
-        if (chosen) utterance.voice = chosen
-
-        if (prospectGender === 'male') {
-          utterance.rate = 0.88 + Math.random() * 0.1
-          utterance.pitch = 0.85 + Math.random() * 0.1
+        const personality = voicePersonalityRef.current
+        if (personality) {
+          utterance.rate = Math.max(0.7, Math.min(1.2,
+            personality.baseRate + (Math.random() - 0.5) * personality.rateVariation
+          ))
+          utterance.pitch = Math.max(0.6, Math.min(1.4,
+            personality.basePitch + (Math.random() - 0.5) * personality.pitchVariation
+          ))
         } else {
-          utterance.rate = 0.92 + Math.random() * 0.1
-          utterance.pitch = 1.0 + Math.random() * 0.15
+          utterance.rate = gender === 'male' ? 0.87 : 0.92
+          utterance.pitch = gender === 'male' ? 0.87 : 1.08
         }
         utterance.volume = 1.0
+        console.log('[SPEECH] Rate:', utterance.rate.toFixed(2), 'Pitch:', utterance.pitch.toFixed(2))
 
         utterance.onstart = () => {
-          console.log('[SPEECH] Started speaking')
+          console.log('[SPEECH] Speaking started')
           isSpeakingRef.current = true
           setIsSpeaking(true)
         }
         utterance.onend = () => {
-          console.log('[SPEECH] Finished speaking')
+          console.log('[SPEECH] Speaking finished')
           isSpeakingRef.current = false
           setIsSpeaking(false)
           resolve()
         }
         utterance.onerror = (e) => {
-          console.error('[SPEECH] Error:', e.error, e)
+          console.error('[SPEECH] Error:', e.error)
           isSpeakingRef.current = false
           setIsSpeaking(false)
           resolve()
         }
 
-        console.log('[SPEECH] Calling speak() with text:', text.slice(0, 60))
         window.speechSynthesis.speak(utterance)
+        console.log('[SPEECH] speak() called')
 
-        // Chrome bug fix — speech silently stops after ~15s
         const keepAlive = setInterval(() => {
           if (window.speechSynthesis.speaking) {
             window.speechSynthesis.pause()
@@ -342,7 +458,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (!SR) { console.error('[MIC] Not supported. Use Chrome.'); return null }
     const r = new SR()
     r.continuous = false; r.interimResults = true; r.lang = 'en-US'; r.maxAlternatives = 1
-    r.onstart = () => { console.log('[MIC] Listening...'); setIsListening(true); setTranscript('') }
+    r.onstart = () => { console.log('[MIC] Started'); setIsListening(true); setTranscript('') }
     r.onresult = (event) => {
       let interim = '', final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -352,7 +468,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       }
       setTranscript(final || interim)
       if (final.trim()) {
-        console.log('[MIC] Got final:', final)
+        console.log('[MIC] Final:', final)
         r.stop()
         handleVoiceInput(final.trim())
       }
@@ -364,18 +480,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         alert('Microphone blocked. Please allow mic access in your browser settings and reload the page.')
       }
     }
-    r.onend = () => { console.log('[MIC] Stopped'); setIsListening(false) }
+    r.onend = () => { console.log('[MIC] Ended'); setIsListening(false) }
     return r
   }
 
   const startListening = () => {
-    if (isSpeakingRef.current) { console.log('[MIC] Skipping — AI is speaking'); return }
+    if (isSpeakingRef.current) { console.log('[MIC] Blocked — AI speaking'); return }
     window.speechSynthesis.cancel()
     if (recognitionRef.current) { try { recognitionRef.current.abort() } catch(e) {} }
     const r = setupRecognition()
     if (!r) return
     recognitionRef.current = r
-    try { r.start() } catch (err) { console.error('[MIC] Could not start:', err) }
+    try { r.start(); console.log('[MIC] r.start() called') } catch (err) { console.error('[MIC] start() failed:', err) }
   }
 
   const stopListening = () => {
@@ -389,30 +505,37 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     const load = async () => {
       setGeneratingProfile(true)
       try {
+        console.log('[PROSPECT] Generating...')
         const profile = await generateProspectProfile(industry, difficulty)
         if (!cancelled) {
-          // Use gender from profile if present, else random
-          if (!profile.gender) {
-            profile.gender = Math.random() > 0.5 ? 'female' : 'male'
+          if (!profile.gender) profile.gender = Math.random() > 0.5 ? 'female' : 'male'
+          // Inject a concrete industry-specific objection
+          const objPool = INDUSTRY_OBJECTIONS[industry]
+          if (objPool) {
+            profile.main_objection = objPool[Math.floor(Math.random() * objPool.length)]
           }
+          voicePersonalityRef.current = generateVoicePersonality(profile.gender)
           profileRef.current = profile
           setProspectProfile(profile)
+          console.log('[PROSPECT] Generated:', profile.name, profile.gender)
         }
       } catch (e) {
         if (!cancelled) {
           const gender = Math.random() > 0.5 ? 'female' : 'male'
           const nameList = PROSPECT_NAMES[gender] || PROSPECT_NAMES.female
           const fb = nameList[Math.floor(Math.random() * nameList.length)]
+          const objPool = INDUSTRY_OBJECTIONS[industry] || INDUSTRY_OBJECTIONS['Door-to-Door']
           const fallback = {
             name: fb[0], gender, age: 42, occupation: 'Business Owner', location: 'Phoenix, AZ',
             personality: 'Direct and skeptical. Values their time above all else.',
             mood_today: 'Busy and slightly stressed — in the middle of a workday.',
-            main_objection: 'Budget concerns and time constraints.',
+            main_objection: objPool[Math.floor(Math.random() * objPool.length)],
             trigger_to_buy: 'Clear ROI with specific numbers and fast results.',
             speech_pattern: 'Short, direct answers. Few pleasantries. Gets to the point.',
             backstory: 'Has dealt with many salespeople. Usually hangs up in 30 seconds.',
             opening_line: 'Yeah?',
           }
+          voicePersonalityRef.current = generateVoicePersonality(fallback.gender)
           profileRef.current = fallback
           setProspectProfile(fallback)
         }
@@ -461,33 +584,33 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
   }, [])
 
-  useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
-
-  const updateTone = (text) => {
+  // ── Tone detection ────────────────────────────────────────────
+  const updateTone = (text, role = 'bot') => {
     const t = text.toLowerCase()
-    const TONE_RULES = [
-      { kws: ["let's do it", "i'll take it", "sign me up", "ready to start", "how do we get started", "yes deal", "where do i sign", "let's move forward"], delta: 25 },
-      { kws: ["sounds good", "i like that", "makes sense", "could work", "that's fair", "i'm in", "okay i'm open", "fair enough", "that's interesting"], delta: 15 },
-      { kws: ["tell me more", "how does it work", "what's included", "walk me through", "could be", "not bad", "what are my options", "explain that"], delta: 10 },
-      { kws: ["hmm", "maybe", "possibly", "i suppose", "not sure yet", "i'll consider it"], delta: 3 },
-      { kws: ["need to think", "think about it", "call me back later", "not right now", "maybe later", "not today", "talk to my", "check with my"], delta: -8 },
-      { kws: ["expensive", "too much", "over budget", "can't afford", "price is too high", "not in the budget", "costs too much"], delta: -12 },
-      { kws: ["not interested", "don't need it", "stop calling me", "no thanks", "happy with what i have", "already have something", "not looking"], delta: -20 },
-      { kws: ["hang up", "leave me alone", "don't ever call again", "remove me", "waste of my time", "goodbye", "get out"], delta: -28 },
-    ]
-    let delta = 0
-    for (const rule of TONE_RULES) {
-      if (rule.kws.some(k => t.includes(k))) { delta = rule.delta; break }
-    }
+
     setClosePct(prev => {
-      const next = Math.max(5, Math.min(98, prev + delta))
-      if (next >= 70) setMood({ label: 'Warming up', cls: 'bg-green-900/60 text-green-300' })
-      else if (next >= 45) setMood({ label: 'Neutral', cls: 'bg-blue-900/60 text-blue-300' })
-      else if (next >= 25) setMood({ label: 'Skeptical', cls: 'bg-yellow-900/60 text-yellow-300' })
-      else setMood({ label: 'Frustrated', cls: 'bg-red-900/60 text-red-300' })
-      return next
+      let p = prev
+
+      if (role === 'bot') {
+        if (/that makes sense|actually interesting|not bad|fair enough|good point/.test(t)) p = Math.min(p + 15, 92)
+        if (/tell me more|how does|what exactly|okay so|right|uh huh/.test(t)) p = Math.min(p + 8, 92)
+        if (/how do we|how would that|what's the next step|next step/.test(t)) p = Math.min(p + 22, 96)
+        if (/not interested|don't call|stop calling/.test(t)) p = Math.max(p - 25, 5)
+        if (/too expensive|can't afford|over budget/.test(t)) p = Math.max(p - 15, 10)
+        if (/need to think|call me back|maybe later/.test(t)) p = Math.max(p - 10, 10)
+        if (/busy|bad time|gotta go/.test(t)) p = Math.max(p - 5, 15)
+      }
+
+      if (role === 'usr') {
+        if (/imagine|picture this|most people|what if/.test(t)) p = Math.min(p + 4, 92)
+        if (/when we get started|once you start/.test(t)) p = Math.min(p + 3, 92)
+        if (/\$[\d,]+|\d+%|\d+ (days|weeks|months)/.test(t)) p = Math.min(p + 5, 92)
+      }
+
+      return p
     })
-    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget']
+
+    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget', "can't install", "don't trust", "bad experience"]
     if (objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
   }
 
@@ -497,18 +620,65 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (role === 'bot' && !isBrutal) setLastBotText(text)
   }
 
+  // ── Conversation state tracking ───────────────────────────────
+  const analyzeConversationState = (reply) => {
+    const r = reply.toLowerCase()
+    exchangeCountRef.current += 1
+
+    const isSold =
+      r.includes("let's do it") || r.includes("how do we get started") ||
+      r.includes("okay fine") || r.includes("alright, you") || r.includes("you've made") ||
+      r.includes("sign me up") || r.includes("i'm in") || r.includes("let's move forward") ||
+      r.includes("yeah let's do") || r.includes("okay let's") || r.includes("where do i sign") ||
+      r.includes("let's go ahead") || r.includes("you know what, yeah") ||
+      r.includes("good case") || r.includes("pretty good case")
+
+    if (isSold) {
+      conversationStateRef.current = 'sold'
+      console.log('[CALL] PROSPECT SOLD after', exchangeCountRef.current, 'exchanges')
+      setTimeout(() => handleDealClosed(), 1500)
+      return
+    }
+
+    if (/that makes sense|actually interesting|tell me more|how does that|what exactly|okay so/.test(r)) {
+      if (conversationStateRef.current === 'cold') conversationStateRef.current = 'curious'
+      else if (conversationStateRef.current === 'skeptical') conversationStateRef.current = 'interested'
+    }
+    if (/fair enough|okay that makes|i'll give you that/.test(r)) {
+      objectionHandledRef.current = true
+      if (conversationStateRef.current === 'curious') conversationStateRef.current = 'interested'
+    }
+
+    console.log('[CALL] State:', conversationStateRef.current, '| Exchange:', exchangeCountRef.current)
+  }
+
+  const handleDealClosed = () => {
+    setDealClosed(true)
+    clearInterval(timerRef.current)
+    stopListening()
+    window.speechSynthesis.cancel()
+    isSpeakingRef.current = false
+    setIsSpeaking(false)
+    navigator.vibrate?.([100, 50, 100, 50, 200])
+    console.log('[CALL] Deal closed!')
+    setTimeout(() => {
+      dispatch({ type: 'COMPLETE_CALL', payload: { closed: true, dealValue } })
+    }, 2000)
+  }
+
   const showBotReply = async (reply, isOpener = false) => {
     try { recognitionRef.current?.abort() } catch (e) {}
     setIsListening(false); setTranscript('')
-    const delay = isOpener ? 1600 + Math.random() * 500 : 700 + Math.random() * 600
+    const delay = isOpener ? 1400 + Math.random() * 400 : 500 + Math.random() * 400
     await new Promise(res => setTimeout(res, delay))
     addMsg('bot', reply)
-    updateTone(reply)
+    updateTone(reply, 'bot')
     const emoji = analyzeMood(reply)
     setMoodEmoji(emoji)
     const gender = profileRef.current?.gender || 'female'
     console.log('[SPEECH] AI speaking (gender:', gender + '):', reply.slice(0, 60))
-    await speakText(reply, gender)
+    const humanized = makeTextHuman(reply)
+    await speakText(humanized, gender)
     if (emoji === '😡') {
       setTimeout(() => handleEnd(), 3000)
     }
@@ -516,67 +686,98 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   const startCall = async () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) {
-      alert('Voice calls require Google Chrome or Safari.\nPlease open this app in Chrome for voice training.')
-      return
-    }
-    if (!window.speechSynthesis) {
-      alert('Your browser does not support voice. Please use Chrome.')
-      return
-    }
+    if (!SR) { alert('Voice calls require Chrome.\nOpen this app in Chrome.'); return }
+    if (!window.speechSynthesis) { alert('Your browser does not support voice. Use Chrome.'); return }
     console.log('[BROWSER] SpeechRecognition: supported')
     console.log('[BROWSER] speechSynthesis: supported')
 
     const p = profileRef.current
     if (!p) return
-    const brainCtx = customBrain.offer ? `\nRep sells: ${customBrain.offer}. ICP: ${customBrain.icp}.` : ''
-    const extras = { bru: '\nBRUTAL MODE: Be very skeptical and call out every weak word.', one: '\nONE SHOT: Highly resistant. Shut down fast if they blow the opening.', std: '', rfm: '' }
+
+    // Reset conversation tracking on new call
+    conversationStateRef.current = 'cold'
+    exchangeCountRef.current = 0
+    objectionHandledRef.current = false
+    setDealClosed(false)
+
+    const difficultyGuide = {
+      'Beginner': `Start skeptical but warm up quickly. After 3 good responses become genuinely interested. After 5 solid exchanges you are ready to buy.`,
+      'Beginner+': `Cautious but not hostile. Need 2-3 objections handled well. After 6-7 good exchanges you will buy.`,
+      'Intermediate': `Realistic skeptic. Push back on price, timing, and need. Need real answers not fluff. After 8 solid exchanges where the rep genuinely addressed your concerns you will buy.`,
+      'Advanced': `Tough and busy. Push back hard with specific objections. Only a genuinely compelling pitch over 10+ exchanges will get you to buy.`,
+      'Elite Closer': `The hardest prospect. You know every sales trick. You call out canned lines. Only a rep who truly listens and adapts over a full conversation — 12+ exchanges minimum — will crack you.`,
+    }
+
+    const brainCtx = customBrain?.offer ? `\nThe rep sells: ${customBrain.offer}. Their ideal customer: ${customBrain.icp}.` : ''
+    const modeExtras = {
+      bru: '\nBRUTAL MODE: Be extremely skeptical. Call out every weak or vague word immediately.',
+      one: '\nONE SHOT MODE: You are highly resistant. If they blow the opening you shut it down fast.',
+      std: '', rfm: '',
+    }
+
     const sys = `You are ${p.name}, ${p.age} years old, ${p.occupation}${p.location ? ` from ${p.location}` : ''}.
 Gender: ${p.gender}.
 Personality: ${p.personality}
 Today's mood: ${p.mood_today}
 ${p.backstory ? 'Backstory: ' + p.backstory : ''}
-Speech pattern: ${p.speech_pattern}
-${brainCtx}${extras[mode] || ''}
-You are receiving an unexpected ${industry} sales call. Be a REAL human — not a helpful assistant.
+Speech style: ${p.speech_pattern}
+${brainCtx}${modeExtras[mode] || ''}
 
-REACTIONS:
-- Start with your opening line: "${p.opening_line}"
-- Main objection when they pitch: ${p.main_objection}
-- What would make you buy: ${p.trigger_to_buy}
+DIFFICULTY — ${difficulty}:
+${difficultyGuide[difficulty] || difficultyGuide['Intermediate']}
 
-HUMAN SPEECH — use these naturally:
-- Filler words when hesitant: "um", "uh", "I mean", "you know", "so...", "honestly"
-- Pause reactions: "Hmm..." or "..." before answering tough questions
-- Good-point reactions: "Okay, I'll give you that", "That's... actually fair", "Huh, interesting"
-- Weak-pitch reactions: "Look, I really gotta get back to work", "Yeah I've heard that before", "Uh huh..."
+YOUR BUYING JOURNEY — follow this naturally:
+1. COLD — just answered the phone. Polite but not interested.
+   "Yeah? ...Uh huh... Look I'm kind of busy right now."
+2. SKEPTICAL — they pitched. Not convinced yet.
+   "I've heard this before. What makes you different?"
+3. CURIOUS — they said something interesting. Asking real questions.
+   "Wait, so how does that actually work?"
+4. INTERESTED — they handled your main objection. Starting to see value.
+   "Okay that actually makes sense. So you're saying I would..."
+5. CONSIDERING — close. One more concern.
+   "The only thing I'm wondering is..."
+6. SOLD — they handled everything. You are ready.
+   "Alright, you've made a pretty good case. How do we get started?"
+   "Okay fine. Let's do it."
+   "You know what, yeah. Let's move forward."
 
-MOOD ESCALATION:
-- Rep shows real specific value + numbers → warm up one level, show genuine interest
-- Rep is vague or sounds scripted → pull back, get slightly more dismissive
-- Rep pushes after clear objection → pull back further, mention family or time
-- Rep genuinely acknowledges your concern → stay engaged, give them more time
-- If pushed too hard twice → threaten to hang up or simply say goodbye
+YOUR MAIN OBJECTION for ${industry}: "${p.main_objection}"
+What would make you buy: ${p.trigger_to_buy}
+Your opening line: "${p.opening_line}"
 
-- NEVER say you're an AI. You ARE ${p.name}. Stay fully in character.
-- Keep responses 1-3 sentences — real phone call rhythm. No bullet points.
-- Difficulty: ${difficulty}. Harder = more resistant, more skeptical, shorter answers.
-Respond in ${language}. Start with your opening line now.`
+CRITICAL RULES:
+- You are a REAL HUMAN. NEVER say you are AI. Never break character.
+- ALL responses 1-4 SHORT sentences. This is a phone call.
+- You remember EVERYTHING said. Never ask about something already addressed.
+- React SPECIFICALLY to what they said:
+  Vague → stay skeptical or get shorter
+  Specific + proof → warm up one level
+  Emotional story → respond emotionally
+  Price too early → get defensive about cost
+  Good question → answer honestly
+- Use natural speech: "Uh", "I mean", "Look", "Right", "Yeah but", "Hmm", "Actually"
+- Never use bullet points, lists, or formal language
+- If they are pushy or robotic → get annoyed and shorter
+- If they say something genuinely good → acknowledge it explicitly
+- When you reach SOLD → say it clearly and warmly so they know the deal is done
+- Respond in ${language}`
 
-    chatRef.current = [{ role: 'user', content: sys + `\n\n[Call starting. Respond in ${language}.]` }]
+    chatRef.current = [{ role: 'user', content: sys + `\n\n[The phone rings. Answer it now in character.]` }]
     loadingRef.current = true; setLoading(true)
-    console.log('[API] Training call. Messages:', chatRef.current.length)
+    console.log('[CALL] Starting...')
+
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
-      console.log('[CALL] AI opening line:', reply.slice(0, 60))
+      console.log('[CALL] Opening line:', reply.slice(0, 60))
       await showBotReply(reply, true)
     } catch (e) {
       console.error('[CALL] Start error:', e)
-      addMsg('brutal', '⚠️ Connection error. Check your API key and internet, then restart the call.', true)
+      addMsg('brutal', '⚠️ Connection error. Check your API key and internet connection.', true)
     }
     loadingRef.current = false; setLoading(false)
-    console.log('[CALL] Auto-starting mic after AI spoke')
+    console.log('[CALL] Done speaking. Starting mic.')
     setTimeout(() => startListening(), 400)
   }
 
@@ -587,25 +788,30 @@ Respond in ${language}. Start with your opening line now.`
     addMsg('usr', text)
     chatRef.current.push({ role: 'user', content: text })
     const userCount = callMsgs.filter(m => m.role === 'usr').length + 1
-    updateTone(text)
+    updateTone(text, 'usr')
     loadingRef.current = true; setLoading(true)
+
     if (mode === 'bru' && userCount % 3 === 0) {
       getBrutalFeedback(text).then(fb => {
         addMsg('brutal', '😤 BLITZ: ' + fb.replace(/^(BLITZ:|Blitz:)/i, '').trim(), true)
       }).catch(() => {})
     }
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 700))
+
+    const delay = thinkingTime(text)
+    await new Promise(r => setTimeout(r, delay))
     console.log('[API] Training call. Messages:', chatRef.current.length)
+
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
+      analyzeConversationState(reply)
       await showBotReply(reply, false)
     } catch (e) {
       console.error('[CALL] API error:', e)
-      addMsg('brutal', '⚠️ No response. Check your connection and try again.', true)
+      addMsg('brutal', '⚠️ No response. Check your connection.', true)
     }
     loadingRef.current = false; setLoading(false)
-    console.log('[CALL] Auto-starting mic after AI spoke')
+    console.log('[CALL] AI done. Starting mic.')
     setTimeout(() => startListening(), 400)
   }
 
@@ -614,6 +820,7 @@ Respond in ${language}. Start with your opening line now.`
     window.speechSynthesis?.cancel()
     isSpeakingRef.current = false; setIsSpeaking(false)
     stopPhoneStatic()
+    stopListening()
     if (callMsgs.length >= 4) {
       setAutopsyLoading(true)
       const tx = callMsgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'} [${Math.floor(m.time / 60)}:${(m.time % 60).toString().padStart(2, '0')}]: ${m.text}`).join('\n')
@@ -635,10 +842,10 @@ Respond in ${language}. Start with your opening line now.`
   }
 
   const fmt = (s) => Math.floor(s / 60).toString().padStart(2, '0') + ':' + (s % 60).toString().padStart(2, '0')
-  const toneColor = closePct >= 70 ? '#22c55e' : closePct >= 40 ? '#f59e0b' : '#ef4444'
-  const toneStatus = closePct >= 80 ? '🔥 HOT — push the close now' : closePct >= 60 ? 'Warming — keep building value' : closePct >= 35 ? 'Neutral — more conviction needed' : closePct >= 15 ? 'Cold — use empathy now' : '❌ Shutting down — reframe immediately'
+  const toneColor = closePct >= 70 ? '#22c55e' : closePct >= 45 ? '#f59e0b' : '#ef4444'
   const prospectName = prospectProfile?.name || 'Prospect'
 
+  // ── Render guards ─────────────────────────────────────────────
   if (generatingProfile) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 text-center">
@@ -652,9 +859,7 @@ Respond in ${language}. Start with your opening line now.`
     )
   }
 
-  if (showPreview && prospectProfile) {
-    return <ProspectPreview profile={prospectProfile} />
-  }
+  if (showPreview && prospectProfile) return <ProspectPreview profile={prospectProfile} />
 
   if (autopsyLoading) {
     return (
@@ -673,6 +878,48 @@ Respond in ${language}. Start with your opening line now.`
 
   return (
     <div className="flex flex-col h-full relative">
+
+      {/* ── WIN OVERLAY ─────────────────────────────────────────── */}
+      {dealClosed && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-navy-950/96 p-6 text-center">
+          <div className="text-6xl mb-4">🏆</div>
+          <h2 className="text-2xl font-bubble text-white mb-2">Deal Closed!</h2>
+          <p className="text-white/50 text-sm mb-1">
+            {prospectName} said yes after {exchangeCountRef.current} exchanges
+          </p>
+          <div className="flex items-center gap-2 mb-6">
+            <span className="text-3xl font-bold text-green-400 font-mono">
+              ${dealValue.toLocaleString()}
+            </span>
+          </div>
+          <BlitzBar message="That is how you close! You built real trust, handled every objection, and earned that yes. That is the Straight Line System working in real life." />
+          <div className="flex gap-3 mt-5 w-full max-w-xs">
+            <button
+              onClick={() => {
+                setDealClosed(false)
+                setMessages([])
+                setCallMsgs([])
+                setLastBotText('')
+                setClosePct(30)
+                setMoodEmoji('😐')
+                chatRef.current = []
+                timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
+                startCall()
+              }}
+              className="flex-1 py-3 bg-closer-blue text-white font-bubble rounded-xl text-sm"
+            >
+              Call Again
+            </button>
+            <button
+              onClick={handleEnd}
+              className="flex-1 py-3 bg-white/10 border border-white/15 text-white/60 font-bubble rounded-xl text-sm"
+            >
+              See Autopsy
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Call header */}
       <div className="bg-navy-900 px-3 py-2.5 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -707,22 +954,15 @@ Respond in ${language}. Start with your opening line now.`
         </div>
       )}
 
-      {/* Tone bar */}
-      <div className="px-4 py-1.5 bg-gray-900/80 border-b border-white/10 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-0.5">
-          <span className="text-[9px] text-white/40 font-bold w-9 flex-shrink-0">Tone</span>
-          <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${closePct}%`, background: toneColor }} />
-          </div>
-          <span className="text-[9px] font-bold w-9 text-right flex-shrink-0" style={{ color: toneColor }}>{closePct}%</span>
-        </div>
-        <p className="text-[9px] text-white/40 italic">{toneStatus}</p>
-      </div>
-
       {/* Prospect card */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-900/60 border-b border-white/10 flex-shrink-0">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-          style={{ background: prospectProfile?.gender === 'male' ? '#1a6bbf' : '#8b5cf6' }}>
+        <div
+          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 transition-all duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}
+          style={{
+            background: prospectProfile?.gender === 'male' ? '#1a6bbf' : '#8b5cf6',
+            boxShadow: isSpeaking ? `0 0 0 6px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.3)' : 'rgba(139,92,246,0.3)'}` : 'none',
+          }}
+        >
           {prospectProfile?.name?.charAt(0) || '?'}
         </div>
         <div className="flex-1 min-w-0">
@@ -734,11 +974,18 @@ Respond in ${language}. Start with your opening line now.`
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className="text-base">{moodEmoji}</span>
-          <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${mood.cls}`}>{mood.label}</span>
+          <span className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${
+            closePct >= 80 ? 'bg-green-900/60 text-green-300' :
+            closePct >= 55 ? 'bg-blue-900/60 text-blue-300' :
+            closePct >= 30 ? 'bg-yellow-900/60 text-yellow-300' :
+            'bg-red-900/60 text-red-300'
+          }`}>
+            {closePct >= 80 ? 'Warming up' : closePct >= 55 ? 'Neutral' : closePct >= 30 ? 'Skeptical' : 'Frustrated'}
+          </span>
         </div>
       </div>
 
-      {/* Voice call center — no text chat, audio only */}
+      {/* Voice call center */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 gap-4">
         {/* Big prospect avatar */}
         <div className="relative">
@@ -746,7 +993,7 @@ Respond in ${language}. Start with your opening line now.`
             className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white transition-all duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}
             style={{
               background: prospectProfile?.gender === 'male' ? '#1a6bbf' : '#8b5cf6',
-              boxShadow: isSpeaking ? `0 0 0 8px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.25)' : 'rgba(139,92,246,0.25)'}` : 'none',
+              boxShadow: isSpeaking ? `0 0 0 10px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.2)' : 'rgba(139,92,246,0.2)'}` : 'none',
             }}
           >
             {prospectProfile?.name?.charAt(0) || '?'}
@@ -769,7 +1016,7 @@ Respond in ${language}. Start with your opening line now.`
           </div>
         ) : null}
 
-        {/* Blitz brutal feedback toasts */}
+        {/* Blitz brutal feedback toast */}
         {messages.filter(m => m.isBrutal).slice(-1).map((m, i) => (
           <div key={i} className="max-w-xs w-full bg-red-900/40 border border-red-500/50 rounded-xl px-3 py-2 text-xs text-red-300 font-bold text-center">
             {m.text}
@@ -777,8 +1024,34 @@ Respond in ${language}. Start with your opening line now.`
         ))}
       </div>
 
-      {/* Voice-only controls */}
-      <div className="px-4 pb-6 pt-3 bg-gray-900 border-t border-white/10 flex-shrink-0">
+      {/* Close meter + voice controls */}
+      <div className="px-4 pt-3 pb-6 bg-gray-900 border-t border-white/10 flex-shrink-0">
+
+        {/* Close meter */}
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider w-8">Close</span>
+          <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${closePct}%`,
+                background: closePct >= 75 ? 'linear-gradient(90deg,#22c55e,#16a34a)' :
+                  closePct >= 45 ? 'linear-gradient(90deg,#f59e0b,#d97706)' :
+                  'linear-gradient(90deg,#3b82f6,#2563eb)',
+              }}
+            />
+          </div>
+          <span className="text-[9px] font-bold font-mono w-8 text-right" style={{ color: toneColor }}>{closePct}%</span>
+        </div>
+        <p className="text-[9px] text-white/25 italic mb-4 ml-11">
+          {closePct >= 85 ? '🤑 Ready to close — push now'
+            : closePct >= 70 ? '😊 Genuinely interested — keep building'
+            : closePct >= 55 ? '🤔 Curious — keep going'
+            : closePct >= 35 ? '😐 Neutral — need more value'
+            : closePct >= 20 ? '🤨 Skeptical — handle objections'
+            : '😤 Frustrated — slow down, use empathy'}
+        </p>
+
         {/* Live transcript */}
         {(transcript || isListening) && (
           <div className="mb-3 px-3 py-2 bg-white/8 border border-white/15 rounded-xl min-h-[36px]">
@@ -980,7 +1253,6 @@ export default function TrainingScreen() {
 
       <button
         onClick={() => {
-          // Prime speech synthesis with this user gesture — Chrome requires a gesture for first speak()
           try {
             window.speechSynthesis.cancel()
             const prime = new SpeechSynthesisUtterance('')
