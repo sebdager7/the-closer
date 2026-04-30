@@ -8,17 +8,12 @@ import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
 
 // ─── PROSPECT PREVIEW ─────────────────────────────────────────────────────────
-function ProspectPreview({ profile }) {
-  const [countdown, setCountdown] = useState(3)
-  useEffect(() => {
-    const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
-    return () => clearInterval(t)
-  }, [])
+function ProspectPreview({ profile, onStart }) {
   return (
-    <div className="flex flex-col h-full items-center justify-center p-5 bg-navy-950">
-      <div className="text-center mb-5">
-        <p className="text-[10px] font-bubble text-gold-400 uppercase tracking-widest mb-2">
-          📞 Call starting in {countdown}s...
+    <div className="flex flex-col h-full overflow-y-auto p-5 bg-navy-950">
+      <div className="text-center mb-5 pt-2">
+        <p className="text-[10px] font-bubble text-gold-400 uppercase tracking-widest mb-3">
+          📋 Know Your Prospect
         </p>
         <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mx-auto mb-3"
           style={{ background: profile.gender === 'male' ? '#1a6bbf' : '#8b5cf6' }}>
@@ -26,12 +21,12 @@ function ProspectPreview({ profile }) {
         </div>
         <h2 className="text-xl font-bubble text-white">{profile.name}</h2>
         <p className="text-sm text-white/60">{profile.age} · {profile.occupation}</p>
-        <p className="text-xs text-white/40">{profile.location || profile.mood_today}</p>
+        <p className="text-xs text-white/40">{profile.location || ''}</p>
       </div>
-      <div className="w-full bg-navy-800/70 border border-white/10 rounded-2xl p-4 space-y-3 max-w-xs">
+      <div className="w-full bg-navy-800/70 border border-white/10 rounded-2xl p-4 space-y-3 max-w-xs mx-auto">
         <div>
           <div className="text-[8px] font-bubble text-gold-400 uppercase tracking-wider mb-1">Today's mood</div>
-          <p className="text-xs text-white/80 leading-relaxed">{profile.mood_today}</p>
+          <p className="text-xs text-white/80 leading-relaxed">{profile.mood_today || profile.mood}</p>
         </div>
         <div>
           <div className="text-[8px] font-bubble text-white/40 uppercase tracking-wider mb-1">Personality</div>
@@ -49,13 +44,22 @@ function ProspectPreview({ profile }) {
         </div>
         <div className="bg-white/5 border border-white/10 rounded-lg p-2">
           <div className="text-[8px] font-bubble text-closer-blue uppercase tracking-wider mb-1">Speech pattern</div>
-          <p className="text-[10px] text-white/60 italic">"{profile.speech_pattern}"</p>
+          <p className="text-[10px] text-white/60 italic">"{profile.speech_pattern || profile.speech}"</p>
         </div>
       </div>
-      <div className="flex gap-2 mt-4">
-        {[3, 2, 1].map(n => (
-          <div key={n} className={`w-2 h-2 rounded-full transition-all duration-300 ${countdown === n ? 'bg-gold-400 scale-125' : countdown < n ? 'bg-white/20' : 'bg-closer-blue'}`} />
-        ))}
+      <div className="max-w-xs mx-auto w-full mt-5">
+        <button
+          onClick={onStart}
+          className="w-full py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-[#1a6bbf] to-[#1557a0] text-white tracking-wide shadow-lg shadow-closer-blue/30 hover:shadow-xl hover:shadow-closer-blue/40 active:scale-[0.98] transition-all duration-200 border border-closer-blue/30 relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/8 to-transparent pointer-events-none" />
+          <div className="flex items-center justify-center gap-3 relative">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l1.09-1.09a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>Start Call</span>
+          </div>
+        </button>
       </div>
     </div>
   )
@@ -243,8 +247,8 @@ const buildSystemPrompt = (profile, industry, difficulty, language, mode, person
     : ''
 
   return `You are ${profile.name}, ${profile.age} years old, ${profile.occupation}.
-Your mood right now: ${profile.mood_today}
-How you naturally talk: ${profile.speech_pattern}
+Your mood right now: ${profile.mood_today || profile.mood || 'neutral'}
+How you naturally talk: ${profile.speech_pattern || profile.speech || 'normal conversational pace'}
 Your main resistance to this call: ${profile.main_objection}
 What would genuinely change your mind: ${profile.trigger_to_buy}
 ${profile.backstory ? 'Your backstory: ' + profile.backstory : ''}${brainCtx}${modeExtras[mode] || ''}
@@ -422,9 +426,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   // ── Voice helpers ─────────────────────────────────────────────
   const generateVoicePersonality = (gender) => {
     if (gender === 'male') {
-      return { baseRate: 0.82 + Math.random() * 0.1, basePitch: 0.82 + Math.random() * 0.1, rateVar: 0.05, pitchVar: 0.05 }
+      return { baseRate: 0.84 + Math.random() * 0.1, basePitch: 0.88 + Math.random() * 0.1, rateVar: 0.05, pitchVar: 0.05 }
     }
-    return { baseRate: 0.87 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14, rateVar: 0.05, pitchVar: 0.06 }
+    return { baseRate: 0.90 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14, rateVar: 0.05, pitchVar: 0.06 }
   }
 
   const getBestVoice = (gender = 'female') => {
@@ -440,6 +444,14 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
 
     const female = [
+      'Nicky (Enhanced)',
+      'Nicky',
+      'Allison (Enhanced)',
+      'Allison',
+      'Ava (Enhanced)',
+      'Ava',
+      'Susan (Enhanced)',
+      'Susan',
       'Google US English',
       'Microsoft Aria Online (Natural)',
       'Microsoft Jenny Online (Natural)',
@@ -455,6 +467,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     ]
 
     const male = [
+      'Tom (Enhanced)',
+      'Tom',
+      'Lee (Enhanced)',
+      'Lee',
       'Google UK English Male',
       'Microsoft Guy Online (Natural)',
       'Microsoft Davis Online (Natural)',
@@ -478,7 +494,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
     const fallback = voices.find(v =>
       v.lang.startsWith('en') &&
-      !v.name.match(/Zarvox|Trinoids|Cellos|Pipe|Whisper|Bad|Bubble/i)
+      !v.name.match(/Zarvox|Trinoids|Cellos|Pipe|Whisper|Bad|Bubble|Zira|David|Mark|Kyoko|Amelie|Bahh|Bells|Boing|Fred|Junior|Kathy|Organ|Princess|Ralph/i)
     )
     if (fallback) { console.log('[VOICE] Fallback:', fallback.name); return fallback }
 
@@ -547,10 +563,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         const done = () => {
           if (finished) return
           finished = true
-          // Clear speaking state BEFORE resolving so startListening guard sees false
           isSpeakingRef.current = false
           setIsSpeaking(false)
-          resolve()
+          requestAnimationFrame(() => resolve())
         }
 
         const maxDuration = Math.max(
@@ -644,8 +659,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       setTranscript(current)
       console.log('[MIC]', final ? 'FINAL:' : 'interim:', current)
       if (final.trim()) {
+        isListeningRef.current = false
+        setIsListening(false)
         try { r.stop() } catch (e) {}
-        setTimeout(() => handleVoiceInput(final.trim()), 50)
+        setTimeout(() => handleVoiceInput(final.trim()), 100)
       }
     }
 
@@ -681,7 +698,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
           setTimeout(() => startListening(), 500)
         }
       }
-    }, 80)
+    }, 100)
   }
 
   const stopListening = () => {
@@ -756,13 +773,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }, 50)
     return () => clearTimeout(t)
   }, [showPreview])
-
-  // ── Auto-advance preview after 3s ─────────────────────────────
-  useEffect(() => {
-    if (!prospectProfile) return
-    const t = setTimeout(() => setShowPreview(false), 3000)
-    return () => clearTimeout(t)
-  }, [prospectProfile])
 
   // ── Tone detection ────────────────────────────────────────────
   const updateTone = (text, role = 'bot') => {
@@ -1049,7 +1059,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     )
   }
 
-  if (showPreview && prospectProfile) return <ProspectPreview profile={prospectProfile} />
+  if (showPreview && prospectProfile) return <ProspectPreview profile={prospectProfile} onStart={() => setShowPreview(false)} />
 
   if (resultsLoading) {
     return (
@@ -1317,15 +1327,29 @@ Return ONLY raw JSON, no markdown, no backticks:
         </p>
 
         {/* Mic button */}
-        <div className="flex justify-center mb-2">
+        <div className="flex flex-col items-center gap-2 mb-2">
           <button
             onClick={() => { if (isListening) stopListening(); else startListening() }}
             disabled={isSpeaking || loading}
-            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? 'bg-red-500 scale-110' : 'bg-closer-blue hover:scale-105 active:scale-95'}`}
+            className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? 'bg-red-500 scale-110' : 'bg-closer-blue hover:scale-105 active:scale-95'}`}
             style={isListening ? { animation: 'mic-pulse 1.2s ease-in-out infinite' } : { boxShadow: '0 8px 32px rgba(26,107,191,0.4)' }}
           >
-            {isListening ? '⏹' : '🎙️'}
+            {isListening ? (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="5" y="5" width="14" height="14" rx="2"/>
+              </svg>
+            ) : (
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="8" y1="22" x2="16" y2="22"/>
+              </svg>
+            )}
           </button>
+          <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: isListening ? '#ef4444' : isSpeaking || loading ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.5)' }}>
+            {isListening ? 'Tap to stop' : isSpeaking ? 'Prospect speaking' : loading ? 'Please wait' : 'Tap to speak'}
+          </span>
         </div>
 
         {/* Waveform */}
@@ -1496,10 +1520,7 @@ export default function TrainingScreen() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/8 to-transparent pointer-events-none" />
         <div className="flex items-center justify-center gap-3 relative">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="22"/>
-            <line x1="8" y1="22" x2="16" y2="22"/>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l1.09-1.09a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
           </svg>
           <span>Start Training Call</span>
         </div>
