@@ -1,46 +1,63 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-20250514'
 
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true',
+}
+
+export const checkAPIKey = async () => {
+  const key = import.meta.env.VITE_ANTHROPIC_API_KEY
+  if (!key) {
+    console.error('[API] MISSING: VITE_ANTHROPIC_API_KEY is not set in .env')
+    return false
+  }
+  if (!key.startsWith('sk-ant-')) {
+    console.error('[API] INVALID: Key does not start with sk-ant-')
+    return false
+  }
+  console.log('[API] Key found and looks valid')
+  return true
+}
+
 export async function callClaude(prompt, maxTokens = 1200) {
-  console.log('[callClaude] maxTokens:', maxTokens, '| prompt length:', prompt.length)
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-  const data = await response.json()
-  console.log('[callClaude] response status:', response.status, '| has content:', !!data.content)
-  const text = data.content?.[0]?.text || ''
-  if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
-  return text
+  console.log('[API] callClaude | maxTokens:', maxTokens, '| key present:', !!import.meta.env.VITE_ANTHROPIC_API_KEY)
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] }),
+    })
+    const data = await response.json()
+    console.log('[API] callClaude response status:', response.status, '| has content:', !!data.content)
+    const text = data.content?.[0]?.text || ''
+    if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
+    return text
+  } catch (e) {
+    console.error('[API] callClaude error:', e)
+    throw e
+  }
 }
 
 export async function callClaudeConversation(messages, maxTokens = 200) {
-  console.log('[callClaudeConversation] msgs:', messages.length, '| maxTokens:', maxTokens)
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
-  })
-  const data = await response.json()
-  console.log('[callClaudeConversation] status:', response.status, '| has content:', !!data.content)
-  const text = data.content?.[0]?.text || ''
-  if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
-  return text
+  console.log('[API] callClaudeConversation | msgs:', messages.length, '| key present:', !!import.meta.env.VITE_ANTHROPIC_API_KEY)
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: HEADERS,
+      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
+    })
+    const data = await response.json()
+    console.log('[API] callClaudeConversation status:', response.status, '| has content:', !!data.content)
+    const text = data.content?.[0]?.text || ''
+    if (!text) throw new Error(data.error?.message || `API error ${response.status}: ${JSON.stringify(data).slice(0, 200)}`)
+    return text
+  } catch (e) {
+    console.error('[API] callClaudeConversation error:', e)
+    throw e
+  }
 }
 
 export function parseJSON(text) {

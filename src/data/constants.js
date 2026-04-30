@@ -166,29 +166,530 @@ export const LESSON_DATA = {
   a2: [
     {
       type: 'learn',
-      title: "The Trust Triangle",
-      content: "Belfort's Trust Triangle: Credibility, Reliability, and Connection. Every purchase requires all three.",
+      title: "Belfort's Trust Triangle",
+      content: "Jordan Belfort's Straight Line System says every prospect needs to score you a 10 out of 10 on THREE things before they buy. Miss any one and the sale dies.",
       cards: [
-        { h: 'Credibility', p: "Know your product better than anyone.", q: "— Jordan Belfort" },
-        { h: 'Reliability', p: "Do what you said. Show up when you said.", q: "— Andy Elliott" },
-        { h: 'Connection', p: "People don't care how much you know until they know how much you care.", q: "— Zig Ziglar" },
+        { h: 'Ten #1 — Your Product', p: 'They must believe your product/service is the best solution for their problem. Logic + emotion.', q: '— Jordan Belfort' },
+        { h: 'Ten #2 — You', p: 'They must trust YOU specifically. Are you sharp, enthusiastic, an expert?', q: '— Jordan Belfort' },
+        { h: 'Ten #3 — Your Company', p: 'They must trust your company will be there to back it up. Credibility and track record.', q: '— Jordan Belfort' },
       ],
     },
     {
       type: 'quiz',
-      question: "The Trust Triangle has 3 pillars. Which is NOT one of them?",
-      options: ["Credibility", "Reliability", "Pressure", "Connection"],
+      question: 'A prospect loves the product and trusts the company but does not trust you personally. What happens?',
+      options: ['They buy anyway', 'They buy but feel uneasy', 'They do not buy — all three tens are required', 'They ask for a supervisor'],
       correct: 2,
-      explanation: "Trust Triangle = Credibility + Reliability + Connection. Pressure destroys all three.",
+      explanation: "All three tens must be present. One missing ten kills the sale every time.",
+    },
+    {
+      type: 'match',
+      question: 'Match each Ten to what builds it:',
+      pairs: [
+        { left: 'Ten on Product', right: 'Features + outcome story' },
+        { left: 'Ten on You', right: 'Energy, expertise, confidence' },
+        { left: 'Ten on Company', right: 'Track record, testimonials' },
+      ],
     },
     {
       type: 'fill',
-      question: "Complete Zig Ziglar's core principle:",
-      before: "People don't care how much you know until they know how much you",
-      after: ".",
-      answer: "care",
-      hint: "genuine concern",
-      explanation: "Emotional connection precedes every transaction.",
+      question: 'Complete the Belfort certainty rule:',
+      before: 'Your tone of voice communicates',
+      after: 'before your words ever land.',
+      answer: 'certainty',
+      hint: 'confidence / belief',
+      explanation: 'Certainty is transferred through tone. Sound certain and they feel certain.',
+    },
+  ],
+
+  a1: [
+    {
+      type: 'learn',
+      title: 'Why People Really Buy',
+      content: "People don't buy products. They buy feelings, outcomes, and identity. Andy Elliott says: 'Nobody buys a drill — they buy a hole in the wall. Nobody buys insurance — they buy peace of mind at 2am.'",
+      cards: [
+        { h: 'They buy feelings first', p: 'Every purchase starts with an emotion. Logic comes AFTER to justify what emotion already decided.', q: '— Andy Elliott' },
+        { h: 'They buy outcomes', p: "Don't sell the product. Sell the life they have after owning it. Paint that picture vividly.", q: '— Zig Ziglar' },
+        { h: 'They buy identity', p: "People buy things that match who they want to BE. 'Someone like me owns this.'", q: '— Jordan Belfort' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'A customer says they want to think about it. What are they REALLY telling you?',
+      options: [
+        'They need more time to decide',
+        'They are not yet emotionally sold — logic alone is not enough',
+        'They want a lower price',
+        'They are definitely not buying',
+      ],
+      correct: 1,
+      explanation: "Stalls mean the emotional case was not made strong enough. They have not pictured their life after the purchase yet.",
+    },
+    {
+      type: 'quiz',
+      question: 'According to Zig Ziglar, what should you always sell FIRST?',
+      options: ['The price', 'The features', 'The sizzle — the outcome and feeling', 'The company credentials'],
+      correct: 2,
+      explanation: "Sell the sizzle not the steak. Lead with the feeling and outcome, let features support it.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the core sales truth:',
+      before: 'People buy on',
+      after: 'and justify with logic.',
+      answer: 'emotion',
+      hint: 'feeling / heart',
+      explanation: 'Emotion drives the decision. Logic closes the loop. Always lead with emotion.',
+    },
+  ],
+
+  a4: [
+    {
+      type: 'learn',
+      title: 'The Power of Tonality',
+      content: "Research shows 93% of communication is NON-verbal. Your words are only 7% of your impact. Belfort built his entire system on tonality because it transfers certainty directly into the prospect's nervous system.",
+      cards: [
+        { h: 'Declarative statement tone', p: "Drop your voice at the END of sentences. This sounds certain. Raising it makes you sound like you are asking for permission.", q: '— Jordan Belfort' },
+        { h: 'Scarcity tone', p: 'Slow down slightly and lower volume when mentioning scarcity or urgency. Calm certainty is more powerful than excitement.', q: '— Andy Elliott' },
+        { h: 'Empathy tone', p: "When handling objections go SOFTER first. Match their concern emotionally before you redirect.", q: '— Chris Voss' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You are closing and you say "We only have two spots left this month." What tone should you use?',
+      options: ['High energy and excited', 'Calm, slow, slightly lower volume', 'Fast and urgent to create pressure', 'Same tone as your pitch'],
+      correct: 1,
+      explanation: "Calm certainty creates real urgency. Excitement sounds salesy and fake. Slow it down and let the scarcity land.",
+    },
+    {
+      type: 'quiz',
+      question: 'A prospect gives you an objection. What is your FIRST tonal move?',
+      options: ['Fire back with facts immediately', 'Match their emotional energy — go softer, show you heard them', 'Speed up to keep momentum', 'Stay exactly the same'],
+      correct: 1,
+      explanation: "Chris Voss and Andy Elliott both teach: match their emotion first. Empathy before logic every time.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the tonality rule:',
+      before: 'Drop your voice at the',
+      after: 'of sentences to sound certain, not questioning.',
+      answer: 'end',
+      hint: 'finish / conclusion',
+      explanation: "Ending sentences by raising your pitch makes statements sound like questions — it destroys certainty.",
+    },
+  ],
+
+  a6: [
+    {
+      type: 'learn',
+      title: 'Killer Phrases That Close',
+      content: "These are real documented phrases used by top closers that have been proven to move deals forward. Memorize them until they come out automatically.",
+      cards: [
+        { h: '"Help me understand..."', p: 'Chris Voss opener. Gets them talking and positions you as collaborative not adversarial.', q: '— Chris Voss' },
+        { h: '"Most people in your situation..."', p: "Social proof embedded in a phrase. Normalizes buying. 'Most homeowners I work with had the same concern...'", q: '— Andy Elliott' },
+        { h: '"What would it mean for you if..."', p: 'Makes them visualize the outcome. Sells the dream before the close.', q: '— Zig Ziglar' },
+        { h: '"The only question is..."', p: "Belfort's assumptive setup. Moves past IF they buy to WHICH option or WHEN they start.", q: '— Jordan Belfort' },
+      ],
+    },
+    {
+      type: 'match',
+      question: 'Match each killer phrase to its closer:',
+      pairs: [
+        { left: '"Help me understand"', right: 'Chris Voss' },
+        { left: '"Most people in your situation"', right: 'Andy Elliott' },
+        { left: '"The only question is"', right: 'Jordan Belfort' },
+        { left: '"Picture yourself six months from now"', right: 'Zig Ziglar' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You want to assume the sale and move toward close. Which phrase works best?',
+      options: [
+        '"Would you like to move forward?"',
+        '"Do you think this could work for you?"',
+        '"The only question is do you want the basic or premium package?"',
+        '"What do you think?"',
+      ],
+      correct: 2,
+      explanation: "Belfort's assumptive framing bypasses the yes/no decision entirely. You are already past IF — you are at WHICH.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the social proof phrase:',
+      before: 'Most people in your',
+      after: 'had the same concern at first.',
+      answer: 'situation',
+      hint: 'position / place',
+      explanation: "This phrase normalizes their objection and sets up the feel-felt-found reframe.",
+    },
+  ],
+
+  a7: [
+    {
+      type: 'learn',
+      title: 'Language of Certainty',
+      content: "Jordan Belfort discovered that certainty is contagious. When you speak with absolute certainty about the outcome, the prospect borrows your certainty. Your words must eliminate doubt.",
+      cards: [
+        { h: 'Replace "I think" with "I know"', p: '"I think this could work for you" = doubt. "I know this will work for you" = certainty.', q: '— Jordan Belfort' },
+        { h: 'Replace "hopefully" with "when"', p: '"Hopefully you will see results" = weak. "When you start seeing results in the first 30 days..." = certain.', q: '— Andy Elliott' },
+        { h: 'Replace "if" with "when"', p: '"If you decide to move forward" = uncertainty. "When we get started" = assumed sale.', q: '— Grant Cardone' },
+      ],
+    },
+    {
+      type: 'match',
+      question: 'Match the weak word to its power replacement:',
+      pairs: [
+        { left: 'I think', right: 'I know' },
+        { left: 'Hopefully', right: 'When' },
+        { left: 'If you decide', right: 'When we get started' },
+        { left: 'Try', right: 'Guarantee' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'Which closing line shows the most certainty?',
+      options: [
+        '"If this seems like a good fit we could maybe get started"',
+        '"I think you might like this"',
+        '"When we get you started this week you will see results in 30 days"',
+        '"Would you like to think about it and let me know?"',
+      ],
+      correct: 2,
+      explanation: "Future pacing with certainty. 'When we get you started' assumes the sale. '30 days' is specific and confident.",
+    },
+    {
+      type: 'fill',
+      question: 'Replace the weak word — complete the Belfort rule:',
+      before: 'Never say IF you decide. Always say',
+      after: 'we get started.',
+      answer: 'when',
+      hint: 'the word that assumes the sale',
+      explanation: "'When' assumes the sale is already decided. 'If' puts doubt back in their mind.",
+    },
+  ],
+
+  a8: [
+    {
+      type: 'learn',
+      title: 'The 6 Emotional Buying Triggers',
+      content: "Every human buying decision is driven by one or more of these 6 core emotional triggers. Identify which one your prospect responds to and speak directly to it.",
+      cards: [
+        { h: 'Fear of Loss', p: "The most powerful trigger. 'Most people who wait 6 months call me back wishing they had not.' — Grant Cardone", q: '— Grant Cardone' },
+        { h: 'Desire for Gain', p: "Paint the dream outcome vividly. What does their life look like when this works?", q: '— Zig Ziglar' },
+        { h: 'Social Proof', p: "'Last month I helped a family just like yours in this exact situation...' — makes it real.", q: '— Andy Elliott' },
+        { h: 'Scarcity', p: "Real or deadline-based scarcity forces a decision. Indecision is the enemy of the close.", q: '— Jordan Belfort' },
+        { h: 'Authority', p: "Credibility markers make them trust the outcome. Awards, years in business, client numbers.", q: '— Robert Cialdini' },
+        { h: 'Reciprocity', p: "Give real value first. When you genuinely help someone they feel compelled to give back.", q: '— Robert Cialdini' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'A prospect keeps delaying and saying they will think about it. Which trigger is most powerful here?',
+      options: ['Desire for Gain', 'Fear of Loss', 'Authority', 'Reciprocity'],
+      correct: 1,
+      explanation: "Cardone and Belfort both say fear of loss is the #1 trigger for stalling prospects. Make the cost of waiting real and specific.",
+    },
+    {
+      type: 'quiz',
+      question: 'You share a story about a client who got results. Which trigger are you using?',
+      options: ['Scarcity', 'Authority', 'Social Proof', 'Reciprocity'],
+      correct: 2,
+      explanation: "Social proof — a real story from a real customer like them is worth more than all your facts combined.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the Cardone fear of loss line:',
+      before: 'Most people who wait end up calling me back and wishing they had not',
+      after: 'so long.',
+      answer: 'waited',
+      hint: 'the action they regret',
+      explanation: "Make the pain of waiting concrete and real. They need to feel the cost of inaction.",
+    },
+  ],
+
+  a9: [
+    {
+      type: 'learn',
+      title: 'Reciprocity — Give First, Close Second',
+      content: "Robert Cialdini's research proved that when you genuinely give value first, humans feel psychologically compelled to give back. The best closers lead with real value before asking for anything.",
+      cards: [
+        { h: 'Give real value first', p: "Teach them something. Solve a small problem for free. Make them feel you are on their side.", q: '— Robert Cialdini' },
+        { h: 'Personalize the gift', p: "Generic value triggers weak reciprocity. Personalized value — something specifically useful to THEM — creates strong obligation.", q: '— Alex Hormozi' },
+        { h: 'Do not keep score out loud', p: "Never say 'I gave you that so now...' — destroys the effect. Give freely and let it work.", q: '— Robert Cialdini' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You want to use reciprocity in your opener. What is the best approach?',
+      options: [
+        'Tell them you have a special deal just for them',
+        'Immediately pitch your product',
+        'Share one genuinely useful insight about their industry before pitching anything',
+        'Ask if they have time to talk',
+      ],
+      correct: 2,
+      explanation: "Lead with real value specific to their situation. This triggers reciprocity before you ever mention your product.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the Cialdini reciprocity rule:',
+      before: 'The more',
+      after: 'the gift, the stronger the reciprocity response.',
+      answer: 'personalized',
+      hint: 'specific / tailored / customized',
+      explanation: "Generic value = weak obligation. Personal value = strong compulsion to give back.",
+    },
+  ],
+
+  a10: [
+    {
+      type: 'learn',
+      title: 'Social Proof — The Herd Instinct',
+      content: "Cialdini proved that when people are uncertain, they look to what others are doing. One real client story beats 10 minutes of facts. The more specific the story the more powerful the proof.",
+      cards: [
+        { h: 'Specific beats generic', p: "'Hundreds of clients' is weak. 'Last Tuesday I helped a family in [city] save $340 a month' is powerful.", q: '— Andy Elliott' },
+        { h: 'Similar beats different', p: "Find the story where the client is most similar to your prospect. Age, situation, objection they had.", q: '— Jordan Belfort' },
+        { h: 'Numbers build credibility', p: "Specific numbers feel true. Round numbers feel made up. '$10,000' feels less real than '$9,847'.", q: '— Alex Hormozi' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'Which social proof statement is most convincing?',
+      options: [
+        '"We have helped thousands of customers"',
+        '"Last month a homeowner in Phoenix saved $318 a month — he had the exact same concern you have"',
+        '"Our product has great reviews"',
+        '"Most people love what we do"',
+      ],
+      correct: 1,
+      explanation: "Specific, similar, and numbered. City, dollar amount, same objection. This is Andy Elliott social proof.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the social proof formula:',
+      before: 'Use a story where the client had the',
+      after: 'concern your current prospect has right now.',
+      answer: 'same',
+      hint: 'identical / exact / matching',
+      explanation: "Mirror their situation in the story. They see themselves in it and think: if it worked for them it can work for me.",
+    },
+  ],
+
+  a11: [
+    {
+      type: 'learn',
+      title: 'Real Urgency vs Fake Pressure',
+      content: "Grant Cardone and Belfort both say urgency is the engine of the close. But fake pressure destroys trust. Real urgency — tied to a real reason — is doing the prospect a FAVOR.",
+      cards: [
+        { h: 'Time-based urgency', p: "Prices change, offers expire, slots fill. These are real. State them calmly — not frantically.", q: '— Grant Cardone' },
+        { h: 'Cost of waiting', p: "What does every day of delay cost them? In dollars, in pain, in missed opportunity. Make it specific.", q: '— Andy Elliott' },
+        { h: 'Never fake scarcity', p: "If you say 2 spots left and they find out it is not true, the sale and the relationship die instantly.", q: '— Jordan Belfort' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'Best way to create genuine urgency without being pushy?',
+      options: [
+        '"We only have 2 spots left" (even if untrue)',
+        '"Act now before it is too late"',
+        '"Every month you wait on this costs you approximately $X in [specific consequence]"',
+        '"This offer expires tonight"',
+      ],
+      correct: 2,
+      explanation: "Calculate the real cost of delay in their specific terms. This is fact-based urgency that serves them — not pressure tactics.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the urgency principle:',
+      before: 'Urgency is not manipulation — it is doing the prospect a',
+      after: 'by helping them decide now.',
+      answer: 'favor',
+      hint: 'service / kindness / benefit',
+      explanation: "Reframe urgency as an act of service. You are protecting them from the cost of delay.",
+    },
+  ],
+
+  a12: [
+    {
+      type: 'learn',
+      title: 'The Commitment Ladder',
+      content: "Cialdini's consistency principle: once someone commits to something small they will behave consistently with that commitment. Every yes builds toward the final yes.",
+      cards: [
+        { h: 'Start with micro-commitments', p: "'That makes sense, right?' — small agreements stack up. Each one makes the final close feel natural.", q: '— Andy Elliott' },
+        { h: 'Get them describing their problem', p: "When they articulate their own pain in their own words they have committed to the fact that the problem is real.", q: '— Chris Voss' },
+        { h: 'Yes momentum', p: "Ask 5-7 questions you KNOW they will say yes to before the close. Build a rhythm of agreement.", q: '— Zig Ziglar' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'Before you close, you want to build yes momentum. Best approach?',
+      options: [
+        'Ask the big closing question immediately',
+        'Ask 5-6 small questions you know they agree with before the main close',
+        'Tell them about your company history',
+        'Offer a discount to make the close easier',
+      ],
+      correct: 1,
+      explanation: "Yes momentum from Ziglar and Elliott. Small agreements stack up and make the final yes feel natural and consistent.",
+    },
+    {
+      type: 'match',
+      question: 'Match each commitment technique to its purpose:',
+      pairs: [
+        { left: 'Micro-commitments', right: 'Build yes momentum' },
+        { left: 'They describe their pain', right: 'Commits them to the problem' },
+        { left: 'Agreement questions', right: 'Creates consistency pattern' },
+        { left: 'Assumptive language', right: 'Skips the yes/no decision' },
+      ],
+    },
+  ],
+
+  a13: [
+    {
+      type: 'learn',
+      title: 'Fear is the #1 Closer Killer',
+      content: "Andy Elliott says the number one reason salespeople fail has nothing to do with the prospect — it is the rep's own fear of rejection. Fear changes your tonality, your body language, and your close before you even open your mouth.",
+      cards: [
+        { h: 'Fear changes your tone', p: "When you fear rejection your voice goes up at the end of sentences. You sound uncertain. The prospect feels it immediately.", q: '— Andy Elliott' },
+        { h: 'Rejection is data', p: "Every no tells you what to fix. Closers who close 70%+ have been rejected more than anyone — they learned more.", q: '— Grant Cardone' },
+        { h: 'Confidence is a skill', p: "Cardone says confidence is not something you have — it is something you BUILD through reps. You train it like a muscle.", q: '— Grant Cardone' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You are about to close a big deal and you feel nervous. According to Cardone, what is the right move?',
+      options: [
+        'Wait until you feel confident to ask for the close',
+        'Ask for the close anyway — confidence comes from doing, not waiting',
+        'Offer a discount to reduce the pressure',
+        'Build more rapport first',
+      ],
+      correct: 1,
+      explanation: "Cardone says act confident before you feel confident. The action creates the feeling — not the other way around.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the Elliott fear principle:',
+      before: 'The number one reason people do not close is their own',
+      after: 'of rejection.',
+      answer: 'fear',
+      hint: 'worry / anxiety / dread',
+      explanation: "Fear is the only thing standing between most reps and elite performance. Address it first.",
+    },
+  ],
+
+  a14: [
+    {
+      type: 'learn',
+      title: 'Assume the Sale — Always',
+      content: "The assumptive close is the foundation of elite selling. You never ask IF they want to buy. You speak and act as though the decision has already been made — because in your mind, it has.",
+      cards: [
+        { h: 'Language assumes the sale', p: "'When we get you started' not 'if you decide to move forward'. Every word you use should assume yes.", q: '— Andy Elliott' },
+        { h: 'Actions assume the sale', p: "Start filling out the paperwork. Pull up the calendar. Act as if — and they follow your lead.", q: '— Grant Cardone' },
+        { h: 'Questions assume the sale', p: "'Do you want to start Monday or Wednesday?' not 'Do you want to start?' The choice is WHICH — not WHETHER.", q: '— Jordan Belfort' },
+      ],
+    },
+    {
+      type: 'match',
+      question: 'Convert these weak closes to assumptive closes:',
+      pairs: [
+        { left: 'Would you like to move forward?', right: 'When we get you started...' },
+        { left: 'Do you want to sign up?', right: 'Which package works for you?' },
+        { left: 'Are you interested?', right: 'The only question is timing' },
+        { left: 'Should we do this?', right: 'Let me get your details down' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You want to use an alternative choice close. Which is best?',
+      options: [
+        '"Do you want to buy this?"',
+        '"Are you interested in moving forward?"',
+        '"Do you want to start this Friday or would Monday work better for you?"',
+        '"What do you think?"',
+      ],
+      correct: 2,
+      explanation: "The alternative choice close by Belfort and Elliott. Both options are yes — you are choosing WHICH, not WHETHER.",
+    },
+  ],
+
+  a15: [
+    {
+      type: 'learn',
+      title: 'Body Language in Sales',
+      content: "55% of communication is body language. Before you say a single word your posture, eye contact, and presence are already either building or destroying trust.",
+      cards: [
+        { h: 'Power posture', p: "Stand or sit with your spine straight, shoulders back. This projects confidence AND changes your own internal state.", q: '— Tony Robbins' },
+        { h: 'Eye contact closes deals', p: "Hold eye contact when you make a key claim or close. Looking away in that moment telegraphs doubt.", q: '— Andy Elliott' },
+        { h: 'Lean in for emphasis', p: "A slight forward lean when making an important point shows engagement and conviction. Pull back to let points land.", q: '— Chris Voss' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'You are delivering your close. Where should your eyes be?',
+      options: [
+        'Looking down at your materials',
+        'Looking around the room naturally',
+        'Holding steady confident eye contact with the prospect',
+        'Looking to the side thoughtfully',
+      ],
+      correct: 2,
+      explanation: "Andy Elliott: eye contact during the close communicates absolute certainty. Looking away reads as doubt.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the body language principle:',
+      before: '55% of communication is',
+      after: '— before you say a word you are already being read.',
+      answer: 'body language',
+      hint: 'non-verbal / physical / posture',
+      explanation: "Mehrabian's research: 55% body language, 38% tonality, 7% words. Most reps only train the 7%.",
+    },
+  ],
+
+  a16: [
+    {
+      type: 'learn',
+      title: 'The Elite Closer Mindset',
+      content: "Every closer on this list built their wealth on one belief: selling is the highest paid profession in the world IF you treat it like a profession. Not a job. A craft. Something you obsessively perfect.",
+      cards: [
+        { h: 'Obsession is the requirement', p: "'Be obsessed or be average.' There is no middle ground at the top. — Grant Cardone", q: '— Grant Cardone' },
+        { h: 'Daily training is non-negotiable', p: "'If you are not training every day, someone else is and they are coming for your customers.' — Andy Elliott", q: '— Andy Elliott' },
+        { h: 'Every no is tuition', p: "Rejection is the price of admission to elite performance. The more nos you collect, the better you get.", q: '— Jordan Belfort' },
+        { h: 'You are the product', p: "Before the prospect buys your product they buy YOU. Invest in yourself first.", q: '— Alex Hormozi' },
+      ],
+    },
+    {
+      type: 'quiz',
+      question: 'Grant Cardone says the difference between average and elite is:',
+      options: [
+        'Natural talent and charisma',
+        'Having the right product',
+        'Obsession — treating sales as your craft not your job',
+        'Being in the right market',
+      ],
+      correct: 2,
+      explanation: "Cardone: Be obsessed or be average. Obsession with craft is the only separator at the top level.",
+    },
+    {
+      type: 'quiz',
+      question: 'According to Andy Elliott, what separates the top 1% of closers?',
+      options: [
+        'Better scripts',
+        'Higher quality leads',
+        'Daily training — treating every day as practice for the real thing',
+        'Naturally high confidence',
+      ],
+      correct: 2,
+      explanation: "Elliott built his entire brand on this: daily training is what separates closers. Scripts fail without reps.",
+    },
+    {
+      type: 'fill',
+      question: 'Complete the Hormozi investment principle:',
+      before: 'Before the prospect buys your product they buy',
+      after: '— invest in yourself first.',
+      answer: 'you',
+      hint: 'yourself / the rep / the closer',
+      explanation: "You are the product. Personal development is not optional at elite level — it is the job.",
     },
   ],
 }

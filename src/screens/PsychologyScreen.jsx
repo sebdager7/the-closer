@@ -4,6 +4,73 @@ import { useApp } from '../context/AppContext'
 import { ZONES, ELITE_QUOTES, LESSON_DATA } from '../data/constants'
 import { vibrateBlitz } from '../utils/blitz'
 
+function playCorrect() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const g1 = ctx.createGain()
+    g1.gain.setValueAtTime(0.3, ctx.currentTime)
+    g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18)
+    g1.connect(ctx.destination)
+    const o1 = ctx.createOscillator()
+    o1.type = 'sine'; o1.frequency.setValueAtTime(523, ctx.currentTime)
+    o1.connect(g1); o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.18)
+    const g2 = ctx.createGain()
+    g2.gain.setValueAtTime(0.3, ctx.currentTime + 0.16)
+    g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45)
+    g2.connect(ctx.destination)
+    const o2 = ctx.createOscillator()
+    o2.type = 'sine'; o2.frequency.setValueAtTime(784, ctx.currentTime + 0.16)
+    o2.connect(g2); o2.start(ctx.currentTime + 0.16); o2.stop(ctx.currentTime + 0.45)
+    setTimeout(() => ctx.close(), 600)
+  } catch (e) {}
+}
+
+function playWrong() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0.35, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35)
+    gain.connect(ctx.destination)
+    const osc = ctx.createOscillator()
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(180, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3)
+    osc.connect(gain); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.35)
+    setTimeout(() => ctx.close(), 500)
+  } catch (e) {}
+}
+
+function playFanfare() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    ;[523, 659, 784, 1047].forEach((freq, i) => {
+      const gain = ctx.createGain()
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.13)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.22)
+      gain.connect(ctx.destination)
+      const osc = ctx.createOscillator()
+      osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.13)
+      osc.connect(gain); osc.start(ctx.currentTime + i * 0.13); osc.stop(ctx.currentTime + i * 0.13 + 0.22)
+    })
+    setTimeout(() => ctx.close(), 900)
+  } catch (e) {}
+}
+
+function playXpPing() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0.2, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+    gain.connect(ctx.destination)
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.connect(gain); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5)
+    setTimeout(() => ctx.close(), 700)
+  } catch (e) {}
+}
+
 // ─── HUD ──────────────────────────────────────────────────────────────────────
 function Hud({ xp, gems, streak }) {
   const xpPct = Math.min(xp / 1000 * 100, 100)
@@ -150,10 +217,26 @@ function LessonOverlay({ act, zone, onClose, onComplete }) {
   const handleCheck = () => {
     if (step.type === 'quiz') {
       setChecked(true)
-      if (selectedOpt !== step.correct) setLives(l => Math.max(0, l - 1)); setWrongCount(w => w + 1)
+      if (selectedOpt !== step.correct) {
+        setLives(l => Math.max(0, l - 1))
+        setWrongCount(w => w + 1)
+        playWrong()
+        navigator.vibrate?.([50, 30, 50])
+      } else {
+        playCorrect()
+        navigator.vibrate?.(40)
+      }
     } else if (step.type === 'fill') {
       setChecked(true)
-      if (!fillVal.toLowerCase().includes(step.answer.toLowerCase())) { setLives(l => Math.max(0, l - 1)); setWrongCount(w => w + 1) }
+      if (!fillVal.toLowerCase().includes(step.answer.toLowerCase())) {
+        setLives(l => Math.max(0, l - 1))
+        setWrongCount(w => w + 1)
+        playWrong()
+        navigator.vibrate?.([50, 30, 50])
+      } else {
+        playCorrect()
+        navigator.vibrate?.(40)
+      }
     }
   }
 
@@ -181,9 +264,14 @@ function LessonOverlay({ act, zone, onClose, onComplete }) {
       newPairs.add('L' + step.pairs.findIndex(p => p.left === lv))
       newPairs.add('R' + shuffledRights.indexOf(rv))
       setMatchedPairs(newPairs)
+      playCorrect()
+      navigator.vibrate?.(40)
       if (newPairs.size >= step.pairs.length * 2) setTimeout(handleNext, 600)
     } else {
-      setLives(l => Math.max(0, l - 1)); setWrongCount(w => w + 1)
+      setLives(l => Math.max(0, l - 1))
+      setWrongCount(w => w + 1)
+      playWrong()
+      navigator.vibrate?.([50, 30, 50])
     }
     setMatchSel(null)
   }
@@ -403,8 +491,20 @@ export default function PsychologyScreen() {
     dispatch({ type: 'ADD_XP', payload: xpEarned })
     dispatch({ type: 'COMPLETE_ACT', payload: selectedAct.act.id })
     setActiveLesson(null)
+    playXpPing()
+    const newCompleted = [...state.completedActs, selectedAct.act.id]
+    const zoneActsDone = selectedAct.zone.acts.filter(a => newCompleted.includes(a.id)).length
+    if (zoneActsDone >= selectedAct.zone.acts.length) {
+      setTimeout(playFanfare, 300)
+    }
     setCompletionData({ elapsed, accuracy, xpEarned, streak: state.streak + 1 })
   }
+
+  const zoneUnlocked = ZONES.map((zone, zi) => {
+    if (zi === 0) return true
+    const prevZone = ZONES[zi - 1]
+    return prevZone.acts.filter(a => state.completedActs.includes(a.id)).length >= 3
+  })
 
   return (
     <div className="flex flex-col h-full bg-[#0a0a1a] relative">
@@ -412,7 +512,11 @@ export default function PsychologyScreen() {
 
       <div className="flex-1 overflow-y-auto pb-4">
         {ZONES.map((zone, zi) => {
+          const isLocked = !zoneUnlocked[zi]
           const firstUnfinishedIdx = zone.acts.findIndex(a => !state.completedActs.includes(a.id))
+          const actsCompleted = zone.acts.filter(a => state.completedActs.includes(a.id)).length
+          const totalActs = zone.acts.length
+          const progressPct = Math.round(actsCompleted / totalActs * 100)
           return (
             <div key={zone.id} className="mb-5">
               {/* Zone header */}
@@ -423,9 +527,16 @@ export default function PsychologyScreen() {
                 <div className="flex-1">
                   <div className="text-[10px] font-extrabold uppercase tracking-wide" style={{ color: zone.nameColor }}>{zone.name}</div>
                   <div className="text-[8px] text-[#4a6a9a]">{zone.sub}</div>
+                  {/* Progress bar */}
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex-1 h-1 bg-[#1a1a3a] rounded-full overflow-hidden border border-[#2a2a5a]">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: zone.nameColor }} />
+                    </div>
+                    <span className="text-[7px] font-bold" style={{ color: zone.nameColor }}>{actsCompleted}/{totalActs}</span>
+                  </div>
                 </div>
-                <span className={`text-[7px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-lg ${zone.locked ? 'bg-[#1a1a3a] text-[#4a6a9a] border border-[#2a2a5a]' : ''}`} style={!zone.locked ? { background: zone.nameColor + '22', color: zone.nameColor, border: `1px solid ${zone.nameColor}55` } : {}}>
-                  {zone.locked ? '🔒 LOCKED' : `ZONE ${zi + 1}`}
+                <span className={`text-[7px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-lg ${isLocked ? 'bg-[#1a1a3a] text-[#4a6a9a] border border-[#2a2a5a]' : ''}`} style={!isLocked ? { background: zone.nameColor + '22', color: zone.nameColor, border: `1px solid ${zone.nameColor}55` } : {}}>
+                  {isLocked ? '🔒 LOCKED' : `ZONE ${zi + 1}`}
                 </span>
               </div>
 
@@ -433,8 +544,8 @@ export default function PsychologyScreen() {
               <div className="flex gap-2 overflow-x-auto scrollbar-none px-3 pb-1">
                 {zone.acts.map((act, ai) => {
                   const isDone = state.completedActs.includes(act.id)
-                  const isActive = !zone.locked && !isDone && ai === firstUnfinishedIdx
-                  const isLocked = zone.locked || (!isDone && !isActive && ai > firstUnfinishedIdx)
+                  const isActive = !isLocked && !isDone && ai === firstUnfinishedIdx
+                  const isActLocked = isLocked || (!isDone && !isActive && ai > firstUnfinishedIdx)
                   return (
                     <ActCard
                       key={act.id}
@@ -443,7 +554,7 @@ export default function PsychologyScreen() {
                       actIndex={ai}
                       isDone={isDone}
                       isActive={isActive}
-                      isLocked={isLocked}
+                      isLocked={isActLocked}
                       onClick={() => setSelectedAct({ act, zone, actIndex: ai })}
                     />
                   )

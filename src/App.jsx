@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
+import { checkAPIKey } from './utils/api'
 
 // Layout
 import TopBar from './components/layout/TopBar'
@@ -72,6 +73,7 @@ function AppRouter() {
 }
 
 export default function App() {
+  useEffect(() => { checkAPIKey() }, [])
   return (
     <AppProvider>
       <AppRouter />

@@ -3,7 +3,7 @@ import React, { useRef } from 'react'
 export default function BlitzIcon({ size = 32, className = '', onClick }) {
   const svgRef = useRef(null)
   const w = size
-  const h = Math.round(size * (95 / 80))
+  const h = Math.round(size * (88 / 80))
 
   const handleBlitzTap = (e) => {
     if (navigator.vibrate) navigator.vibrate([30, 20, 60, 20, 30])
@@ -63,7 +63,7 @@ export default function BlitzIcon({ size = 32, className = '', onClick }) {
         id="blitz-icon-main"
         width={w}
         height={h}
-        viewBox="0 0 80 95"
+        viewBox="0 0 80 88"
         fill="none"
         className={svgAnimClass}
         onClick={handleBlitzTap}
@@ -93,20 +93,8 @@ export default function BlitzIcon({ size = 32, className = '', onClick }) {
         {/* Whiskers */}
         <path d="M22 43 L37 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
         <path d="M58 43 L43 40" stroke="#c8a84a" strokeWidth="1.8" strokeLinecap="round"/>
-        {/* Mouth — open smile arc */}
-        <path d="M32 63 Q40 70 48 63" stroke="#0a0a1a" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-        {/* Inner mouth fill */}
-        <path d="M32 63 Q40 70 48 63 Q45 68 40 69 Q35 68 32 63 Z" fill="#c84060"/>
-        {/* Teeth line */}
-        <path d="M34 63 Q40 67 46 63" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-        {/* Tongue body */}
-        <ellipse cx="40" cy="71" rx="4.5" ry="3.5" fill="#e8607a"/>
-        {/* Tongue center line */}
-        <line x1="40" y1="68" x2="40" y2="74" stroke="#c04060" strokeWidth="1" strokeLinecap="round"/>
-        {/* Tongue shine */}
-        <ellipse cx="38.5" cy="70" rx="1.2" ry="0.8" fill="#f090a0" opacity="0.7"/>
-        {/* Tongue shadow */}
-        <ellipse cx="41" cy="73.5" rx="2" ry="1.2" fill="#c04060" opacity="0.35"/>
+        {/* Smile */}
+        <path d="M33 62 Q40 67 47 62" stroke="#c8a84a" strokeWidth="2" fill="none" strokeLinecap="round"/>
       </svg>
     </div>
   )
