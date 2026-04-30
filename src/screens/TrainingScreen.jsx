@@ -2,88 +2,18 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, runAutopsy, generateProspectProfile } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
-import { TrophyEmoji, LightningEmoji, FireEmoji } from '../components/icons/CustomEmoji'
-
-// ─── DEAL AUTOPSY ─────────────────────────────────────────────────────────────
-function AutopsyScreen({ data, dealValue, closePct, onRetry, onBack }) {
-  const isWin = data.score >= 70, isMid = data.score >= 40
-  const cls = isWin ? 'border-green-500 text-green-400 bg-green-500/10' : isMid ? 'border-yellow-500 text-yellow-400 bg-yellow-500/10' : 'border-red-500 text-red-400 bg-red-500/10'
-
-  useEffect(() => { vibrateBlitz(100); if (isWin) zapSound() }, [])
-
-  return (
-    <div className="flex flex-col h-full overflow-y-auto p-4 space-y-3">
-      <div className="bg-navy-800/60 border border-white/10 rounded-2xl p-4 text-center">
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-3 border-2 ${cls}`}>
-          {data.score}
-        </div>
-        <h3 className="text-base font-bubble text-white mb-1">
-          {isWin ? <><TrophyEmoji size={18}/> Deal Closed!</> : isMid ? <><LightningEmoji size={16}/> Almost — Close Call</> : '❌ Deal Lost'}
-        </h3>
-        <p className="text-xs text-white/50 leading-relaxed">{data.overall_feedback}</p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { v: data.close_probability + '%', l: 'Close Prob', cls: isWin ? 'text-green-400' : isMid ? 'text-closer-blue' : 'text-red-400' },
-          { v: '$' + (data.potential_value || dealValue).toLocaleString(), l: 'Deal Value', cls: 'text-closer-blue' },
-          { v: data.value_lost > 0 ? '-$' + data.value_lost.toLocaleString() : 'Closed!', l: 'Impact', cls: data.value_lost > 0 ? 'text-red-400' : 'text-green-400' },
-        ].map(s => (
-          <div key={s.l} className="bg-navy-800/60 border border-white/10 rounded-xl p-3 text-center">
-            <div className={`text-base font-bold ${s.cls}`}>{s.v}</div>
-            <div className="text-[9px] text-white/40 uppercase tracking-wider">{s.l}</div>
-          </div>
-        ))}
-      </div>
-
-      <BlitzBar message={data.blitz_coaching} vibrate />
-
-      <div>
-        <div className="text-[9px] font-bubble text-white/40 uppercase tracking-widest mb-2">Call Replay — Key Moments</div>
-        {(data.key_moments || []).map((m, i) => (
-          <div key={i} className={`border rounded-xl p-3 mb-2 ${m.type === 'bad' ? 'border-l-2 border-l-red-500 border-white/10' : 'border-l-2 border-l-green-500 border-white/10'} bg-navy-800/40`}>
-            <div className={`text-[8px] font-bold uppercase tracking-wider mb-1 ${m.type === 'bad' ? 'text-red-400' : 'text-green-400'}`}>
-              {m.type === 'bad' ? '⚠️ WEAK' : '✅ STRONG'} · {m.time}
-            </div>
-            <p className="text-[10px] text-white/50 italic mb-2">"{m.what_said}"</p>
-            <p className="text-xs text-white/80 leading-relaxed">
-              {m.type === 'bad' ? <><strong className="text-closer-blue">Elite version:</strong> "{m.better_version}"</> : <><strong className="text-green-400">Build on it:</strong> {m.build_on}</>}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-3">
-          <div className="text-[8px] font-bubble text-red-400 uppercase tracking-wider mb-1">Biggest Mistake</div>
-          <p className="text-[10px] text-white/70 leading-relaxed">{data.biggest_mistake}</p>
-        </div>
-        <div className="bg-green-500/10 border border-green-500/40 rounded-xl p-3">
-          <div className="text-[8px] font-bubble text-green-400 uppercase tracking-wider mb-1">Top Strength</div>
-          <p className="text-[10px] text-white/70 leading-relaxed">{data.top_strength}</p>
-        </div>
-      </div>
-
-      <div className="flex gap-3 pb-2">
-        <button onClick={onRetry} className="flex-1 py-3 bg-closer-blue text-white font-bubble rounded-xl text-sm">↺ Retry this call</button>
-        <button onClick={onBack} className="flex-1 py-3 bg-white/10 border border-white/15 text-white/60 font-bubble rounded-xl text-sm">← Back</button>
-      </div>
-    </div>
-  )
-}
+import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
 
 // ─── PROSPECT PREVIEW ─────────────────────────────────────────────────────────
 function ProspectPreview({ profile }) {
   const [countdown, setCountdown] = useState(3)
-
   useEffect(() => {
     const t = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
     return () => clearInterval(t)
   }, [])
-
   return (
     <div className="flex flex-col h-full items-center justify-center p-5 bg-navy-950">
       <div className="text-center mb-5">
@@ -98,7 +28,6 @@ function ProspectPreview({ profile }) {
         <p className="text-sm text-white/60">{profile.age} · {profile.occupation}</p>
         <p className="text-xs text-white/40">{profile.location || profile.mood_today}</p>
       </div>
-
       <div className="w-full bg-navy-800/70 border border-white/10 rounded-2xl p-4 space-y-3 max-w-xs">
         <div>
           <div className="text-[8px] font-bubble text-gold-400 uppercase tracking-wider mb-1">Today's mood</div>
@@ -123,7 +52,6 @@ function ProspectPreview({ profile }) {
           <p className="text-[10px] text-white/60 italic">"{profile.speech_pattern}"</p>
         </div>
       </div>
-
       <div className="flex gap-2 mt-4">
         {[3, 2, 1].map(n => (
           <div key={n} className={`w-2 h-2 rounded-full transition-all duration-300 ${countdown === n ? 'bg-gold-400 scale-125' : countdown < n ? 'bg-white/20' : 'bg-closer-blue'}`} />
@@ -133,60 +61,113 @@ function ProspectPreview({ profile }) {
   )
 }
 
-// ─── INDUSTRY-SPECIFIC OBJECTIONS ─────────────────────────────────────────────
+// ─── DATA ─────────────────────────────────────────────────────────────────────
 const INDUSTRY_OBJECTIONS = {
   'Solar': [
     "I rent this house so I can't install anything",
-    "My neighbor got solar and had nothing but problems with the company",
+    "My neighbor got solar and had nothing but problems",
     "I just locked in a new rate with my electric company",
-    "I don't plan on staying in this house long enough to see the savings",
+    "I don't plan on staying here long enough to see the savings",
     "I've heard the real savings never add up like they promise",
   ],
   'Life Insurance': [
-    "I already have coverage through my employer so I'm good",
-    "My wife handles all of the finances — I'd have to run it by her first",
-    "I'm young and healthy, I really don't think I need it yet",
-    "The last time I looked into this the premiums were way too high",
-    "Honestly I just don't trust insurance companies to actually pay out",
+    "I already have coverage through my employer",
+    "My wife handles all finances — I'd have to run it by her first",
+    "I'm young and healthy, I don't think I need it yet",
+    "The last time I looked the premiums were way too high",
+    "Honestly I don't trust insurance companies to actually pay out",
   ],
   'Door-to-Door': [
-    "I never buy anything from people who knock on my door, that's a firm rule",
-    "I need to research this myself online before I'd ever make a decision",
-    "I actually bought something similar about six months ago",
-    "Can you just leave some information and I'll look at it when I have time",
-    "Look I'm really just not interested today",
+    "I never buy from people who knock on my door, that's a firm rule",
+    "I need to research this myself online before any decision",
+    "I bought something similar about six months ago",
+    "Can you just leave some information and I'll look at it later",
+    "I'm really just not interested today",
   ],
   'Car Sales': [
-    "I'm just browsing right now, I'm not ready to make any decisions today",
-    "I need to bring my husband with me before I commit to anything",
-    "I want to check out two or three other dealerships before I decide",
-    "That monthly payment you mentioned is honestly way over what I budgeted",
-    "I think I'm going to wait and see what the new models look like",
+    "I'm just browsing, not ready to make any decisions today",
+    "I need to bring my husband before I commit to anything",
+    "I want to check two or three other dealerships first",
+    "That monthly payment is honestly over my budget",
+    "I'm going to wait and see what the new models look like",
   ],
   'Real Estate': [
-    "The market is way too unpredictable right now for me to make a move",
-    "I need to sell my current place before I can even think about buying",
-    "I'm waiting for rates to come back down — they're just too high",
-    "My credit score took a hit last year and I need to fix that first",
-    "I'm still not sure if this neighborhood is the right fit for us",
+    "The market is too unpredictable right now",
+    "I need to sell my current place before I can buy",
+    "I'm waiting for rates to come back down",
+    "My credit took a hit last year, I need to fix that first",
+    "I'm still not sure this neighborhood is right for us",
   ],
   'B2B / SaaS': [
-    "We already have a solution in place that's working fine for our team",
-    "Our budget is completely locked for the rest of this fiscal year",
-    "I would need sign-off from our IT department and that takes months",
-    "We actually tried something like this two years ago and it was a disaster",
-    "Send me some information and I'll take a look when I have bandwidth",
+    "We already have a solution in place that's working fine",
+    "Our budget is locked for the rest of this fiscal year",
+    "I'd need sign-off from IT and that takes months",
+    "We tried something like this two years ago and it failed",
+    "Send me some information and I'll look when I have bandwidth",
   ],
   'Financial Services': [
-    "I already work with a financial advisor and I'm happy with them",
-    "I don't make financial decisions without running it by my accountant",
-    "I've been burned before and I'm really not looking to make changes right now",
-    "My portfolio is doing fine as-is, I'm not looking to touch anything",
-    "What's your fee structure? Because the last guy I talked to nickel-and-dimed me",
+    "I already have a financial advisor and I'm happy with them",
+    "I don't make financial decisions without my accountant",
+    "I've been burned before and not looking to make changes",
+    "My portfolio is fine, I'm not looking to touch anything",
+    "What's your fee structure? The last guy nickel-and-dimed me",
   ],
 }
 
-// ─── MOOD MAP ─────────────────────────────────────────────────────────────────
+const HUMAN_VOICE_DB = {
+  female: [
+    'Google US English',
+    'Microsoft Aria Online (Natural)',
+    'Microsoft Jenny Online (Natural)',
+    'Microsoft Michelle Online (Natural)',
+    'Samantha (Enhanced)',
+    'Samantha',
+    'Karen (Enhanced)',
+    'Karen',
+    'Moira',
+    'Tessa',
+    'Victoria',
+    'Google UK English Female',
+  ],
+  male: [
+    'Google UK English Male',
+    'Microsoft Guy Online (Natural)',
+    'Microsoft Davis Online (Natural)',
+    'Microsoft Ryan Online (Natural)',
+    'Daniel (Enhanced)',
+    'Daniel',
+    'Alex (Enhanced)',
+    'Alex',
+    'Aaron',
+    'Gordon',
+    'Oliver',
+    'Thomas',
+  ],
+}
+
+const REAL_BUYER_PATTERNS = {
+  skeptical_homeowner: {
+    resistance: ["Yeah I've heard this before", "What's the catch", "I don't make decisions like this at the door"],
+    warming: ["Okay what kind of savings are we talking", "And there's no upfront cost you said"],
+    buying: ["Alright look what do I need to sign", "Yeah let's just get it done"],
+  },
+  busy_business_owner: {
+    resistance: ["I've got two minutes, what do you need", "We already have something in place for that", "Send me an email"],
+    warming: ["What kind of results are other companies seeing", "How long to implement"],
+    buying: ["Okay put together a proposal", "Alright let's see the numbers"],
+  },
+  price_sensitive: {
+    resistance: ["That's way out of our budget", "We found something cheaper that does the same thing"],
+    warming: ["So what exactly is included in that price", "Is there a payment plan"],
+    buying: ["If you can do that price we have a deal", "Alright that's fair let's go"],
+  },
+  friendly_but_hesitant: {
+    resistance: ["It sounds interesting but I don't know", "I'd love to but it's just not a great time"],
+    warming: ["Oh wow that's actually really good", "That makes me feel a lot better about it"],
+    buying: ["You know what just sign me up", "Alright you've convinced me"],
+  },
+}
+
 const MOOD_MAP = [
   { pattern: /hang up|stop calling|remove me|don't call|not calling back/i, emoji: '😡' },
   { pattern: /annoyed|frustrated|gotta go|got to go|busy right now|waste.*time/i, emoji: '😤' },
@@ -217,9 +198,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [reframeLoading, setReframeLoading] = useState(false)
   const [reframes, setReframes] = useState(null)
   const [lastObjection, setLastObjection] = useState('')
-  const [callMsgs, setCallMsgs] = useState([])
-  const [autopsy, setAutopsy] = useState(null)
-  const [autopsyLoading, setAutopsyLoading] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -229,10 +207,11 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [generatingProfile, setGeneratingProfile] = useState(true)
   const [callConnected, setCallConnected] = useState(false)
   const [lastBotText, setLastBotText] = useState('')
-  const [dealClosed, setDealClosed] = useState(false)
+  const [showResults, setShowResults] = useState(false)
+  const [resultsData, setResultsData] = useState(null)
+  const [resultsLoading, setResultsLoading] = useState(false)
 
   const chatRef = useRef([])
-  const msgsEndRef = useRef(null)
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
   const muteRef = useRef(false)
@@ -246,7 +225,11 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const voicePersonalityRef = useRef(null)
   const conversationStateRef = useRef('cold')
   const exchangeCountRef = useRef(0)
-  const objectionHandledRef = useRef(false)
+  const isListeningRef = useRef(false)
+  const closePctRef = useRef(30)
+  const callMsgRef = useRef([])
+  const secsRef = useRef(0)
+  const callEndedRef = useRef(false)
 
   // ── Phone static ──────────────────────────────────────────────
   const startPhoneStatic = () => {
@@ -255,18 +238,17 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       audioCtxRef.current = ctx
       const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
       const data = buf.getChannelData(0)
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.008
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.006
       const src = ctx.createBufferSource()
       src.buffer = buf; src.loop = true
       const filter = ctx.createBiquadFilter()
-      filter.type = 'bandpass'; filter.frequency.value = 2000; filter.Q.value = 0.5
-      const gainNode = ctx.createGain()
-      gainNode.gain.value = 0.015
-      src.connect(filter); filter.connect(gainNode); gainNode.connect(ctx.destination)
+      filter.type = 'bandpass'; filter.frequency.value = 2200; filter.Q.value = 0.8
+      const gain = ctx.createGain(); gain.gain.value = 0.012
+      src.connect(filter); filter.connect(gain); gain.connect(ctx.destination)
       src.start()
       staticRef.current = src
-      console.log('[AMBIENCE] Phone static started')
-    } catch (e) { console.log('[AMBIENCE] Not supported') }
+      console.log('[AMBIENCE] Phone static on')
+    } catch (e) { console.log('[AMBIENCE] Skipped') }
   }
 
   const stopPhoneStatic = () => {
@@ -280,8 +262,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       const v = window.speechSynthesis.getVoices()
       if (v.length > 0) {
         voicesRef.current = v
-        console.log('[VOICE] Voices loaded:', v.length)
-        console.log('[VOICE] Voice list:', v.map(x => x.name).join(' | '))
+        console.log('[VOICE] Loaded', v.length, 'voices')
+        console.log('[VOICE] Available:', v.map(x => x.name).slice(0, 10).join(' | '))
       }
     }
     loadVoices()
@@ -290,86 +272,69 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     const t2 = setTimeout(() => loadVoices(), 1500)
     return () => {
       clearTimeout(t1); clearTimeout(t2)
-      window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
   }, [])
 
-  // ── Browser compat check ──────────────────────────────────────
+  // ── Sync secs to ref ──────────────────────────────────────────
+  useEffect(() => { secsRef.current = secs }, [secs])
+
+  // ── Browser check ─────────────────────────────────────────────
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) {
-      alert('Voice training requires Chrome or Safari.\n\nPlease open this app in Google Chrome.')
-      return
+    if (!SR) alert('Voice training requires Chrome or Safari. Please open in Google Chrome.')
+    else console.log('[VOICE] Browser: SpeechRecognition ✓ speechSynthesis ✓')
+  }, [])
+
+  // ── Cleanup on unmount ────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      clearInterval(timerRef.current)
+      clearInterval(oneshotRef.current)
+      window.speechSynthesis.cancel()
+      stopPhoneStatic()
+      try { recognitionRef.current?.abort() } catch (e) {}
     }
-    if (!window.speechSynthesis) {
-      alert('Your browser does not support text-to-speech. Please use Chrome.')
-      return
-    }
-    console.log('[VOICE] Browser supports SpeechRecognition ✓')
-    console.log('[VOICE] Browser supports speechSynthesis ✓')
   }, [])
 
   // ── Voice helpers ─────────────────────────────────────────────
   const generateVoicePersonality = (gender) => {
     if (gender === 'male') {
-      return {
-        baseRate: 0.82 + Math.random() * 0.1,
-        basePitch: 0.82 + Math.random() * 0.1,
-        rateVariation: 0.04,
-        pitchVariation: 0.05,
-      }
+      return { baseRate: 0.82 + Math.random() * 0.1, basePitch: 0.82 + Math.random() * 0.1, rateVar: 0.05, pitchVar: 0.05 }
     }
-    return {
-      baseRate: 0.88 + Math.random() * 0.1,
-      basePitch: 1.05 + Math.random() * 0.14,
-      rateVariation: 0.04,
-      pitchVariation: 0.06,
-    }
+    return { baseRate: 0.87 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14, rateVar: 0.05, pitchVar: 0.06 }
   }
 
-  const getHumanVoice = (voices, gender) => {
-    const femaleRanked = [
-      'Google US English',
-      'Microsoft Aria Online (Natural)',
-      'Microsoft Jenny Online (Natural)',
-      'Samantha',
-      'Karen',
-      'Moira',
-      'Tessa',
-      'Google UK English Female',
-      'Victoria',
-    ]
-    const maleRanked = [
-      'Google UK English Male',
-      'Microsoft Guy Online (Natural)',
-      'Microsoft Davis Online (Natural)',
-      'Daniel',
-      'Aaron',
-      'Gordon',
-      'Thomas',
-    ]
-    const ranked = gender === 'male' ? maleRanked : femaleRanked
-    for (const name of ranked) {
-      const found = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase()))
-      if (found) { console.log('[VOICE] Selected:', found.name); return found }
+  const getBestVoice = (gender) => {
+    const voices = window.speechSynthesis.getVoices()
+    if (!voices || voices.length === 0) { console.warn('[VOICE] No voices available'); return null }
+
+    console.log('[VOICE] Available voices:')
+    voices.forEach(v => console.log(' -', v.name, '|', v.lang))
+
+    const preferred = HUMAN_VOICE_DB[gender] || HUMAN_VOICE_DB.female
+
+    for (const name of preferred) {
+      const exact = voices.find(v => v.name === name)
+      if (exact) { console.log('[VOICE] ✅ Exact match:', exact.name); return exact }
+    }
+    for (const name of preferred) {
+      const partial = voices.find(v => v.name.toLowerCase().includes(name.toLowerCase().split(' ')[0]))
+      if (partial) { console.log('[VOICE] ✅ Partial match:', partial.name); return partial }
     }
     const english = voices.find(v =>
       v.lang.startsWith('en') &&
-      !v.name.includes('Zarvox') &&
-      !v.name.includes('Trinoids') &&
-      !v.name.includes('Cellos') &&
-      !v.name.includes('Pipe') &&
-      !v.name.includes('Whisper')
+      !v.name.includes('Zarvox') && !v.name.includes('Trinoids') &&
+      !v.name.includes('Cellos') && !v.name.includes('Pipe') && !v.name.includes('Whisper')
     )
-    if (english) { console.log('[VOICE] Fallback:', english.name); return english }
-    console.warn('[VOICE] Using first available voice')
+    if (english) { console.log('[VOICE] ✅ English fallback:', english.name); return english }
+    console.warn('[VOICE] Using first voice:', voices[0]?.name)
     return voices[0] || null
   }
 
   const makeTextHuman = (text) => {
     let t = text
-    t = t.replace(/\. /g, '.  ')
+    t = t.replace(/\. ([A-Z])/g, '.  $1')
     t = t.replace(/, but /gi, ', ... but ')
     t = t.replace(/, I mean/gi, '... I mean')
     t = t.replace(/Well, /gi, 'Well... ')
@@ -377,69 +342,110 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     t = t.replace(/Actually, /gi, 'Actually... ')
     t = t.replace(/Honestly, /gi, 'Honestly... ')
     t = t.replace(/Yeah, /gi, 'Yeah... ')
+    t = t.replace(/So, /gi, 'So... ')
     t = t.replace(/Hmm/gi, 'Hmm...')
     t = t.replace(/\$(\d)/g, '... \$$1')
     return t
   }
 
-  const thinkingTime = (text) => {
-    const words = text.split(' ').length
-    return Math.min(600 + words * 30 + Math.random() * 400, 2500)
+  const thinkingTime = (text) => Math.min(600 + text.split(' ').length * 30 + Math.random() * 400, 2500)
+
+  // ── Mic permission ────────────────────────────────────────────
+  const requestMicPermission = async () => {
+    try {
+      console.log('[MIC] Requesting permission...')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(t => t.stop())
+      console.log('[MIC] Permission granted')
+      return true
+    } catch (err) {
+      console.error('[MIC] Permission denied:', err)
+      alert(
+        'Microphone access is required for voice training.\n\n' +
+        'Please allow microphone access when prompted.\n\n' +
+        'On iPhone: Settings → Safari → Microphone → Allow\n' +
+        'On Chrome: Click the camera icon in the address bar → Allow'
+      )
+      return false
+    }
   }
 
   // ── speakText ─────────────────────────────────────────────────
   const speakText = (text, gender = 'female') => {
-    if (!text || !text.trim()) { console.log('[SPEECH] Empty text — skipping'); return Promise.resolve() }
-    if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); return Promise.resolve() }
-    console.log('[SPEECH] About to speak:', text.slice(0, 80))
-
     return new Promise((resolve) => {
+      if (!text?.trim()) { resolve(); return }
+      if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); resolve(); return }
+
+      console.log('[SPEECH] About to speak:', text.slice(0, 80))
       window.speechSynthesis.cancel()
-      setTimeout(() => {
-        const utterance = new SpeechSynthesisUtterance(text)
+      isSpeakingRef.current = false
+
+      const attempt = () => {
         const voices = window.speechSynthesis.getVoices()
-        console.log('[SPEECH] Available voices:', voices.length)
+        if (voices.length === 0) {
+          console.warn('[SPEECH] No voices yet — retrying in 500ms')
+          setTimeout(attempt, 500)
+          return
+        }
 
-        const picked = getHumanVoice(voices, gender)
-        if (picked) utterance.voice = picked
-        else console.warn('[SPEECH] No voice found — using browser default')
+        const humanized = makeTextHuman(text)
+        const utterance = new SpeechSynthesisUtterance(humanized)
 
-        const personality = voicePersonalityRef.current
-        if (personality) {
-          utterance.rate = Math.max(0.7, Math.min(1.2,
-            personality.baseRate + (Math.random() - 0.5) * personality.rateVariation
-          ))
-          utterance.pitch = Math.max(0.6, Math.min(1.4,
-            personality.basePitch + (Math.random() - 0.5) * personality.pitchVariation
-          ))
+        const voice = getBestVoice(gender)
+        if (voice) {
+          utterance.voice = voice
+          console.log('[SPEECH] Using voice:', voice.name)
         } else {
-          utterance.rate = gender === 'male' ? 0.87 : 0.92
-          utterance.pitch = gender === 'male' ? 0.87 : 1.08
+          console.warn('[SPEECH] No voice found — using browser default')
+        }
+
+        const p = voicePersonalityRef.current
+        if (p) {
+          utterance.rate = Math.max(0.7, Math.min(1.2, p.baseRate + (Math.random() - 0.5) * p.rateVar))
+          utterance.pitch = Math.max(0.6, Math.min(1.5, p.basePitch + (Math.random() - 0.5) * p.pitchVar))
+        } else {
+          utterance.rate = gender === 'male' ? 0.84 + Math.random() * 0.08 : 0.88 + Math.random() * 0.1
+          utterance.pitch = gender === 'male' ? 0.84 + Math.random() * 0.08 : 1.0 + Math.random() * 0.12
         }
         utterance.volume = 1.0
         console.log('[SPEECH] Rate:', utterance.rate.toFixed(2), 'Pitch:', utterance.pitch.toFixed(2))
 
+        let resolved = false
+        const safeResolve = () => {
+          if (resolved) return
+          resolved = true
+          isSpeakingRef.current = false
+          setIsSpeaking(false)
+          resolve()
+        }
+
+        // Safety timeout — if onend never fires
+        const safetyMs = Math.max(text.length * 80 + 3000, 5000)
+        const safety = setTimeout(() => {
+          console.warn('[SPEECH] Safety timeout fired')
+          safeResolve()
+        }, safetyMs)
+
         utterance.onstart = () => {
-          console.log('[SPEECH] Speaking started')
+          console.log('[SPEECH] ✅ Speaking started')
           isSpeakingRef.current = true
           setIsSpeaking(true)
         }
         utterance.onend = () => {
-          console.log('[SPEECH] Speaking finished')
-          isSpeakingRef.current = false
-          setIsSpeaking(false)
-          resolve()
+          clearTimeout(safety)
+          console.log('[SPEECH] ✅ Speaking finished')
+          safeResolve()
         }
         utterance.onerror = (e) => {
+          clearTimeout(safety)
           console.error('[SPEECH] Error:', e.error)
-          isSpeakingRef.current = false
-          setIsSpeaking(false)
-          resolve()
+          safeResolve()
         }
 
         window.speechSynthesis.speak(utterance)
         console.log('[SPEECH] speak() called')
 
+        // Chrome keepalive — stops after ~15s without this
         const keepAlive = setInterval(() => {
           if (window.speechSynthesis.speaking) {
             window.speechSynthesis.pause()
@@ -448,17 +454,49 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
             clearInterval(keepAlive)
           }
         }, 10000)
-      }, 200)
+      }
+
+      setTimeout(attempt, 200)
     })
   }
 
   // ── Speech recognition ────────────────────────────────────────
-  const setupRecognition = () => {
+  const startListening = () => {
+    if (isSpeakingRef.current) { console.log('[MIC] Blocked — AI speaking'); return }
+    if (isListeningRef.current) { console.log('[MIC] Already listening'); return }
+    if (callEndedRef.current) return
+
+    window.speechSynthesis.cancel()
+
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { console.error('[MIC] Not supported. Use Chrome.'); return null }
+    if (!SR) { console.error('[MIC] Not supported'); return }
+
+    // Kill previous instance — null handlers first to prevent stale fires
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null
+        recognitionRef.current.onerror = null
+        recognitionRef.current.onend = null
+        recognitionRef.current.abort()
+      } catch (e) {}
+      recognitionRef.current = null
+    }
+
     const r = new SR()
-    r.continuous = false; r.interimResults = true; r.lang = 'en-US'; r.maxAlternatives = 1
-    r.onstart = () => { console.log('[MIC] Started'); setIsListening(true); setTranscript('') }
+    r.continuous = false
+    r.interimResults = true
+    r.lang = 'en-US'
+    r.maxAlternatives = 1
+
+    r.onstart = () => {
+      console.log('[MIC] ✅ Started listening')
+      isListeningRef.current = true
+      setIsListening(true)
+      setTranscript('')
+    }
+
+    r.onspeechstart = () => { console.log('[MIC] Speech detected') }
+
     r.onresult = (event) => {
       let interim = '', final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -466,40 +504,72 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         if (event.results[i].isFinal) final += t
         else interim += t
       }
-      setTranscript(final || interim)
-      if (final.trim()) {
-        console.log('[MIC] Final:', final)
-        r.stop()
-        handleVoiceInput(final.trim())
-      }
-    }
-    r.onerror = (e) => {
-      console.error('[MIC] Error:', e.error)
-      setIsListening(false)
-      if (e.error === 'not-allowed') {
-        alert('Microphone blocked. Please allow mic access in your browser settings and reload the page.')
-      }
-    }
-    r.onend = () => { console.log('[MIC] Ended'); setIsListening(false) }
-    return r
-  }
+      const current = final || interim
+      setTranscript(current)
+      console.log('[MIC] Transcript:', current, final ? '(FINAL)' : '(interim)')
 
-  const startListening = () => {
-    if (isSpeakingRef.current) { console.log('[MIC] Blocked — AI speaking'); return }
-    window.speechSynthesis.cancel()
-    if (recognitionRef.current) { try { recognitionRef.current.abort() } catch(e) {} }
-    const r = setupRecognition()
-    if (!r) return
+      if (final.trim().length > 0) {
+        console.log('[MIC] ✅ Final result:', final)
+        try { r.stop() } catch (e) {}
+        // Small delay prevents onend/onresult overlap on some browsers
+        setTimeout(() => handleVoiceInput(final.trim()), 100)
+      }
+    }
+
+    r.onerror = (event) => {
+      console.error('[MIC] Error:', event.error)
+      isListeningRef.current = false
+      setIsListening(false)
+      switch (event.error) {
+        case 'not-allowed':
+          alert('Microphone blocked.\n\niPhone: Settings → Safari → Microphone → Allow\nChrome: Click the lock icon in the address bar → Allow')
+          break
+        case 'no-speech':
+          console.log('[MIC] No speech — restarting...')
+          setTimeout(() => { if (!isSpeakingRef.current && !callEndedRef.current) startListening() }, 600)
+          break
+        case 'aborted':
+          console.log('[MIC] Aborted (expected)')
+          break
+        default:
+          console.log('[MIC] Error:', event.error)
+      }
+    }
+
+    r.onend = () => {
+      console.log('[MIC] Ended. wasListening:', isListeningRef.current)
+      isListeningRef.current = false
+      setIsListening(false)
+    }
+
     recognitionRef.current = r
-    try { r.start(); console.log('[MIC] r.start() called') } catch (err) { console.error('[MIC] start() failed:', err) }
+
+    setTimeout(() => {
+      try {
+        r.start()
+        console.log('[MIC] r.start() called')
+      } catch (err) {
+        console.error('[MIC] start() failed:', err.name, err.message)
+        isListeningRef.current = false
+        setIsListening(false)
+        if (err.name === 'InvalidStateError') {
+          console.log('[MIC] InvalidStateError — retrying in 600ms')
+          setTimeout(() => startListening(), 600)
+        }
+      }
+    }, 100)
   }
 
   const stopListening = () => {
-    if (recognitionRef.current) { try { recognitionRef.current.stop() } catch(e) {} }
+    console.log('[MIC] Stopping...')
+    isListeningRef.current = false
     setIsListening(false)
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch (e) {}
+    }
   }
 
-  // ── Generate prospect profile ──────────────────────────────────
+  // ── Prospect generation ───────────────────────────────────────
   useEffect(() => {
     let cancelled = false
     const load = async () => {
@@ -509,11 +579,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         const profile = await generateProspectProfile(industry, difficulty)
         if (!cancelled) {
           if (!profile.gender) profile.gender = Math.random() > 0.5 ? 'female' : 'male'
-          // Inject a concrete industry-specific objection
           const objPool = INDUSTRY_OBJECTIONS[industry]
-          if (objPool) {
-            profile.main_objection = objPool[Math.floor(Math.random() * objPool.length)]
-          }
+          if (objPool) profile.main_objection = objPool[Math.floor(Math.random() * objPool.length)]
           voicePersonalityRef.current = generateVoicePersonality(profile.gender)
           profileRef.current = profile
           setProspectProfile(profile)
@@ -528,11 +595,11 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
           const fallback = {
             name: fb[0], gender, age: 42, occupation: 'Business Owner', location: 'Phoenix, AZ',
             personality: 'Direct and skeptical. Values their time above all else.',
-            mood_today: 'Busy and slightly stressed — in the middle of a workday.',
+            mood_today: 'Busy and slightly stressed.',
             main_objection: objPool[Math.floor(Math.random() * objPool.length)],
             trigger_to_buy: 'Clear ROI with specific numbers and fast results.',
-            speech_pattern: 'Short, direct answers. Few pleasantries. Gets to the point.',
-            backstory: 'Has dealt with many salespeople. Usually hangs up in 30 seconds.',
+            speech_pattern: 'Short, direct. Few pleasantries.',
+            backstory: 'Has dealt with many salespeople.',
             opening_line: 'Yeah?',
           }
           voicePersonalityRef.current = generateVoicePersonality(fallback.gender)
@@ -573,102 +640,148 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     return () => clearTimeout(t)
   }, [prospectProfile])
 
-  // ── Cleanup ───────────────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      clearInterval(timerRef.current)
-      clearInterval(oneshotRef.current)
-      window.speechSynthesis?.cancel()
-      stopPhoneStatic()
-      try { recognitionRef.current?.abort() } catch (e) {}
-    }
-  }, [])
-
   // ── Tone detection ────────────────────────────────────────────
   const updateTone = (text, role = 'bot') => {
     const t = text.toLowerCase()
-
     setClosePct(prev => {
       let p = prev
-
       if (role === 'bot') {
         if (/that makes sense|actually interesting|not bad|fair enough|good point/.test(t)) p = Math.min(p + 15, 92)
         if (/tell me more|how does|what exactly|okay so|right|uh huh/.test(t)) p = Math.min(p + 8, 92)
-        if (/how do we|how would that|what's the next step|next step/.test(t)) p = Math.min(p + 22, 96)
+        if (/how do we|what's the next step|next step/.test(t)) p = Math.min(p + 22, 96)
         if (/not interested|don't call|stop calling/.test(t)) p = Math.max(p - 25, 5)
         if (/too expensive|can't afford|over budget/.test(t)) p = Math.max(p - 15, 10)
         if (/need to think|call me back|maybe later/.test(t)) p = Math.max(p - 10, 10)
         if (/busy|bad time|gotta go/.test(t)) p = Math.max(p - 5, 15)
       }
-
       if (role === 'usr') {
         if (/imagine|picture this|most people|what if/.test(t)) p = Math.min(p + 4, 92)
         if (/when we get started|once you start/.test(t)) p = Math.min(p + 3, 92)
         if (/\$[\d,]+|\d+%|\d+ (days|weeks|months)/.test(t)) p = Math.min(p + 5, 92)
       }
-
+      closePctRef.current = p
       return p
     })
-
-    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget', "can't install", "don't trust", "bad experience"]
+    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget']
     if (objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
   }
 
   const addMsg = (role, text, isBrutal = false) => {
     setMessages(m => [...m, { role, text, isBrutal, ts: Date.now() }])
-    if (!isBrutal) setCallMsgs(m => [...m, { role, text, time: secs }])
+    if (!isBrutal) {
+      const entry = { role, text, time: secsRef.current }
+      callMsgRef.current = [...callMsgRef.current, entry]
+    }
     if (role === 'bot' && !isBrutal) setLastBotText(text)
   }
 
-  // ── Conversation state tracking ───────────────────────────────
-  const analyzeConversationState = (reply) => {
+  // ── Conversation tracking ─────────────────────────────────────
+  const checkForClose = (reply) => {
     const r = reply.toLowerCase()
+    return [
+      "let's do it", "let's go", "i'm in", "sign me up", "you convinced me",
+      "alright fine", "okay fine", "yeah let's", "how do we get started",
+      "when can you start", "what do i need to sign", "send me the contract",
+      "you've earned it", "you've made your case", "i'll do it",
+      "let's move forward", "alright, you've", "okay, you've",
+      "alright let's", "yeah let's do", "okay let's do",
+    ].some(phrase => r.includes(phrase))
+  }
+
+  const analyzeConversationState = (reply) => {
     exchangeCountRef.current += 1
-
-    const isSold =
-      r.includes("let's do it") || r.includes("how do we get started") ||
-      r.includes("okay fine") || r.includes("alright, you") || r.includes("you've made") ||
-      r.includes("sign me up") || r.includes("i'm in") || r.includes("let's move forward") ||
-      r.includes("yeah let's do") || r.includes("okay let's") || r.includes("where do i sign") ||
-      r.includes("let's go ahead") || r.includes("you know what, yeah") ||
-      r.includes("good case") || r.includes("pretty good case")
-
-    if (isSold) {
+    const r = reply.toLowerCase()
+    if (checkForClose(reply)) {
       conversationStateRef.current = 'sold'
-      console.log('[CALL] PROSPECT SOLD after', exchangeCountRef.current, 'exchanges')
-      setTimeout(() => handleDealClosed(), 1500)
+      console.log('[CALL] 🏆 PROSPECT SOLD after', exchangeCountRef.current, 'exchanges')
+      setTimeout(() => showCallResults(true), 1500)
       return
     }
-
-    if (/that makes sense|actually interesting|tell me more|how does that|what exactly|okay so/.test(r)) {
+    if (/that makes sense|actually interesting|tell me more|how does that|what exactly/.test(r)) {
       if (conversationStateRef.current === 'cold') conversationStateRef.current = 'curious'
       else if (conversationStateRef.current === 'skeptical') conversationStateRef.current = 'interested'
     }
-    if (/fair enough|okay that makes|i'll give you that/.test(r)) {
-      objectionHandledRef.current = true
-      if (conversationStateRef.current === 'curious') conversationStateRef.current = 'interested'
-    }
-
     console.log('[CALL] State:', conversationStateRef.current, '| Exchange:', exchangeCountRef.current)
   }
 
-  const handleDealClosed = () => {
-    setDealClosed(true)
+  // ── Show results / end call ───────────────────────────────────
+  const showCallResults = async (dealClosed) => {
+    if (callEndedRef.current) return
+    callEndedRef.current = true
+
     clearInterval(timerRef.current)
-    stopListening()
+    clearInterval(oneshotRef.current)
     window.speechSynthesis.cancel()
-    isSpeakingRef.current = false
-    setIsSpeaking(false)
-    navigator.vibrate?.([100, 50, 100, 50, 200])
-    console.log('[CALL] Deal closed!')
-    setTimeout(() => {
+    isSpeakingRef.current = false; setIsSpeaking(false)
+    isListeningRef.current = false; setIsListening(false)
+    stopPhoneStatic()
+    try { recognitionRef.current?.abort() } catch (e) {}
+    loadingRef.current = false; setLoading(false)
+
+    if (dealClosed) {
+      navigator.vibrate?.([100, 50, 100, 50, 200])
       dispatch({ type: 'COMPLETE_CALL', payload: { closed: true, dealValue } })
-    }, 2000)
+    }
+
+    const msgs = callMsgRef.current
+    const exchanges = exchangeCountRef.current
+    const finalClosePct = closePctRef.current
+    const finalSecs = secsRef.current
+
+    if (msgs.length < 2) {
+      setResultsData({
+        overall_score: finalClosePct, deal_closed: dealClosed, exchanges,
+        grades: { opening: 50, rapport: 50, pitch_clarity: 50, objection_handling: 50, closing_technique: 50, listening: 50 },
+        biggest_strength: 'You picked up the phone and started', biggest_mistake: 'Call was too short to analyze',
+        blitz_summary: 'Get back in there. Real closers hang up last, not first.',
+        next_focus: 'Stay in the conversation longer', secs: finalSecs,
+      })
+      setShowResults(true)
+      return
+    }
+
+    setResultsLoading(true)
+
+    const transcript = msgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'}: ${m.text}`).join('\n')
+
+    const analysisPrompt = `You are Blitz, elite sales coach trained on Andy Elliott, Grant Cardone, and Jordan Belfort.
+
+Analyze this ${industry} training call transcript:
+
+${transcript}
+
+Deal closed: ${dealClosed}
+Total exchanges: ${exchanges}
+Final close probability: ${finalClosePct}%
+Difficulty: ${difficulty}
+
+Return ONLY raw JSON, no markdown, no backticks:
+{"overall_score":78,"deal_closed":${dealClosed},"exchanges":${exchanges},"grades":{"opening":85,"rapport":72,"pitch_clarity":80,"objection_handling":75,"closing_technique":70,"listening":82},"biggest_strength":"one specific thing they did well","biggest_mistake":"one specific thing that hurt them","best_line":"the single best line the rep said verbatim","worst_line":"the single weakest line the rep said verbatim","elite_version_of_worst":"how a top closer would have said it","key_moments":[{"exchange":2,"what_happened":"brief description","impact":"positive","coaching":"specific coaching note"}],"blitz_summary":"2-3 sentence coaching message in Blitz voice","next_focus":"the single most important skill to work on"}`
+
+    try {
+      const raw = await callClaudeConversation([{ role: 'user', content: analysisPrompt }], 900)
+      const cleaned = raw.trim().replace(/```json/gi, '').replace(/```/g, '').trim()
+      const analysis = JSON.parse(cleaned)
+      setResultsData({ ...analysis, deal_closed: dealClosed, secs: finalSecs })
+    } catch (e) {
+      console.error('[RESULTS] Analysis failed:', e)
+      setResultsData({
+        overall_score: finalClosePct, deal_closed: dealClosed, exchanges,
+        grades: { opening: finalClosePct, rapport: finalClosePct, pitch_clarity: finalClosePct, objection_handling: finalClosePct, closing_technique: finalClosePct, listening: finalClosePct },
+        biggest_strength: dealClosed ? 'You closed the deal!' : 'You stayed in the conversation',
+        biggest_mistake: 'Keep working on objection handling',
+        blitz_summary: dealClosed ? 'You closed the deal. Now sharpen every technique so you close faster.' : 'Good effort. Every call makes you better. Study the objections.',
+        next_focus: 'Objection handling', secs: finalSecs,
+      })
+    }
+
+    setResultsLoading(false)
+    setShowResults(true)
   }
 
   const showBotReply = async (reply, isOpener = false) => {
     try { recognitionRef.current?.abort() } catch (e) {}
-    setIsListening(false); setTranscript('')
+    isListeningRef.current = false; setIsListening(false); setTranscript('')
     const delay = isOpener ? 1400 + Math.random() * 400 : 500 + Math.random() * 400
     await new Promise(res => setTimeout(res, delay))
     addMsg('bot', reply)
@@ -677,41 +790,50 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setMoodEmoji(emoji)
     const gender = profileRef.current?.gender || 'female'
     console.log('[SPEECH] AI speaking (gender:', gender + '):', reply.slice(0, 60))
-    const humanized = makeTextHuman(reply)
-    await speakText(humanized, gender)
-    if (emoji === '😡') {
-      setTimeout(() => handleEnd(), 3000)
+    await speakText(reply, gender)
+    if (emoji === '😡' && !callEndedRef.current) {
+      setTimeout(() => showCallResults(false), 2000)
     }
   }
 
   const startCall = async () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { alert('Voice calls require Chrome.\nOpen this app in Chrome.'); return }
     if (!window.speechSynthesis) { alert('Your browser does not support voice. Use Chrome.'); return }
-    console.log('[BROWSER] SpeechRecognition: supported')
-    console.log('[BROWSER] speechSynthesis: supported')
+    console.log('[BROWSER] SpeechRecognition: supported | speechSynthesis: supported')
+
+    // Request mic permission before anything else
+    const hasPermission = await requestMicPermission()
+    if (!hasPermission) return
 
     const p = profileRef.current
     if (!p) return
 
-    // Reset conversation tracking on new call
+    callEndedRef.current = false
     conversationStateRef.current = 'cold'
     exchangeCountRef.current = 0
-    objectionHandledRef.current = false
-    setDealClosed(false)
+    callMsgRef.current = []
+
+    // Pick buyer pattern from persona/industry
+    const pKey = (() => {
+      const str = (persona + ' ' + industry).toLowerCase()
+      if (str.includes('b2b') || str.includes('saas') || str.includes('business') || str.includes('executive')) return 'busy_business_owner'
+      if (str.includes('solar') || str.includes('insurance') || str.includes('financial') || str.includes('price')) return 'price_sensitive'
+      if (str.includes('friendly') || str.includes('hesitant') || str.includes('car') || str.includes('auto')) return 'friendly_but_hesitant'
+      return 'skeptical_homeowner'
+    })()
+    const patterns = REAL_BUYER_PATTERNS[pKey] || REAL_BUYER_PATTERNS.skeptical_homeowner
 
     const difficultyGuide = {
-      'Beginner': `Start skeptical but warm up quickly. After 3 good responses become genuinely interested. After 5 solid exchanges you are ready to buy.`,
-      'Beginner+': `Cautious but not hostile. Need 2-3 objections handled well. After 6-7 good exchanges you will buy.`,
-      'Intermediate': `Realistic skeptic. Push back on price, timing, and need. Need real answers not fluff. After 8 solid exchanges where the rep genuinely addressed your concerns you will buy.`,
-      'Advanced': `Tough and busy. Push back hard with specific objections. Only a genuinely compelling pitch over 10+ exchanges will get you to buy.`,
-      'Elite Closer': `The hardest prospect. You know every sales trick. You call out canned lines. Only a rep who truly listens and adapts over a full conversation — 12+ exchanges minimum — will crack you.`,
+      'Beginner': 'Start skeptical but warm up quickly. After 3 good responses become interested. After 5 solid exchanges you are ready to buy.',
+      'Beginner+': 'Cautious but not hostile. Need 2-3 objections handled well. After 6-7 good exchanges you will buy.',
+      'Intermediate': 'Realistic skeptic. Push back on price, timing, need. Need real answers not fluff. After 8 solid exchanges you will buy.',
+      'Advanced': 'Tough and busy. Push back hard with specific objections. Only a genuinely compelling pitch over 10+ exchanges will get you to buy.',
+      'Elite Closer': 'The hardest prospect. You know every sales trick. You call out canned lines. Only a rep who truly listens and adapts over 12+ exchanges will crack you.',
     }
 
     const brainCtx = customBrain?.offer ? `\nThe rep sells: ${customBrain.offer}. Their ideal customer: ${customBrain.icp}.` : ''
     const modeExtras = {
       bru: '\nBRUTAL MODE: Be extremely skeptical. Call out every weak or vague word immediately.',
-      one: '\nONE SHOT MODE: You are highly resistant. If they blow the opening you shut it down fast.',
+      one: '\nONE SHOT MODE: Highly resistant. If they blow the opening you shut it down fast.',
       std: '', rfm: '',
     }
 
@@ -727,40 +849,31 @@ DIFFICULTY — ${difficulty}:
 ${difficultyGuide[difficulty] || difficultyGuide['Intermediate']}
 
 YOUR BUYING JOURNEY — follow this naturally:
-1. COLD — just answered the phone. Polite but not interested.
-   "Yeah? ...Uh huh... Look I'm kind of busy right now."
-2. SKEPTICAL — they pitched. Not convinced yet.
-   "I've heard this before. What makes you different?"
-3. CURIOUS — they said something interesting. Asking real questions.
-   "Wait, so how does that actually work?"
-4. INTERESTED — they handled your main objection. Starting to see value.
-   "Okay that actually makes sense. So you're saying I would..."
-5. CONSIDERING — close. One more concern.
-   "The only thing I'm wondering is..."
-6. SOLD — they handled everything. You are ready.
-   "Alright, you've made a pretty good case. How do we get started?"
-   "Okay fine. Let's do it."
-   "You know what, yeah. Let's move forward."
+1. COLD — just answered. Polite but not interested. "Yeah? ...Uh huh... Look I'm kind of busy."
+2. SKEPTICAL — they pitched. Not convinced. "I've heard this before. What makes you different?"
+3. CURIOUS — they said something interesting. Asking questions. "Wait, so how does that actually work?"
+4. INTERESTED — they handled your objection. Starting to see value. "Okay that actually makes sense."
+5. CONSIDERING — almost there. One more concern. "The only thing I'm wondering is..."
+6. SOLD — they handled everything. "Alright, you've made a pretty good case. How do we get started?"
 
 YOUR MAIN OBJECTION for ${industry}: "${p.main_objection}"
 What would make you buy: ${p.trigger_to_buy}
 Your opening line: "${p.opening_line}"
 
+Real phrases people like you say on cold calls:
+Resistance: ${patterns.resistance.join(' | ')}
+Warming up: ${patterns.warming.join(' | ')}
+Ready to buy: ${patterns.buying.join(' | ')}
+Use these naturally woven into your responses.
+
 CRITICAL RULES:
 - You are a REAL HUMAN. NEVER say you are AI. Never break character.
 - ALL responses 1-4 SHORT sentences. This is a phone call.
 - You remember EVERYTHING said. Never ask about something already addressed.
-- React SPECIFICALLY to what they said:
-  Vague → stay skeptical or get shorter
-  Specific + proof → warm up one level
-  Emotional story → respond emotionally
-  Price too early → get defensive about cost
-  Good question → answer honestly
+- React SPECIFICALLY to what they said: vague → stay skeptical | specific+proof → warm up | price too early → defensive | good question → answer honestly
 - Use natural speech: "Uh", "I mean", "Look", "Right", "Yeah but", "Hmm", "Actually"
-- Never use bullet points, lists, or formal language
-- If they are pushy or robotic → get annoyed and shorter
-- If they say something genuinely good → acknowledge it explicitly
-- When you reach SOLD → say it clearly and warmly so they know the deal is done
+- Never use bullet points or formal language
+- When you reach SOLD → say it clearly so they know the deal is done
 - Respond in ${language}`
 
     chatRef.current = [{ role: 'user', content: sys + `\n\n[The phone rings. Answer it now in character.]` }]
@@ -782,12 +895,12 @@ CRITICAL RULES:
   }
 
   const handleVoiceInput = async (text) => {
-    if (!text || loadingRef.current) return
+    if (!text || loadingRef.current || callEndedRef.current) return
     console.log('[CALL] User said:', text)
-    setIsListening(false); setTranscript('')
+    isListeningRef.current = false; setIsListening(false); setTranscript('')
     addMsg('usr', text)
     chatRef.current.push({ role: 'user', content: text })
-    const userCount = callMsgs.filter(m => m.role === 'usr').length + 1
+    const userCount = callMsgRef.current.filter(m => m.role === 'usr').length
     updateTone(text, 'usr')
     loadingRef.current = true; setLoading(true)
 
@@ -797,40 +910,25 @@ CRITICAL RULES:
       }).catch(() => {})
     }
 
-    const delay = thinkingTime(text)
-    await new Promise(r => setTimeout(r, delay))
-    console.log('[API] Training call. Messages:', chatRef.current.length)
+    await new Promise(r => setTimeout(r, thinkingTime(text)))
+    console.log('[API] Calling. Messages:', chatRef.current.length)
 
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
       analyzeConversationState(reply)
-      await showBotReply(reply, false)
+      if (!callEndedRef.current) {
+        await showBotReply(reply, false)
+      }
     } catch (e) {
       console.error('[CALL] API error:', e)
       addMsg('brutal', '⚠️ No response. Check your connection.', true)
     }
-    loadingRef.current = false; setLoading(false)
-    console.log('[CALL] AI done. Starting mic.')
-    setTimeout(() => startListening(), 400)
-  }
 
-  const handleEnd = async () => {
-    clearInterval(timerRef.current); clearInterval(oneshotRef.current)
-    window.speechSynthesis?.cancel()
-    isSpeakingRef.current = false; setIsSpeaking(false)
-    stopPhoneStatic()
-    stopListening()
-    if (callMsgs.length >= 4) {
-      setAutopsyLoading(true)
-      const tx = callMsgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'} [${Math.floor(m.time / 60)}:${(m.time % 60).toString().padStart(2, '0')}]: ${m.text}`).join('\n')
-      try {
-        const data = await runAutopsy(tx, closePct, dealValue)
-        setAutopsy(data)
-      } catch (e) { onEnd(closePct) }
-      setAutopsyLoading(false)
-    } else {
-      onEnd(closePct)
+    loadingRef.current = false; setLoading(false)
+    if (!callEndedRef.current) {
+      console.log('[CALL] AI done. Starting mic.')
+      setTimeout(() => startListening(), 400)
     }
   }
 
@@ -861,64 +959,148 @@ CRITICAL RULES:
 
   if (showPreview && prospectProfile) return <ProspectPreview profile={prospectProfile} />
 
-  if (autopsyLoading) {
+  if (resultsLoading) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 text-center">
         <div className="text-3xl mb-4">🔍</div>
         <BlitzIcon size={52} className="mb-3" />
         <p className="text-white font-bubble text-base mb-1">Blitz is analyzing your call...</p>
-        <p className="text-white/40 text-sm">Building your full Deal Autopsy</p>
+        <p className="text-white/40 text-sm">Building your full scorecard</p>
+        <div className="flex gap-1.5 mt-4">
+          {[0, 1, 2].map(i => <div key={i} className="w-2 h-2 rounded-full bg-closer-blue/60 typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />)}
+        </div>
       </div>
     )
   }
 
-  if (autopsy) {
-    return <AutopsyScreen data={autopsy} dealValue={dealValue} closePct={closePct} onRetry={() => onEnd(closePct, true)} onBack={() => onEnd(closePct)} />
-  }
-
-  return (
-    <div className="flex flex-col h-full relative">
-
-      {/* ── WIN OVERLAY ─────────────────────────────────────────── */}
-      {dealClosed && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-navy-950/96 p-6 text-center">
-          <div className="text-6xl mb-4">🏆</div>
-          <h2 className="text-2xl font-bubble text-white mb-2">Deal Closed!</h2>
-          <p className="text-white/50 text-sm mb-1">
-            {prospectName} said yes after {exchangeCountRef.current} exchanges
-          </p>
-          <div className="flex items-center gap-2 mb-6">
-            <span className="text-3xl font-bold text-green-400 font-mono">
-              ${dealValue.toLocaleString()}
-            </span>
+  if (showResults && resultsData) {
+    const r = resultsData
+    const scoreColor = r.deal_closed ? '#22c55e' : r.overall_score >= 70 ? '#f59e0b' : '#ef4444'
+    const gradeNames = { opening: 'Opening', rapport: 'Rapport', pitch_clarity: 'Pitch Clarity', objection_handling: 'Objection Handling', closing_technique: 'Closing', listening: 'Listening' }
+    return (
+      <div className="flex flex-col h-full overflow-y-auto bg-navy-950">
+        <div className="p-4 space-y-4">
+          {/* Header */}
+          <div className="text-center pt-3 pb-2">
+            <div className="text-5xl mb-3">{r.deal_closed ? '🏆' : '📊'}</div>
+            <h2 className="text-xl font-bold text-white">{r.deal_closed ? 'Deal Closed!' : 'Call Complete'}</h2>
+            <p className="text-white/40 text-sm mt-1">
+              {r.exchanges} exchanges · {fmt(r.secs || 0)}
+            </p>
           </div>
-          <BlitzBar message="That is how you close! You built real trust, handled every objection, and earned that yes. That is the Straight Line System working in real life." />
-          <div className="flex gap-3 mt-5 w-full max-w-xs">
+
+          {/* Score */}
+          <div className={`rounded-2xl p-4 text-center border-2`} style={{ borderColor: scoreColor + '80', background: scoreColor + '15' }}>
+            <div className="text-4xl font-bold font-mono mb-1" style={{ color: scoreColor }}>{r.overall_score}</div>
+            <div className="text-white/50 text-sm">Overall Score</div>
+          </div>
+
+          {/* Grade breakdown */}
+          <div>
+            <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-3">Performance Breakdown</div>
+            {Object.entries(r.grades || {}).map(([k, v]) => (
+              <div key={k} className="flex items-center gap-3 mb-2.5">
+                <span className="text-xs text-white/60 w-32 flex-shrink-0">{gradeNames[k] || k}</span>
+                <div className="flex-1 h-2.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-700" style={{
+                    width: `${v}%`,
+                    background: v >= 80 ? 'linear-gradient(90deg,#22c55e,#16a34a)' : v >= 60 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)'
+                  }} />
+                </div>
+                <span className="text-xs font-bold font-mono w-8 text-right text-white/60">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Best / worst lines */}
+          {r.best_line && (
+            <div className="space-y-3">
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
+                <div className="text-[8px] font-bold text-green-400 uppercase tracking-wider mb-1.5">✅ Best Line</div>
+                <p className="text-xs text-white/70 italic leading-relaxed">"{r.best_line}"</p>
+              </div>
+              {r.worst_line && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+                  <div className="text-[8px] font-bold text-red-400 uppercase tracking-wider mb-1.5">❌ Weakest Line</div>
+                  <p className="text-xs text-white/40 italic line-through leading-relaxed mb-2">"{r.worst_line}"</p>
+                  {r.elite_version_of_worst && (
+                    <>
+                      <div className="text-[8px] font-bold text-closer-blue mb-1">Elite version:</div>
+                      <p className="text-xs text-closer-blue leading-relaxed">"{r.elite_version_of_worst}"</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Strength + Fix */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-navy-800/60 border border-white/10 rounded-xl p-3">
+              <div className="text-[8px] font-bold text-green-400 uppercase tracking-wider mb-1.5">Top Strength</div>
+              <p className="text-xs text-white/70 leading-relaxed">{r.biggest_strength}</p>
+            </div>
+            <div className="bg-navy-800/60 border border-white/10 rounded-xl p-3">
+              <div className="text-[8px] font-bold text-red-400 uppercase tracking-wider mb-1.5">Fix Next</div>
+              <p className="text-xs text-white/70 leading-relaxed">{r.next_focus}</p>
+            </div>
+          </div>
+
+          {/* Blitz coaching */}
+          <div className="flex items-start gap-3 bg-gradient-to-br from-navy-800 to-navy-700 rounded-xl p-3 border border-closer-blue/30">
+            <BlitzIcon size={32} />
+            <div>
+              <p className="text-[9px] font-bold text-gold-400 mb-1">Blitz Coaching</p>
+              <p className="text-xs text-white/80 leading-relaxed">{r.blitz_summary}</p>
+            </div>
+          </div>
+
+          {/* Key moments */}
+          {r.key_moments?.length > 0 && (
+            <div>
+              <div className="text-[9px] font-bold text-white/40 uppercase tracking-widest mb-2">Key Moments</div>
+              {r.key_moments.map((m, i) => (
+                <div key={i} className={`border rounded-xl p-3 mb-2 bg-navy-800/40 border-white/10 border-l-2 ${m.impact === 'positive' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                  <div className={`text-[8px] font-bold uppercase tracking-wider mb-1 ${m.impact === 'positive' ? 'text-green-400' : 'text-red-400'}`}>
+                    Exchange {m.exchange} · {m.impact}
+                  </div>
+                  <p className="text-xs text-white/60 mb-1">{m.what_happened}</p>
+                  <p className="text-xs text-closer-blue">→ {m.coaching}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3 pb-4">
             <button
               onClick={() => {
-                setDealClosed(false)
-                setMessages([])
-                setCallMsgs([])
-                setLastBotText('')
-                setClosePct(30)
-                setMoodEmoji('😐')
-                chatRef.current = []
+                setShowResults(false); setResultsData(null); callEndedRef.current = false
+                setMessages([]); callMsgRef.current = []; setLastBotText(''); setClosePct(30)
+                closePctRef.current = 30; setMoodEmoji('😐'); chatRef.current = []
+                setSecs(0); secsRef.current = 0
                 timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
                 startCall()
               }}
-              className="flex-1 py-3 bg-closer-blue text-white font-bubble rounded-xl text-sm"
+              className="flex-1 py-3.5 bg-closer-blue text-white font-bold rounded-xl text-sm"
             >
-              Call Again
+              ↺ Call Again
             </button>
             <button
-              onClick={handleEnd}
-              className="flex-1 py-3 bg-white/10 border border-white/15 text-white/60 font-bubble rounded-xl text-sm"
+              onClick={() => onEnd(closePctRef.current)}
+              className="flex-1 py-3.5 bg-white/10 border border-white/15 text-white/60 font-bold rounded-xl text-sm"
             >
-              See Autopsy
+              ← Back
             </button>
           </div>
         </div>
-      )}
+      </div>
+    )
+  }
+
+  // ── Main call UI ──────────────────────────────────────────────
+  return (
+    <div className="flex flex-col h-full relative">
 
       {/* Call header */}
       <div className="bg-navy-900 px-3 py-2.5 flex items-center justify-between flex-shrink-0">
@@ -933,17 +1115,15 @@ CRITICAL RULES:
           {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
           <button
             onClick={() => {
-              const next = !isMuted
-              muteRef.current = next
-              setIsMuted(next)
-              if (next) { window.speechSynthesis?.cancel(); isSpeakingRef.current = false; setIsSpeaking(false) }
+              const next = !isMuted; muteRef.current = next; setIsMuted(next)
+              if (next) { window.speechSynthesis.cancel(); isSpeakingRef.current = false; setIsSpeaking(false) }
             }}
             className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${isMuted ? 'bg-yellow-600/80 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
           >
             {isMuted ? '🔇 Muted' : '🔊 Voice'}
           </button>
-          <button onClick={() => onEnd(closePct, 'restart')} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺</button>
-          <button onClick={handleEnd} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-red-700 text-white hover:bg-red-600">✕ End</button>
+          <button onClick={() => onEnd(closePctRef.current, 'restart')} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20">↺</button>
+          <button onClick={() => showCallResults(false)} className="px-2.5 py-1.5 text-[10px] font-bold rounded-lg bg-red-700 text-white hover:bg-red-600">✕ End</button>
         </div>
       </div>
 
@@ -985,15 +1165,14 @@ CRITICAL RULES:
         </div>
       </div>
 
-      {/* Voice call center */}
+      {/* Call center */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 gap-4">
-        {/* Big prospect avatar */}
         <div className="relative">
           <div
             className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white transition-all duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}
             style={{
               background: prospectProfile?.gender === 'male' ? '#1a6bbf' : '#8b5cf6',
-              boxShadow: isSpeaking ? `0 0 0 10px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.2)' : 'rgba(139,92,246,0.2)'}` : 'none',
+              boxShadow: isSpeaking ? `0 0 0 12px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.2)' : 'rgba(139,92,246,0.2)'}` : 'none',
             }}
           >
             {prospectProfile?.name?.charAt(0) || '?'}
@@ -1003,7 +1182,6 @@ CRITICAL RULES:
           )}
         </div>
 
-        {/* Last thing the prospect said */}
         {loading ? (
           <div className="bg-white/8 border border-white/10 rounded-2xl px-5 py-3 flex gap-2 items-center">
             <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
@@ -1016,7 +1194,6 @@ CRITICAL RULES:
           </div>
         ) : null}
 
-        {/* Blitz brutal feedback toast */}
         {messages.filter(m => m.isBrutal).slice(-1).map((m, i) => (
           <div key={i} className="max-w-xs w-full bg-red-900/40 border border-red-500/50 rounded-xl px-3 py-2 text-xs text-red-300 font-bold text-center">
             {m.text}
@@ -1024,35 +1201,24 @@ CRITICAL RULES:
         ))}
       </div>
 
-      {/* Close meter + voice controls */}
+      {/* Controls */}
       <div className="px-4 pt-3 pb-6 bg-gray-900 border-t border-white/10 flex-shrink-0">
-
         {/* Close meter */}
         <div className="flex items-center gap-3 mb-1">
           <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider w-8">Close</span>
           <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${closePct}%`,
-                background: closePct >= 75 ? 'linear-gradient(90deg,#22c55e,#16a34a)' :
-                  closePct >= 45 ? 'linear-gradient(90deg,#f59e0b,#d97706)' :
-                  'linear-gradient(90deg,#3b82f6,#2563eb)',
-              }}
-            />
+            <div className="h-full rounded-full transition-all duration-700" style={{
+              width: `${closePct}%`,
+              background: closePct >= 75 ? 'linear-gradient(90deg,#22c55e,#16a34a)' : closePct >= 45 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#3b82f6,#2563eb)',
+            }} />
           </div>
           <span className="text-[9px] font-bold font-mono w-8 text-right" style={{ color: toneColor }}>{closePct}%</span>
         </div>
         <p className="text-[9px] text-white/25 italic mb-4 ml-11">
-          {closePct >= 85 ? '🤑 Ready to close — push now'
-            : closePct >= 70 ? '😊 Genuinely interested — keep building'
-            : closePct >= 55 ? '🤔 Curious — keep going'
-            : closePct >= 35 ? '😐 Neutral — need more value'
-            : closePct >= 20 ? '🤨 Skeptical — handle objections'
-            : '😤 Frustrated — slow down, use empathy'}
+          {closePct >= 85 ? '🤑 Ready to close — push now' : closePct >= 70 ? '😊 Interested — keep building' : closePct >= 55 ? '🤔 Curious — keep going' : closePct >= 35 ? '😐 Neutral — need more value' : closePct >= 20 ? '🤨 Skeptical — handle objections' : '😤 Frustrated — use empathy'}
         </p>
 
-        {/* Live transcript */}
+        {/* Transcript */}
         {(transcript || isListening) && (
           <div className="mb-3 px-3 py-2 bg-white/8 border border-white/15 rounded-xl min-h-[36px]">
             <p className="text-sm text-white/80 leading-relaxed">
@@ -1063,60 +1229,41 @@ CRITICAL RULES:
 
         {/* Status */}
         <p className="text-center text-xs text-white/30 mb-4">
-          {isSpeaking
-            ? `🔊 ${prospectName} is speaking...`
-            : isListening
-              ? '🎙️ Listening — speak your response'
-              : loading
-                ? '⏳ Thinking...'
-                : 'Tap the mic to respond'}
+          {isSpeaking ? `🔊 ${prospectName} is speaking...` : isListening ? '🎙️ Listening — speak your response' : loading ? '⏳ Thinking...' : 'Tap the mic to respond'}
         </p>
 
-        {/* Big mic button */}
+        {/* Mic button */}
         <div className="flex justify-center mb-2">
           <button
             onClick={isListening ? stopListening : startListening}
             disabled={isSpeaking || loading}
-            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${
-              isListening ? 'bg-red-500 scale-110' : 'bg-closer-blue hover:scale-105 active:scale-95'
-            }`}
-            style={isListening
-              ? { animation: 'mic-pulse 1.2s ease-in-out infinite' }
-              : { boxShadow: '0 8px 32px rgba(26,107,191,0.4)' }
-            }
+            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? 'bg-red-500 scale-110' : 'bg-closer-blue hover:scale-105 active:scale-95'}`}
+            style={isListening ? { animation: 'mic-pulse 1.2s ease-in-out infinite' } : { boxShadow: '0 8px 32px rgba(26,107,191,0.4)' }}
           >
             {isListening ? '⏹' : '🎙️'}
           </button>
         </div>
 
-        {/* Waveform bars */}
+        {/* Waveform */}
         {isListening && (
           <div className="flex items-end justify-center gap-1 h-8 mt-2">
             {[...Array(14)].map((_, i) => (
-              <div key={i} className="w-1 bg-closer-blue rounded-full"
-                style={{
-                  height: `${8 + (i % 5) * 4}px`,
-                  animation: `waveform-bar ${0.3 + (i % 5) * 0.1}s ease-in-out ${(i * 0.06).toFixed(2)}s infinite alternate`,
-                }}
-              />
+              <div key={i} className="w-1 bg-closer-blue rounded-full" style={{
+                height: `${8 + (i % 5) * 4}px`,
+                animation: `waveform-bar ${0.3 + (i % 5) * 0.1}s ease-in-out ${(i * 0.06).toFixed(2)}s infinite alternate`,
+              }} />
             ))}
           </div>
         )}
 
-        {/* Mute toggle */}
+        {/* Mute */}
         <div className="flex justify-center mt-3">
           <button
             onClick={() => {
-              const next = !isMuted
-              muteRef.current = next
-              setIsMuted(next)
+              const next = !isMuted; muteRef.current = next; setIsMuted(next)
               if (next) { window.speechSynthesis.cancel(); isSpeakingRef.current = false; setIsSpeaking(false) }
             }}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-              isMuted
-                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40'
-                : 'bg-white/5 text-white/30 border-white/15 hover:bg-white/10'
-            }`}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${isMuted ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40' : 'bg-white/5 text-white/30 border-white/15 hover:bg-white/10'}`}
           >
             {isMuted ? '🔇 Unmute AI Voice' : '🔊 Mute AI Voice'}
           </button>
