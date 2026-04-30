@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, textToSpeechElevenLabs, ELEVEN_VOICES } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
@@ -351,6 +351,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const callMsgRef = useRef([])
   const secsRef = useRef(0)
   const callEndedRef = useRef(false)
+  const selectedVoiceIdRef = useRef(null)
+  const audioRef = useRef(null)
 
   // ── Phone static ──────────────────────────────────────────────
   const startPhoneStatic = () => {
@@ -420,6 +422,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       window.speechSynthesis.cancel()
       stopPhoneStatic()
       try { recognitionRef.current?.abort() } catch (e) {}
+      if (audioRef.current) { try { audioRef.current.pause() } catch (e) {} }
     }
   }, [])
 
@@ -431,75 +434,114 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     return { baseRate: 0.90 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14, rateVar: 0.05, pitchVar: 0.06 }
   }
 
-  const getBestVoice = (gender = 'female') => {
-    // Merge cached ref + fresh list, deduplicated by name
+  const getBestBrowserVoice = (gender = 'female') => {
     const fresh = window.speechSynthesis.getVoices()
     const voices = [...voicesRef.current, ...fresh].filter(
       (v, i, arr) => arr.findIndex(x => x.name === v.name) === i
     )
+    if (!voices.length) return null
 
-    if (!voices.length) {
-      console.warn('[VOICE] Empty voice list')
-      return null
-    }
-
-    const female = [
-      'Nicky (Enhanced)',
-      'Nicky',
-      'Allison (Enhanced)',
-      'Allison',
-      'Ava (Enhanced)',
-      'Ava',
-      'Susan (Enhanced)',
-      'Susan',
+    const femaleNames = [
       'Google US English',
       'Microsoft Aria Online (Natural)',
       'Microsoft Jenny Online (Natural)',
-      'Microsoft Michelle Online (Natural)',
-      'Samantha (Enhanced)',
-      'Samantha',
-      'Karen (Enhanced)',
-      'Karen',
-      'Moira',
-      'Tessa',
-      'Victoria',
-      'Google UK English Female',
+      'Samantha (Enhanced)', 'Samantha',
+      'Karen (Enhanced)', 'Karen',
+      'Nicky (Enhanced)', 'Nicky',
+      'Allison (Enhanced)', 'Allison',
+      'Ava (Enhanced)', 'Ava',
+      'Moira', 'Tessa',
     ]
-
-    const male = [
-      'Tom (Enhanced)',
-      'Tom',
-      'Lee (Enhanced)',
-      'Lee',
+    const maleNames = [
       'Google UK English Male',
       'Microsoft Guy Online (Natural)',
       'Microsoft Davis Online (Natural)',
-      'Microsoft Ryan Online (Natural)',
-      'Daniel (Enhanced)',
-      'Daniel',
-      'Alex (Enhanced)',
-      'Alex',
-      'Aaron',
+      'Daniel (Enhanced)', 'Daniel',
+      'Alex (Enhanced)', 'Alex',
+      'Aaron (Enhanced)', 'Aaron',
+      'Tom (Enhanced)', 'Tom',
+      'Oliver (Enhanced)', 'Oliver',
       'Gordon',
-      'Oliver',
-      'Thomas',
     ]
 
-    const list = gender === 'male' ? male : female
-
+    const list = gender === 'male' ? maleNames : femaleNames
     for (const name of list) {
-      const v = voices.find(x => x.name === name || x.name.toLowerCase().includes(name.toLowerCase()))
-      if (v) { console.log('[VOICE] Using:', v.name); return v }
+      const v = voices.find(x => x.name === name || x.name.toLowerCase().startsWith(name.toLowerCase().split(' ')[0]))
+      if (v) { console.log('[BROWSER TTS] Using:', v.name); return v }
     }
-
-    const fallback = voices.find(v =>
+    return voices.find(v =>
       v.lang.startsWith('en') &&
-      !v.name.match(/Zarvox|Trinoids|Cellos|Pipe|Whisper|Bad|Bubble|Zira|David|Mark|Kyoko|Amelie|Bahh|Bells|Boing|Fred|Junior|Kathy|Organ|Princess|Ralph/i)
-    )
-    if (fallback) { console.log('[VOICE] Fallback:', fallback.name); return fallback }
+      !v.name.match(/Zarvox|Trinoids|Cellos|Pipe|Whisper|Zira|David|Mark|Kyoko|Amelie|Bahh|Bells|Boing|Junior|Kathy|Organ|Princess|Ralph/i)
+    ) || voices[0] || null
+  }
 
-    console.log('[VOICE] First available:', voices[0]?.name)
-    return voices[0] || null
+  const resetVoice = () => {
+    selectedVoiceIdRef.current = null
+    if (audioRef.current) {
+      try { audioRef.current.pause() } catch (e) {}
+      audioRef.current = null
+    }
+  }
+
+  const playAudioUrl = (url, text) => {
+    return new Promise((resolve) => {
+      const audio = new Audio(url)
+      audioRef.current = audio
+
+      const maxTime = Math.max((text?.length || 100) * 70, 5000)
+      const safety = setTimeout(() => {
+        console.warn('[AUDIO] Safety timeout')
+        resolve()
+      }, maxTime)
+
+      const finish = () => {
+        clearTimeout(safety)
+        URL.revokeObjectURL(url)
+        audioRef.current = null
+        resolve()
+      }
+
+      audio.onended = () => { console.log('[AUDIO] Playback finished'); finish() }
+      audio.onerror = (e) => { console.error('[AUDIO] Playback error:', e); finish() }
+      audio.play().catch(err => { console.error('[AUDIO] play() failed:', err); finish() })
+    })
+  }
+
+  const speakWithBrowserTTS = (text, gender) => {
+    return new Promise((resolve) => {
+      const humanized = text
+        .replace(/\. ([A-Z])/g, '.  $1')
+        .replace(/, but /gi, ',  but ')
+        .replace(/Well, /gi, 'Well... ')
+        .replace(/Look, /gi, 'Look... ')
+        .replace(/I mean, /gi, 'I mean... ')
+        .replace(/Hmm/gi, 'Hmm...')
+        .replace(/Yeah, /gi, 'Yeah... ')
+
+      const utter = new SpeechSynthesisUtterance(humanized)
+      const voice = getBestBrowserVoice(gender)
+      if (voice) utter.voice = voice
+
+      utter.rate = gender === 'male' ? 0.84 + Math.random() * 0.07 : 0.88 + Math.random() * 0.08
+      utter.pitch = gender === 'male' ? 0.86 + Math.random() * 0.08 : 1.02 + Math.random() * 0.1
+      utter.volume = 1.0
+
+      console.log('[BROWSER TTS] Rate:', utter.rate.toFixed(2), '| Pitch:', utter.pitch.toFixed(2))
+
+      let done = false
+      const finish = () => { if (done) return; done = true; resolve() }
+
+      const safety = setTimeout(finish, Math.max(text.length * 70, 5000))
+      const keep = setInterval(() => {
+        if (window.speechSynthesis.speaking) { window.speechSynthesis.pause(); window.speechSynthesis.resume() }
+        else clearInterval(keep)
+      }, 8000)
+
+      utter.onend = () => { clearTimeout(safety); clearInterval(keep); finish() }
+      utter.onerror = () => { clearTimeout(safety); clearInterval(keep); finish() }
+
+      window.speechSynthesis.speak(utter)
+    })
   }
 
   const thinkingTime = (text) => Math.min(600 + text.split(' ').length * 30 + Math.random() * 400, 2500)
@@ -525,96 +567,50 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   // ── speakText ─────────────────────────────────────────────────
-  const speakText = (text, gender = 'female') => {
-    return new Promise((resolve) => {
-      if (!text?.trim()) { resolve(); return }
-      if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); resolve(); return }
+  const speakText = async (text, gender = 'female') => {
+    if (!text?.trim()) return
+    if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); return }
 
-      window.speechSynthesis.cancel()
+    window.speechSynthesis.cancel()
+    if (audioRef.current) { try { audioRef.current.pause() } catch (e) {}; audioRef.current = null }
 
-      setTimeout(() => {
-        const voices = [
-          ...voicesRef.current,
-          ...window.speechSynthesis.getVoices(),
-        ].filter((v, i, arr) => arr.findIndex(x => x.name === v.name) === i)
+    isSpeakingRef.current = true
+    setIsSpeaking(true)
 
-        if (voices.length === 0) {
-          console.warn('[SPEECH] No voices yet — retrying in 600ms')
-          setTimeout(() => speakText(text, gender).then(resolve), 600)
-          return
-        }
+    const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
 
-        const utterance = new SpeechSynthesisUtterance(text)
-        const voice = getBestVoice(gender)
-        if (voice) utterance.voice = voice
+    if (!selectedVoiceIdRef.current) {
+      const voices = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
+      const picked = voices[Math.floor(Math.random() * voices.length)]
+      selectedVoiceIdRef.current = picked
+      console.log('[VOICE] Selected ElevenLabs voice:', picked.name)
+    }
 
-        const p = voicePersonalityRef.current
-        utterance.rate = p
-          ? Math.max(0.7, Math.min(1.2, p.baseRate + (Math.random() - 0.5) * p.rateVar))
-          : (gender === 'male' ? 0.85 : 0.90)
-        utterance.pitch = p
-          ? Math.max(0.6, Math.min(1.5, p.basePitch + (Math.random() - 0.5) * p.pitchVar))
-          : (gender === 'male' ? 0.85 : 1.05)
-        utterance.volume = 1.0
-
-        console.log('[SPEECH] Using voice:', voice?.name || 'browser default', '| Rate:', utterance.rate.toFixed(2))
-
-        let finished = false
-        const done = () => {
-          if (finished) return
-          finished = true
+    if (elevenKey && elevenKey !== 'your_elevenlabs_key_here') {
+      try {
+        const audioUrl = await textToSpeechElevenLabs(text, selectedVoiceIdRef.current.id, elevenKey)
+        if (audioUrl) {
+          await playAudioUrl(audioUrl, text)
           isSpeakingRef.current = false
           setIsSpeaking(false)
-          requestAnimationFrame(() => resolve())
+          return
         }
+      } catch (err) {
+        console.error('[ELEVEN] Playback failed:', err)
+      }
+    }
 
-        const maxDuration = Math.max(
-          (text.length / (utterance.rate || 0.9)) * 65,
-          4000
-        )
-        const safety = setTimeout(() => {
-          console.warn('[SPEECH] Safety timeout fired')
-          done()
-        }, maxDuration)
-
-        utterance.onstart = () => {
-          console.log('[SPEECH] Started:', text.slice(0, 60))
-          isSpeakingRef.current = true
-          setIsSpeaking(true)
-        }
-
-        utterance.onend = () => {
-          clearTimeout(safety)
-          console.log('[SPEECH] Finished')
-          done()
-        }
-
-        utterance.onerror = (e) => {
-          clearTimeout(safety)
-          console.error('[SPEECH] Error:', e.error)
-          done()
-        }
-
-        window.speechSynthesis.speak(utterance)
-
-        // Chrome keepalive — speech stops after ~15s without this
-        const keep = setInterval(() => {
-          if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.pause()
-            window.speechSynthesis.resume()
-          } else {
-            clearInterval(keep)
-          }
-        }, 8000)
-
-      }, 150)
-    })
+    console.log('[VOICE] Using browser TTS fallback')
+    await speakWithBrowserTTS(text, gender)
+    isSpeakingRef.current = false
+    setIsSpeaking(false)
   }
 
   // ── Speech recognition ────────────────────────────────────────
   const startListening = () => {
-    if (isSpeakingRef.current) { console.log('[MIC] Guard: AI still speaking — blocked'); return }
-    if (isListeningRef.current) { console.log('[MIC] Guard: already listening'); return }
+    console.log('[MIC] Called. Speaking:', isSpeakingRef.current)
+    if (isSpeakingRef.current === true) { console.log('[MIC] BLOCKED by speaking ref'); return }
+    if (isListeningRef.current === true) { console.log('[MIC] Already listening'); return }
     if (callEndedRef.current) return
 
     console.log('[MIC] Starting...')
@@ -674,7 +670,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         alert('Microphone blocked.\n\niPhone: Settings > Safari > Microphone > Allow\nChrome: Click the lock icon > Allow mic')
       }
       if (e.error === 'no-speech') {
-        setTimeout(() => { if (!isSpeakingRef.current && !callEndedRef.current) startListening() }, 600)
+        setTimeout(() => { if (!isSpeakingRef.current && !callEndedRef.current) startListening() }, 800)
       }
     }
 
@@ -846,6 +842,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     clearInterval(timerRef.current)
     clearInterval(oneshotRef.current)
     window.speechSynthesis.cancel()
+    if (audioRef.current) { try { audioRef.current.pause() } catch (e) {}; audioRef.current = null }
     isSpeakingRef.current = false; setIsSpeaking(false)
     isListeningRef.current = false; setIsListening(false)
     stopPhoneStatic()
@@ -921,9 +918,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     const delay = isOpener ? 1400 + Math.random() * 400 : 500 + Math.random() * 400
     await new Promise(res => setTimeout(res, delay))
 
-    // Strip any stage directions before storing or speaking
     const cleaned = cleanResponse(rawReply)
-    const humanized = addNaturalPauses(cleaned)
 
     addMsg('bot', cleaned)
     updateTone(cleaned, 'bot')
@@ -932,7 +927,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     const gender = profileRef.current?.gender || 'female'
     console.log('[CALL] AI response:', cleaned.slice(0, 80))
 
-    await speakText(humanized, gender)
+    await speakText(cleaned, gender)
     // isSpeakingRef.current is now false — safe to listen
 
     if (emoji === '😡' && !callEndedRef.current) {
@@ -950,6 +945,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     const p = profileRef.current
     if (!p) return
 
+    resetVoice()
     callEndedRef.current = false
     conversationStateRef.current = 'cold'
     exchangeCountRef.current = 0
@@ -972,9 +968,9 @@ Return ONLY raw JSON, no markdown, no backticks:
     }
 
     loadingRef.current = false; setLoading(false)
-    console.log('[CALL] Opening spoken. Mic ready.')
     if (!callEndedRef.current) {
-      await new Promise(r => setTimeout(r, 350))
+      await new Promise(r => setTimeout(r, 300))
+      console.log('[MIC] Speaking done. Starting listen.')
       startListening()
     }
   }
@@ -1028,8 +1024,8 @@ Return ONLY raw JSON, no markdown, no backticks:
 
     loadingRef.current = false; setLoading(false)
     if (!callEndedRef.current) {
-      console.log('[CALL] Response spoken. Mic ready.')
-      await new Promise(r => setTimeout(r, 350))
+      await new Promise(r => setTimeout(r, 300))
+      console.log('[MIC] Speaking done. Starting listen.')
       startListening()
     }
   }

@@ -58,6 +58,24 @@ export default function BrainScreen() {
           <p className="text-[10px] text-green-400 font-medium">✓ Custom brain active — Blitz is trained on your business</p>
         </div>
       )}
+
+      <div className="bg-navy-800/60 border border-gold-500/25 rounded-xl p-4 mt-4">
+        <div className="text-[9px] font-bold text-gold-400 uppercase tracking-widest mb-2">🎙️ Real Human Voices</div>
+        <p className="text-xs text-white/60 leading-relaxed mb-3">
+          For the most realistic prospect voices in training calls, add your ElevenLabs API key to your <span className="text-white/80 font-mono">.env</span> file. Free tier available.
+        </p>
+        <div className="bg-navy-950/60 rounded-lg px-3 py-2 font-mono text-xs text-white/40 mb-3 select-all">
+          VITE_ELEVENLABS_API_KEY=your_key_here
+        </div>
+        <a
+          href="https://elevenlabs.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-closer-blue underline"
+        >
+          Get free API key at elevenlabs.io →
+        </a>
+      </div>
     </div>
   )
 }

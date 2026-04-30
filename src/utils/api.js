@@ -1,6 +1,22 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
+// ElevenLabs voice IDs — most natural human-sounding
+export const ELEVEN_VOICES = {
+  female: [
+    { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Warm, clear American female voice' },
+    { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', description: 'Strong confident American female' },
+    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', description: 'Soft natural American female' },
+    { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli', description: 'Young natural American female' },
+  ],
+  male: [
+    { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Deep natural American male' },
+    { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', description: 'Confident grounded American male' },
+    { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep direct American male' },
+    { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', description: 'Raspy natural American male' },
+  ],
+}
+
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
@@ -209,4 +225,50 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   const prompt = `You are Blitz, elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone. Analyze this call:\n${transcript}\n\nClose probability: ${closePct}%. Deal value: $${dealValue}.\n\nRespond with ONLY raw JSON, no markdown:\n{"result":"${closePct >= 70 ? 'Close' : 'No Close'}","score":${closePct},"close_probability":${closePct},"potential_value":${dealValue},"value_lost":${closePct < 70 ? dealValue : 0},"overall_feedback":"2-3 sentence Blitz coaching referencing Elliott/Belfort/Cardone","key_moments":[{"time":"0:45","type":"bad","what_said":"weak moment","better_version":"elite script"},{"time":"1:20","type":"good","what_said":"what they did right","build_on":"how to amplify"},{"time":"2:10","type":"bad","what_said":"another weak moment","better_version":"elite version"}],"biggest_mistake":"#1 thing that hurt this call","top_strength":"what they did well","blitz_coaching":"one line from Blitz referencing a real closer"}`
   const raw = await callClaude(prompt, 1300)
   return parseJSON(raw)
+}
+
+export async function textToSpeechElevenLabs(text, voiceId, apiKey) {
+  if (!apiKey) {
+    console.warn('[ELEVEN] No API key — falling back to browser TTS')
+    return null
+  }
+
+  try {
+    console.log('[ELEVEN] Calling ElevenLabs voice:', voiceId)
+
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_turbo_v2',
+          voice_settings: {
+            stability: 0.45,
+            similarity_boost: 0.82,
+            style: 0.35,
+            use_speaker_boost: true,
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const err = await response.text()
+      console.error('[ELEVEN] Error:', response.status, err.slice(0, 200))
+      return null
+    }
+
+    const audioBlob = await response.blob()
+    const audioUrl = URL.createObjectURL(audioBlob)
+    console.log('[ELEVEN] ✅ Audio received')
+    return audioUrl
+  } catch (err) {
+    console.error('[ELEVEN] Failed:', err)
+    return null
+  }
 }
