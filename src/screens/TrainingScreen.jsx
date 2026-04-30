@@ -193,6 +193,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
   const muteRef = useRef(false)
+  const loadingRef = useRef(false)
   const audioCtxRef = useRef(null)
   const staticRef = useRef(null)
   const profileRef = useRef(null)
@@ -272,49 +273,72 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (canvasRef.current) canvasRef.current.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
   }
 
-  // ── Voice synthesis ──────────────────────────────────────────
-  const speakMessage = (text, isOpener = false) => {
-    if (muteRef.current || !window.speechSynthesis) return
-    const delayMs = isOpener ? 1500 + Math.random() * 500 : 700 + Math.random() * 600
-    const gender = prospectGenderRef.current
+  // ── Voice synthesis (Promise-based) ─────────────────────────
+  const speakText = (text) => {
+    if (muteRef.current || !window.speechSynthesis) return Promise.resolve()
 
-    setTimeout(() => {
+    return new Promise((resolve) => {
       window.speechSynthesis.cancel()
-      const utter = new SpeechSynthesisUtterance(text)
-      utter.rate   = gender === 'female' ? 0.95 : 0.9
-      utter.pitch  = gender === 'female' ? 1.1  : 0.88
-      utter.volume = 1.0
 
-      const doSpeak = () => {
-        const v = getHumanVoice(gender)
-        if (v) utter.voice = v
-        utter.onstart = () => setIsSpeaking(true)
-        utter.onend   = () => setIsSpeaking(false)
-        utter.onerror = () => setIsSpeaking(false)
-        window.speechSynthesis.speak(utter)
-      }
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(text)
+        const voices = window.speechSynthesis.getVoices()
+        const gender = prospectGenderRef.current
 
-      if ((window.speechSynthesis.getVoices() || []).length > 0) doSpeak()
-      else window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true })
-    }, delayMs)
-  }
+        const preferred = gender === 'female'
+          ? ['Google US English', 'Google UK English Female', 'Samantha', 'Karen', 'Moira', 'Microsoft Aria Online (Natural)', 'Microsoft Jenny Online (Natural)']
+          : ['Google US English', 'Google UK English Male', 'Daniel', 'Alex', 'Tom']
 
-  const toggleMute = () => {
-    const next = !isMuted
-    muteRef.current = next
-    setIsMuted(next)
-    if (next) { window.speechSynthesis?.cancel(); setIsSpeaking(false) }
+        let selectedVoice = null
+        for (const name of preferred) {
+          selectedVoice = voices.find(v => v.name.includes(name))
+          if (selectedVoice) break
+        }
+        if (!selectedVoice) {
+          selectedVoice = voices.find(v =>
+            v.lang.startsWith('en') &&
+            !v.name.includes('Zarvox') &&
+            !v.name.includes('Trinoids') &&
+            !v.name.includes('Cellos')
+          )
+        }
+        if (!selectedVoice && voices.length > 0) selectedVoice = voices[0]
+        if (selectedVoice) utterance.voice = selectedVoice
+
+        utterance.rate   = 0.92 + Math.random() * 0.1
+        utterance.pitch  = gender === 'female' ? 0.95 + Math.random() * 0.15 : 0.85 + Math.random() * 0.1
+        utterance.volume = 1.0
+
+        utterance.onstart = () => setIsSpeaking(true)
+        utterance.onend   = () => { setIsSpeaking(false); resolve() }
+        utterance.onerror = (e) => { console.error('[SPEECH] Error:', e); setIsSpeaking(false); resolve() }
+
+        window.speechSynthesis.speak(utterance)
+
+        // Chrome bug fix — speech synthesis silently stops after ~15 seconds
+        const keepAlive = setInterval(() => {
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.pause()
+            window.speechSynthesis.resume()
+          } else {
+            clearInterval(keepAlive)
+          }
+        }, 10000)
+      }, 150)
+    })
   }
 
   // ── Voice recognition ────────────────────────────────────────
-  const startListening = () => {
-    if (loading) return
+  const setupRecognition = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { setMicState('unsupported'); return }
-    window.speechSynthesis?.cancel(); setIsSpeaking(false)
+    if (!SR) { setMicState('unsupported'); return null }
     const r = new SR()
-    r.continuous = false; r.interimResults = true; r.lang = 'en-US'
-    r.onstart = () => { setMicState('listening'); setTimeout(() => startWaveform(), 80) }
+    r.continuous = false; r.interimResults = true; r.lang = 'en-US'; r.maxAlternatives = 1
+    r.onstart = () => {
+      console.log('[MIC] Listening started')
+      setMicState('listening'); setInterimText('')
+      setTimeout(() => startWaveform(), 80)
+    }
     r.onresult = (event) => {
       let interim = '', final = ''
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -322,27 +346,53 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         else interim += event.results[i][0].transcript
       }
       setInterimText(interim || final)
-      if (final) {
-        setInterimText('')
-        try { r.abort() } catch (e) {}
+      if (final.trim()) {
+        console.log('[MIC] Final transcript:', final)
+        r.stop()
         handleVoiceSend(final.trim())
       }
     }
     r.onerror = (e) => {
+      console.error('[MIC] Recognition error:', e.error)
       setMicState(e.error === 'not-allowed' ? 'error' : 'idle')
       setInterimText(''); stopWaveform()
+      if (e.error === 'not-allowed') {
+        alert('Microphone access denied. Please allow microphone access in your browser settings and reload the page.')
+      }
     }
-    r.onend = () => { setMicState(s => s === 'error' ? 'error' : 'idle'); stopWaveform() }
+    r.onend = () => {
+      console.log('[MIC] Listening ended')
+      setMicState(s => s === 'error' ? 'error' : 'idle')
+      stopWaveform(); setInterimText('')
+    }
+    return r
+  }
+
+  const startListening = () => {
+    if (window.speechSynthesis?.speaking || loadingRef.current) {
+      console.log('[MIC] Skipping — AI speaking or loading')
+      return
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort() } catch(e) {}
+    }
+    const r = setupRecognition()
+    if (!r) return
     recognitionRef.current = r
-    try { r.start() } catch (e) { setMicState('idle') }
+    try { r.start(); console.log('[MIC] Started listening') }
+    catch (err) { console.error('[MIC] Failed to start:', err); setMicState('idle') }
+  }
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch(e) {}
+    }
+    setMicState('idle')
   }
 
   const handleMicClick = () => {
-    if (micState === 'listening') {
-      try { recognitionRef.current?.stop() } catch (e) {}
-    } else {
-      startListening()
-    }
+    if (micState === 'listening') stopListening()
+    else startListening()
   }
 
   // ── Generate prospect profile ────────────────────────────────
@@ -424,6 +474,35 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
   }, [])
 
+  // ── Preload voices ────────────────────────────────────────────
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis?.getVoices() || []
+      if (voices.length > 0) {
+        console.log('[SPEECH] Voices loaded:', voices.length)
+        console.log('[SPEECH] Available voices:', voices.map(v => v.name).join(', '))
+      }
+    }
+    loadVoices()
+    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = loadVoices
+    return () => { window.speechSynthesis?.cancel() }
+  }, [])
+
+  // ── Browser compatibility check ───────────────────────────────
+  useEffect(() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      alert('Voice training requires Chrome or Safari.\n\nPlease open this app in Google Chrome for the best experience.\n\nFirefox does not support the Web Speech API.')
+      return
+    }
+    if (!window.speechSynthesis) {
+      alert('Your browser does not support text-to-speech. Please use Chrome.')
+      return
+    }
+    console.log('[VOICE] Browser supports SpeechRecognition ✓')
+    console.log('[VOICE] Browser supports speechSynthesis ✓')
+  }, [])
+
   useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
   const updateTone = (text) => {
@@ -472,7 +551,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     updateTone(reply)
     const emoji = analyzeMood(reply)
     setMoodEmoji(emoji)
-    speakMessage(reply, isOpener)
+    console.log('[SPEECH] AI speaking:', reply.slice(0, 60))
+    await speakText(reply)
     if (emoji === '😡') {
       setTimeout(() => handleEnd(), 3000)
     }
@@ -516,15 +596,19 @@ MOOD ESCALATION:
 Respond in ${language}. Start with your opening line now.`
 
     chatRef.current = [{ role: 'user', content: sys + `\n\n[Call starting. Respond in ${language}.]` }]
-    setLoading(true)
+    loadingRef.current = true; setLoading(true)
+    console.log('[API] Training call. Messages:', chatRef.current.length)
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
+      console.log('[SPEECH] AI opening line:', reply.slice(0, 60))
       await showBotReply(reply, true)
     } catch (e) {
+      console.error('[CALL] Start error:', e)
       addMsg('brutal', '⚠️ Connection error. Check your API key and internet, then restart the call.', true)
     }
-    setLoading(false)
+    loadingRef.current = false; setLoading(false)
+    setTimeout(() => startListening(), 400)
   }
 
   const handleTextSend = () => {
@@ -535,25 +619,31 @@ Respond in ${language}. Start with your opening line now.`
   }
 
   const handleVoiceSend = async (text) => {
-    if (!text || loading) return
+    if (!text || loadingRef.current) return
+    console.log('[CALL] User said:', text)
     setMicState('idle'); setInterimText(''); stopWaveform()
     addMsg('usr', text)
     chatRef.current.push({ role: 'user', content: text })
     const userCount = callMsgs.filter(m => m.role === 'usr').length + 1
-    setLoading(true)
+    loadingRef.current = true; setLoading(true)
     if (mode === 'bru' && userCount % 3 === 0) {
       getBrutalFeedback(text).then(fb => {
         addMsg('brutal', '😤 BLITZ: ' + fb.replace(/^(BLITZ:|Blitz:)/i, '').trim(), true)
       }).catch(() => {})
     }
+    // Natural thinking pause before AI responds
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 700))
+    console.log('[API] Training call. Messages:', chatRef.current.length)
     try {
       const reply = await callClaudeConversation(chatRef.current, 200)
       chatRef.current.push({ role: 'assistant', content: reply })
       await showBotReply(reply, false)
     } catch (e) {
+      console.error('[CALL] API error:', e)
       addMsg('brutal', '⚠️ No response. Check your connection and try again.', true)
     }
-    setLoading(false)
+    loadingRef.current = false; setLoading(false)
+    setTimeout(() => startListening(), 400)
   }
 
   const handleEnd = async () => {
@@ -633,8 +723,16 @@ Respond in ${language}. Start with your opening line now.`
         <span className="text-lg font-bold text-white font-mono tabular-nums">{fmt(secs)}</span>
         <div className="flex gap-1.5 items-center">
           {isSpeaking && <BlitzIcon size={14} className="blitz-speaking" />}
-          <button onClick={toggleMute} className="px-2 py-1.5 text-[10px] font-bold rounded-lg bg-white/10 text-white hover:bg-white/20" title={isMuted ? 'Unmute' : 'Mute'}>
-            {isMuted ? '🔇' : '🔊'}
+          <button
+            onClick={() => {
+              const next = !isMuted
+              muteRef.current = next
+              setIsMuted(next)
+              if (next) { window.speechSynthesis?.cancel(); setIsSpeaking(false) }
+            }}
+            className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all ${isMuted ? 'bg-yellow-600/80 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
+          >
+            {isMuted ? '🔇 Muted' : '🔊 Voice'}
           </button>
           <button onClick={() => setHoldToTalk(h => !h)} className={`px-2 py-1.5 text-[10px] font-bold rounded-lg transition-all ${holdToTalk ? 'bg-gold-500/20 text-gold-400 border border-gold-500/30' : 'bg-white/10 text-white/50 hover:bg-white/20'}`} title="Switch mic mode">
             {holdToTalk ? 'HOLD' : 'TAP'}
@@ -707,45 +805,66 @@ Respond in ${language}. Start with your opening line now.`
       </div>
 
       {/* Voice controls */}
-      <div className="flex flex-col items-center gap-2 px-4 pt-3 pb-4 bg-gray-900 border-t border-white/10 flex-shrink-0">
-        {interimText ? (
-          <div className="bg-white/10 border border-white/20 rounded-2xl px-4 py-2 text-sm text-white/80 italic w-full text-center">
-            "{interimText}"
+      <div className="px-4 py-4 bg-gray-900 border-t border-white/10 flex-shrink-0">
+        {/* Live transcript bubble */}
+        {(interimText || micState === 'listening') && (
+          <div className="mb-3 px-4 py-2.5 bg-white/8 border border-white/15 rounded-2xl">
+            <p className="text-sm text-white/80 leading-relaxed min-h-[20px]">
+              {interimText || <span className="text-white/30 italic">Listening...</span>}
+            </p>
           </div>
-        ) : null}
-        <canvas ref={canvasRef} width={280} height={28} className={`w-full rounded opacity-80 ${micState === 'listening' ? '' : 'hidden'}`} />
-        {micState === 'error' && (
-          <p className="text-xs text-red-400 text-center">Microphone access is required. Enable in browser settings.</p>
         )}
-        {micState === 'unsupported' && (
-          <p className="text-xs text-yellow-400 text-center">Voice training requires Chrome or Safari.</p>
+
+        {/* Status text */}
+        <p className="text-center text-xs text-white/30 mb-3">
+          {isSpeaking ? '🔊 Prospect is speaking...'
+            : micState === 'listening' ? '🎙️ Listening — speak now'
+            : loading ? '⏳ Thinking...'
+            : micState === 'error' ? '⚠️ Mic blocked — check browser settings'
+            : micState === 'unsupported' ? '⚠️ Use Chrome or Safari for voice'
+            : 'Tap the mic to speak'}
+        </p>
+
+        {/* Microphone button */}
+        <div className="flex justify-center mb-2">
+          <button
+            onPointerDown={holdToTalk ? (e) => { e.preventDefault(); startListening() } : undefined}
+            onPointerUp={holdToTalk ? () => { try { recognitionRef.current?.stop() } catch (e) {} } : undefined}
+            onClick={!holdToTalk ? handleMicClick : undefined}
+            disabled={isSpeaking || loading || micState === 'unsupported'}
+            className={`w-20 h-20 rounded-full flex items-center justify-center text-3xl transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed ${
+              micState === 'listening'
+                ? 'bg-red-500 scale-110 shadow-red-500/40 shadow-xl'
+                : micState === 'error'
+                ? 'bg-red-900/50 border-2 border-red-500/50'
+                : 'bg-closer-blue hover:bg-blue-600 hover:scale-105 active:scale-95'
+            }`}
+            style={micState === 'listening' ? { animation: 'mic-pulse 1.2s ease-in-out infinite' } : {}}
+          >
+            {micState === 'listening' ? '🔴' : micState === 'error' ? '⚠️' : '🎙️'}
+          </button>
+        </div>
+
+        {/* Waveform bars when listening */}
+        {micState === 'listening' && (
+          <div className="flex items-end justify-center gap-1 h-8 mb-1">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="w-1.5 bg-closer-blue rounded-full"
+                style={{
+                  height: `${8 + (i % 4) * 6}px`,
+                  animation: `waveform 0.${4 + i % 4}s ease-in-out ${(i * 0.08).toFixed(2)}s infinite alternate`,
+                }}
+              />
+            ))}
+          </div>
         )}
-        <button
-          onPointerDown={holdToTalk ? (e) => { e.preventDefault(); startListening() } : undefined}
-          onPointerUp={holdToTalk ? () => { try { recognitionRef.current?.stop() } catch (e) {} } : undefined}
-          onClick={!holdToTalk ? handleMicClick : undefined}
-          disabled={loading || micState === 'unsupported'}
-          className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all disabled:opacity-30 ${
-            micState === 'listening'
-              ? 'bg-red-600 scale-110 shadow-xl shadow-red-500/50 mic-pulse'
-              : micState === 'error'
-              ? 'bg-red-900/50 border-2 border-red-500/50'
-              : isSpeaking
-              ? 'bg-navy-700 border border-white/20'
-              : 'bg-closer-blue hover:bg-blue-600 active:scale-95'
-          }`}
-        >
-          {micState === 'listening' ? '🎙' : micState === 'error' ? '⚠️' : isSpeaking ? '🔇' : '🎤'}
-        </button>
-        <p className="text-[9px] text-white/30">
-          {micState === 'listening'
-            ? (holdToTalk ? 'Release to send' : 'Listening... tap to stop')
-            : isSpeaking ? 'AI speaking...'
-            : holdToTalk ? 'Hold to speak' : 'Tap to speak'}
+
+        <p className="text-center text-[9px] text-white/25 mb-2">
+          {holdToTalk ? 'Hold to speak' : micState === 'listening' ? 'Tap to stop' : 'Tap to speak'}
         </p>
 
         {/* Text input fallback */}
-        <div className="flex gap-2 w-full mt-1">
+        <div className="flex gap-2 w-full">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
