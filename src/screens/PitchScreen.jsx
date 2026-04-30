@@ -11,18 +11,18 @@ export default function PitchScreen() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [lastPromptArgs, setLastPromptArgs] = useState(null)
-  const [testResult, setTestResult] = useState(null)
-  const [testLoading, setTestLoading] = useState(false)
-
-  const handleTest = async () => {
-    setTestLoading(true); setTestResult(null)
+  const testAPI = async () => {
+    setError('')
     try {
-      const r = await callClaude('Reply with exactly: API OK', 20)
-      setTestResult({ ok: true, msg: r.trim().slice(0, 60) })
-    } catch (e) {
-      setTestResult({ ok: false, msg: e.message.slice(0, 80) })
+      const r = await callClaude('Reply with only the word: WORKING', 20)
+      if (r.includes('WORKING')) {
+        alert('✅ API connection working! Your key is valid.')
+      } else {
+        alert('⚠️ API responded but with unexpected content: ' + r)
+      }
+    } catch (err) {
+      alert('❌ API test failed: ' + err.message)
     }
-    setTestLoading(false)
   }
 
   // Create form state
@@ -38,26 +38,39 @@ export default function PitchScreen() {
   const [rebuildFw, setRebuildFw] = useState(REBUILD_FRAMEWORKS[0])
 
   const handleGenerate = async () => {
-    if (!product.trim()) return
-    setLoading(true); setError('')
+    if (!product.trim()) {
+      setError('Please enter a product or service first.')
+      return
+    }
+    setLoading(true); setError(''); setResult(null)
     try {
-      const args = { product, industry: pitchIndustry, framework, audience, keywords, language: state.language, customBrain: state.customBrain }
-      setLastPromptArgs({ type: 'create', ...args })
+      setLastPromptArgs({ type: 'create', product, industry: pitchIndustry, framework, audience, keywords, language: state.language, customBrain: state.customBrain })
       const data = await generatePitch(product, pitchIndustry, framework, audience, keywords, state.language, state.customBrain)
       setResult(data)
-    } catch (e) { setError(e.message || 'Something went wrong. Check your connection and try again.') }
-    setLoading(false)
+    } catch (err) {
+      console.error('[PITCH] Generation failed:', err)
+      setError(err.message || 'Something went wrong. Check the browser console for details.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleImprove = async () => {
-    if (!existing.trim()) return
-    setLoading(true); setError('')
+    if (!existing.trim()) {
+      setError('Please paste your pitch first.')
+      return
+    }
+    setLoading(true); setError(''); setResult(null)
     try {
       setLastPromptArgs({ type: 'improve', existing, industry: improveIndustry, framework: rebuildFw, language: state.language })
       const data = await improvePitch(existing, improveIndustry, rebuildFw, state.language)
       setResult(data)
-    } catch (e) { setError(e.message || 'Something went wrong. Check your connection and try again.') }
-    setLoading(false)
+    } catch (err) {
+      console.error('[PITCH] Improve failed:', err)
+      setError(err.message || 'Something went wrong. Check the browser console for details.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleRedo = async () => {
@@ -85,18 +98,6 @@ export default function PitchScreen() {
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4">
       <BlitzBar message="I build pitches using <strong>Andy Elliott's 10-step</strong>, <strong>Belfort's Straight Line</strong>, <strong>Cardone's tonality</strong>. Real patterns. Not AI theory." />
-
-      {/* Test API */}
-      <div className="flex items-center gap-2 mb-3">
-        <button onClick={handleTest} disabled={testLoading} className="px-3 py-1.5 rounded-lg bg-white/8 border border-white/15 text-white/50 text-xs hover:bg-white/12 disabled:opacity-40 transition-colors">
-          {testLoading ? '⏳' : '🔌'} Test API
-        </button>
-        {testResult && (
-          <span className={`text-xs ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
-            {testResult.ok ? `✓ Connected — ${testResult.msg}` : `✗ ${testResult.msg}`}
-          </span>
-        )}
-      </div>
 
       {/* Mode tabs */}
       <div className="flex gap-2 mb-4">
@@ -137,9 +138,25 @@ export default function PitchScreen() {
               <input value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="save money..." className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-closer-blue" />
             </div>
           </div>
-          <button onClick={handleGenerate} disabled={loading || !product.trim()} className="w-full py-3 rounded-xl bg-closer-blue text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-600 transition-colors">
-            {loading ? '⏳ Generating...' : '⚡ Generate elite pitch'}
-          </button>
+          {loading ? (
+            <div className="flex flex-col items-center gap-3 py-5">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <p className="text-sm text-white/60 font-medium">Blitz is writing your pitch...</p>
+            </div>
+          ) : (
+            <>
+              <button onClick={handleGenerate} disabled={!product.trim()} className="w-full py-3 rounded-xl bg-closer-blue text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-600 transition-colors">
+                ⚡ Generate elite pitch
+              </button>
+              <button onClick={testAPI} className="w-full py-2 mt-2 rounded-xl border border-white/15 bg-transparent text-white/40 text-xs hover:bg-white/5 hover:text-white/60 transition-colors">
+                🔌 Test API connection
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-3 mb-4">
@@ -161,15 +178,33 @@ export default function PitchScreen() {
               </select>
             </div>
           </div>
-          <button onClick={handleImprove} disabled={loading || !existing.trim()} className="w-full py-3 rounded-xl bg-closer-blue text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-600 transition-colors">
-            {loading ? '⏳ Rebuilding...' : '🔧 Rebuild my pitch'}
-          </button>
+          {loading ? (
+            <div className="flex flex-col items-center gap-3 py-5">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 rounded-full bg-closer-blue animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <p className="text-sm text-white/60 font-medium">Blitz is rebuilding your pitch...</p>
+            </div>
+          ) : (
+            <>
+              <button onClick={handleImprove} disabled={!existing.trim()} className="w-full py-3 rounded-xl bg-closer-blue text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-600 transition-colors">
+                🔧 Rebuild my pitch
+              </button>
+              <button onClick={testAPI} className="w-full py-2 mt-2 rounded-xl border border-white/15 bg-transparent text-white/40 text-xs hover:bg-white/5 hover:text-white/60 transition-colors">
+                🔌 Test API connection
+              </button>
+            </>
+          )}
         </div>
       )}
 
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-3.5 py-3 mb-3">
-          <p className="text-xs text-red-400 leading-relaxed">{error}</p>
+        <div className="bg-red-500/15 border border-red-500/40 rounded-xl p-4 mb-4">
+          <p className="text-sm font-bold text-red-300 mb-1">⚠️ Could not generate pitch</p>
+          <p className="text-xs text-red-300/70 leading-relaxed">{error}</p>
+          <p className="text-xs text-white/30 mt-2">Check that your VITE_ANTHROPIC_API_KEY is set in your .env file and restart the dev server.</p>
         </div>
       )}
 
