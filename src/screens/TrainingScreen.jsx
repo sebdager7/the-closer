@@ -173,6 +173,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [showPreview, setShowPreview] = useState(true)
   const [generatingProfile, setGeneratingProfile] = useState(true)
   const [callConnected, setCallConnected] = useState(false)
+  const [lastBotText, setLastBotText] = useState('')
 
   const chatRef = useRef([])
   const msgsEndRef = useRef(null)
@@ -224,8 +225,12 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
     loadVoices()
     window.speechSynthesis.onvoiceschanged = loadVoices
-    window.speechSynthesis.getVoices()
+    // Chrome loads voices async — retry to guarantee they're available
+    const t1 = setTimeout(() => loadVoices(), 500)
+    const t2 = setTimeout(() => loadVoices(), 1500)
     return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
       window.speechSynthesis.cancel()
       window.speechSynthesis.onvoiceschanged = null
     }
@@ -248,8 +253,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   // ── speakText ─────────────────────────────────────────────────
   const speakText = (text, prospectGender = 'female') => {
-    if (!text || !text.trim()) return Promise.resolve()
-    if (muteRef.current) return Promise.resolve()
+    if (!text || !text.trim()) { console.log('[SPEECH] Empty text — skipping'); return Promise.resolve() }
+    if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); return Promise.resolve() }
+    console.log('[SPEECH] About to speak:', text.slice(0, 80))
 
     return new Promise((resolve) => {
       window.speechSynthesis.cancel()
@@ -488,6 +494,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const addMsg = (role, text, isBrutal = false) => {
     setMessages(m => [...m, { role, text, isBrutal, ts: Date.now() }])
     if (!isBrutal) setCallMsgs(m => [...m, { role, text, time: secs }])
+    if (role === 'bot' && !isBrutal) setLastBotText(text)
   }
 
   const showBotReply = async (reply, isOpener = false) => {
@@ -508,6 +515,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   const startCall = async () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      alert('Voice calls require Google Chrome or Safari.\nPlease open this app in Chrome for voice training.')
+      return
+    }
+    if (!window.speechSynthesis) {
+      alert('Your browser does not support voice. Please use Chrome.')
+      return
+    }
+    console.log('[BROWSER] SpeechRecognition: supported')
+    console.log('[BROWSER] speechSynthesis: supported')
+
     const p = profileRef.current
     if (!p) return
     const brainCtx = customBrain.offer ? `\nRep sells: ${customBrain.offer}. ICP: ${customBrain.icp}.` : ''
@@ -719,28 +738,43 @@ Respond in ${language}. Start with your opening line now.`
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'usr' ? 'justify-end' : m.isBrutal ? 'justify-center' : 'justify-start'}`}>
-            {m.isBrutal ? (
-              <div className="max-w-[90%] bg-red-900/40 border border-red-500/50 rounded-xl px-3 py-2 text-xs text-red-300 font-bold text-center">{m.text}</div>
-            ) : (
-              <div className="max-w-[80%]">
-                <p className="text-[9px] text-white/30 mb-1">{m.role === 'usr' ? 'You' : prospectName}</p>
-                <div className={`px-3 py-2 rounded-2xl text-sm leading-relaxed ${m.role === 'usr' ? 'bg-closer-blue text-white rounded-br-sm' : 'bg-white/10 text-white rounded-bl-sm'}`}>{m.text}</div>
-              </div>
-            )}
+      {/* Voice call center — no text chat, audio only */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-4 gap-4">
+        {/* Big prospect avatar */}
+        <div className="relative">
+          <div
+            className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white transition-all duration-300 ${isSpeaking ? 'scale-110' : 'scale-100'}`}
+            style={{
+              background: prospectProfile?.gender === 'male' ? '#1a6bbf' : '#8b5cf6',
+              boxShadow: isSpeaking ? `0 0 0 8px ${prospectProfile?.gender === 'male' ? 'rgba(26,107,191,0.25)' : 'rgba(139,92,246,0.25)'}` : 'none',
+            }}
+          >
+            {prospectProfile?.name?.charAt(0) || '?'}
           </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-3 py-2.5 flex gap-1.5 items-center">
-              <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
+          {isSpeaking && (
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center text-xs">🔊</div>
+          )}
+        </div>
+
+        {/* Last thing the prospect said */}
+        {loading ? (
+          <div className="bg-white/8 border border-white/10 rounded-2xl px-5 py-3 flex gap-2 items-center">
+            <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
+          </div>
+        ) : lastBotText ? (
+          <div className="max-w-xs w-full text-center">
+            <div className="bg-white/8 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/90 leading-relaxed italic">
+              "{lastBotText}"
             </div>
           </div>
-        )}
-        <div ref={msgsEndRef} />
+        ) : null}
+
+        {/* Blitz brutal feedback toasts */}
+        {messages.filter(m => m.isBrutal).slice(-1).map((m, i) => (
+          <div key={i} className="max-w-xs w-full bg-red-900/40 border border-red-500/50 rounded-xl px-3 py-2 text-xs text-red-300 font-bold text-center">
+            {m.text}
+          </div>
+        ))}
       </div>
 
       {/* Voice-only controls */}
@@ -944,7 +978,19 @@ export default function TrainingScreen() {
 
       <p className="text-[10px] text-white/30 italic mb-4">Training in {state.language}</p>
 
-      <button onClick={() => setInCall(true)} className="w-full py-3.5 bg-closer-blue text-white font-bubble text-sm rounded-xl hover:bg-blue-600 transition-colors">
+      <button
+        onClick={() => {
+          // Prime speech synthesis with this user gesture — Chrome requires a gesture for first speak()
+          try {
+            window.speechSynthesis.cancel()
+            const prime = new SpeechSynthesisUtterance('')
+            window.speechSynthesis.speak(prime)
+            console.log('[VOICE] Primed speechSynthesis with user gesture')
+          } catch (e) {}
+          setInCall(true)
+        }}
+        className="w-full py-3.5 bg-closer-blue text-white font-bubble text-sm rounded-xl hover:bg-blue-600 transition-colors"
+      >
         ▶ Start Training Call
       </button>
     </div>
