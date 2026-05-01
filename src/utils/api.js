@@ -227,48 +227,50 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-export async function textToSpeechElevenLabs(text, voiceId, apiKey) {
-  if (!apiKey) {
-    console.warn('[ELEVEN] No API key — falling back to browser TTS')
+export async function speakWithElevenLabs(text, voiceId, apiKey) {
+  if (!apiKey || apiKey === 'your_elevenlabs_key_here') {
+    console.warn('[ELEVEN] No API key configured')
     return null
   }
 
-  try {
-    console.log('[ELEVEN] Calling ElevenLabs voice:', voiceId)
+  console.log('[ELEVEN] Requesting audio for:', text.slice(0, 50))
 
+  try {
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'xi-api-key': apiKey,
+          'Accept': 'audio/mpeg',
         },
         body: JSON.stringify({
           text,
           model_id: 'eleven_turbo_v2',
           voice_settings: {
-            stability: 0.45,
-            similarity_boost: 0.82,
-            style: 0.35,
+            stability: 0.40,
+            similarity_boost: 0.85,
+            style: 0.30,
             use_speaker_boost: true,
           },
+          optimize_streaming_latency: 3,
         }),
       }
     )
 
     if (!response.ok) {
       const err = await response.text()
-      console.error('[ELEVEN] Error:', response.status, err.slice(0, 200))
+      console.error('[ELEVEN] API error:', response.status, err.slice(0, 200))
       return null
     }
 
-    const audioBlob = await response.blob()
-    const audioUrl = URL.createObjectURL(audioBlob)
-    console.log('[ELEVEN] ✅ Audio received')
-    return audioUrl
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    console.log('[ELEVEN] ✅ Audio blob received')
+    return url
   } catch (err) {
-    console.error('[ELEVEN] Failed:', err)
+    console.error('[ELEVEN] Network error:', err)
     return null
   }
 }
