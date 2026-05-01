@@ -1428,7 +1428,7 @@ export default function TrainingScreen() {
   const modeMsg = TRAINING_MODES.find(m => m.id === mode)?.blitzMsg || ''
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto p-4">
+    <div className="flex flex-col h-full overflow-y-auto px-4 pt-4" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
       <BlitzBar message={`<strong>Blitz:</strong> ${modeMsg}`} />
 
       <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Training Mode</div>
