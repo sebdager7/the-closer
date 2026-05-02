@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, elevenLabsSpeak, playElevenLabsAudio } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, elevenLabsSpeak, playAudioBlob } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
@@ -436,8 +436,12 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   // ── Browser TTS fallback ──────────────────────────────────────
   const fallbackBrowserTTS = (text, gender) => {
+    console.warn('[TTS] ⚠️ BROWSER FALLBACK ACTIVE')
+    console.warn('[TTS] ⚠️ ElevenLabs failed — using robot voice')
+    console.warn('[TTS] ⚠️ Check [ELEVEN] errors above to fix')
+
     return new Promise((resolve) => {
-      const processed = text
+      const cleaned = text
         .replace(/\. ([A-Z])/g, '.  $1')
         .replace(/Well, /gi, 'Well... ')
         .replace(/Look, /gi, 'Look... ')
@@ -445,19 +449,21 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         .replace(/I mean, /gi, 'I mean... ')
         .replace(/Hmm/gi, 'Hmm...')
 
-      const utter = new SpeechSynthesisUtterance(processed)
+      const utter = new SpeechSynthesisUtterance(cleaned)
       const voice = getBestBrowserVoice(gender)
-      if (voice) utter.voice = voice
+      if (voice) {
+        utter.voice = voice
+        console.warn('[TTS] Fallback voice:', voice.name)
+      }
 
-      utter.rate = gender === 'male' ? 0.85 + Math.random() * 0.06 : 0.88 + Math.random() * 0.08
-      utter.pitch = gender === 'male' ? 0.86 + Math.random() * 0.08 : 1.02 + Math.random() * 0.1
+      utter.rate = gender === 'male' ? 0.86 : 0.90
+      utter.pitch = gender === 'male' ? 0.86 : 1.04
       utter.volume = 1.0
 
       let done = false
       const finish = () => { if (done) return; done = true; resolve() }
 
-      const maxMs = Math.max(text.length * 75, 4000)
-      const safety = setTimeout(finish, maxMs)
+      const timeout = setTimeout(finish, Math.max(text.length * 75, 4000))
 
       const keep = setInterval(() => {
         if (window.speechSynthesis.speaking) {
@@ -468,22 +474,21 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         }
       }, 8000)
 
-      utter.onend = () => { clearTimeout(safety); clearInterval(keep); finish() }
-      utter.onerror = () => { clearTimeout(safety); clearInterval(keep); finish() }
+      utter.onend = () => { clearTimeout(timeout); clearInterval(keep); finish() }
+      utter.onerror = () => { clearTimeout(timeout); clearInterval(keep); finish() }
 
       window.speechSynthesis.speak(utter)
     })
   }
 
   // ── speakText ─────────────────────────────────────────────────
-  const speakText = async (text, gender = 'female', lang = language) => {
-    console.log('[SPEAK] ====== SPEAK CALLED ======')
-    console.log('[SPEAK] Gender:', gender, '| Language:', lang)
-    console.log('[SPEAK] Text:', text?.slice(0, 60))
-    console.log('[SPEAK] Muted:', muteRef.current)
+  const speakText = async (text, gender = 'female') => {
+    console.log('[SPEAK] ===== speakText called =====')
+    console.log('[SPEAK] text   :', text?.slice(0, 60))
+    console.log('[SPEAK] gender :', gender)
 
     if (!text?.trim()) {
-      console.log('[SPEAK] Empty — skipping')
+      console.log('[SPEAK] Empty text — clearing state')
       isSpeakingRef.current = false
       setIsSpeaking(false)
       return
@@ -496,6 +501,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       return
     }
 
+    // Stop anything currently playing
     window.speechSynthesis.cancel()
     if (audioRef.current) {
       try { audioRef.current.pause() } catch (e) {}
@@ -505,21 +511,32 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     isSpeakingRef.current = true
     setIsSpeaking(true)
 
+    console.log('[SPEAK] Calling elevenLabsSpeak...')
+
     try {
-      const audioUrl = await elevenLabsSpeak(text, gender, lang)
+      // Voice IDs are hardcoded inside elevenLabsSpeak — just pass gender and language
+      const audioUrl = await elevenLabsSpeak(text, gender, language)
+
       if (audioUrl) {
-        await playElevenLabsAudio(audioUrl, text.length)
-        console.log('[SPEAK] ElevenLabs done ✅')
+        console.log('[SPEAK] Got audio URL ✅ — playing now')
+        // Store audio in ref so mute button can cancel mid-playback
+        await playAudioBlob(audioUrl, text.length, (a) => { audioRef.current = a })
+        audioRef.current = null
+        console.log('[SPEAK] Playback complete ✅')
       } else {
-        console.error('[SPEAK] ❌ ElevenLabs failed — using browser fallback')
+        console.error('[SPEAK] elevenLabsSpeak returned null')
+        console.error('[SPEAK] Falling back to browser TTS')
+        console.error('[SPEAK] Check [ELEVEN] errors above for cause')
         await fallbackBrowserTTS(text, gender)
       }
     } catch (err) {
-      console.error('[SPEAK] Unexpected error:', err)
+      console.error('[SPEAK] Unexpected error:', err.message)
       try { await fallbackBrowserTTS(text, gender) } catch (e) {}
     } finally {
+      // ALWAYS clear speaking state — guarantees mic can start even if everything fails
       isSpeakingRef.current = false
       setIsSpeaking(false)
+      console.log('[SPEAK] isSpeakingRef cleared ✅')
     }
   }
 
@@ -542,13 +559,18 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   // ── Speech recognition ────────────────────────────────────────
   const startListening = () => {
-    console.log('[MIC] startListening called')
-    console.log('[MIC] speaking:', isSpeakingRef.current, 'listening:', isListeningRef.current, 'processing:', isProcessingRef.current)
+    console.log('[MIC] startListening —',
+      'speaking:', isSpeakingRef.current,
+      'listening:', isListeningRef.current,
+      'processing:', isProcessingRef.current
+    )
 
-    if (isSpeakingRef.current) { console.log('[MIC] BLOCKED — AI speaking'); return }
-    if (isListeningRef.current) { console.log('[MIC] Already listening'); return }
+    if (isSpeakingRef.current === true) { console.log('[MIC] BLOCKED: AI speaking'); return }
+    if (isListeningRef.current === true) { console.log('[MIC] Already listening'); return }
     if (isProcessingRef.current) { console.log('[MIC] BLOCKED — processing response'); return }
     if (!callActiveRef.current) { console.log('[MIC] Call not active'); return }
+
+    window.speechSynthesis.cancel()
 
     if (recognitionRef.current) {
       try {
@@ -916,7 +938,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       setLoading(false)
 
       console.log('[CALL] Speaking opening...')
-      await speakText(opening, p.gender, language)
+      await speakText(opening, p.gender)
       console.log('[CALL] Opening spoken.')
 
       if (callActiveRef.current) {
@@ -997,7 +1019,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (checkForClose(reply)) {
         console.log('[CALL] 🏆 DEAL CLOSED after', exchangeCountRef.current, 'exchanges!')
         isProcessingRef.current = false
-        await speakText(reply, gender, language)
+        await speakText(reply, gender)
         showCallResults(true)
         return
       }
@@ -1005,7 +1027,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (checkForHangup(reply)) {
         console.log('[CALL] Prospect hung up')
         isProcessingRef.current = false
-        await speakText(reply, gender, language)
+        await speakText(reply, gender)
         setTimeout(() => showCallResults(false), 1000)
         return
       }
@@ -1013,14 +1035,14 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (emoji === '😡') {
         console.log('[CALL] Prospect rage quit')
         isProcessingRef.current = false
-        await speakText(reply, gender, language)
+        await speakText(reply, gender)
         setTimeout(() => showCallResults(false), 1500)
         return
       }
 
       console.log('[CALL] Speaking reply...')
       isProcessingRef.current = false
-      await speakText(reply, gender, language)
+      await speakText(reply, gender)
       console.log('[CALL] Reply spoken.')
 
       if (callActiveRef.current) {
@@ -1446,29 +1468,6 @@ export default function TrainingScreen() {
   const [inCall, setInCall] = useState(false)
   const [restartKey, setRestartKey] = useState(0)
 
-  const testVoice = async (gender) => {
-    console.log('[TEST] Testing', gender, 'voice in', state.language)
-    const url = await elevenLabsSpeak('Hello, this is a voice test.', gender, state.language)
-    if (url) {
-      const audio = new Audio(url)
-      audio.play().catch(e => {
-        console.error('[TEST] play() failed:', e.message)
-        alert('Audio blocked. Tap the screen first then test again.')
-      })
-      audio.onended = () => URL.revokeObjectURL(url)
-      console.log('[TEST] ✅ Voice test playing')
-    } else {
-      alert(
-        'ElevenLabs voice test failed.\n\n' +
-        'Check the console for the error.\n\n' +
-        'Common causes:\n' +
-        '1. API key wrong or expired\n' +
-        '2. Voice ID not found\n' +
-        '3. No internet connection\n' +
-        '4. Free tier limit reached'
-      )
-    }
-  }
 
   const handleEnd = (closePct, action) => {
     if (action !== 'restart') {
@@ -1576,16 +1575,61 @@ export default function TrainingScreen() {
       )}
 
       {(import.meta.env.VITE_ELEVENLABS_API_KEY && import.meta.env.VITE_ELEVENLABS_API_KEY !== 'your_elevenlabs_key_here') && (
-        <div className="flex gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <button
-            onClick={() => testVoice('female')}
-            className="flex-1 py-2 rounded-xl text-xs font-bold bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 active:scale-95 transition-all"
+            onClick={async () => {
+              console.log('=== TESTING FEMALE VOICE ===')
+              const url = await elevenLabsSpeak("Hello, who's calling?", 'female', state.language)
+              if (url) {
+                await playAudioBlob(url, 30)
+                console.log('Female voice test ✅')
+              } else {
+                alert(
+                  'Female voice FAILED.\n\n' +
+                  'Open DevTools console (F12) and look for\n' +
+                  '[ELEVEN] errors to see exactly why.\n\n' +
+                  'Common fixes:\n' +
+                  '1. Check VITE_ELEVENLABS_API_KEY in .env\n' +
+                  '2. Restart dev server after changing .env\n' +
+                  '3. Verify voice ID on elevenlabs.io'
+                )
+              }
+            }}
+            className="py-2.5 rounded-xl text-xs font-bold border transition-all active:scale-95"
+            style={{
+              background: 'rgba(139,92,246,0.1)',
+              borderColor: 'rgba(139,92,246,0.3)',
+              color: '#a78bfa',
+            }}
           >
             🎙️ Test Female Voice
           </button>
+
           <button
-            onClick={() => testVoice('male')}
-            className="flex-1 py-2 rounded-xl text-xs font-bold bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:bg-blue-500/30 active:scale-95 transition-all"
+            onClick={async () => {
+              console.log('=== TESTING MALE VOICE ===')
+              const url = await elevenLabsSpeak("Yeah, who is this?", 'male', state.language)
+              if (url) {
+                await playAudioBlob(url, 30)
+                console.log('Male voice test ✅')
+              } else {
+                alert(
+                  'Male voice FAILED.\n\n' +
+                  'Open DevTools console (F12) and look for\n' +
+                  '[ELEVEN] errors to see exactly why.\n\n' +
+                  'Common fixes:\n' +
+                  '1. Check VITE_ELEVENLABS_API_KEY in .env\n' +
+                  '2. Restart dev server after changing .env\n' +
+                  '3. Verify voice ID on elevenlabs.io'
+                )
+              }
+            }}
+            className="py-2.5 rounded-xl text-xs font-bold border transition-all active:scale-95"
+            style={{
+              background: 'rgba(26,107,191,0.1)',
+              borderColor: 'rgba(26,107,191,0.3)',
+              color: '#60a5fa',
+            }}
           >
             🎙️ Test Male Voice
           </button>
