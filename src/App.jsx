@@ -45,6 +45,7 @@ function MainApp() {
       root.classList.add('dark')
       root.classList.remove('light')
     }
+    console.log('[THEME] Applied class:', state.theme, '| HTML classes:', root.className)
   }, [state.theme])
 
   return (

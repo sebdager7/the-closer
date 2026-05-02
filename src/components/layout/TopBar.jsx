@@ -15,60 +15,57 @@ function ThemeToggle() {
 
   return (
     <button
-      onClick={() => dispatch({ type: 'SET_THEME', payload: isDark ? 'light' : 'dark' })}
+      onClick={() => {
+        const next = isDark ? 'light' : 'dark'
+        console.log('[TOGGLE] Switching from', state.theme, 'to', next)
+        dispatch({ type: 'SET_THEME', payload: next })
+      }}
       title={isDark ? 'Switch to day mode' : 'Switch to night mode'}
       style={{
-        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        width: '52px',
-        height: '28px',
-        borderRadius: '14px',
-        padding: '3px',
-        border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(200,168,74,0.45)',
+        gap: '7px',
+        padding: '5px 11px',
+        borderRadius: '20px',
+        border: isDark ? '1px solid rgba(26,107,191,0.4)' : '1px solid rgba(200,168,74,0.5)',
         background: isDark
           ? 'linear-gradient(135deg, #071428, #0a2744)'
-          : 'linear-gradient(135deg, #0d1a2e, #142440)',
+          : 'linear-gradient(135deg, #162847, #1f3c6a)',
         transition: 'all 0.3s ease',
         flexShrink: 0,
       }}
     >
-      {/* Sliding pill */}
-      <div style={{
-        position: 'absolute',
-        width: '22px',
-        height: '22px',
-        borderRadius: '11px',
-        transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-        transform: isDark ? 'translateX(24px)' : 'translateX(0px)',
-        background: isDark
-          ? 'linear-gradient(135deg, #1a6bbf, #1557a0)'
-          : 'linear-gradient(135deg, #f59e0b, #d97706)',
-        boxShadow: isDark
-          ? '0 2px 8px rgba(26,107,191,0.5)'
-          : '0 2px 8px rgba(245,158,11,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        {isDark ? (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-        ) : (
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <circle cx="12" cy="12" r="4"/>
-            <line x1="12" y1="2" x2="12" y2="5"/>
-            <line x1="12" y1="19" x2="12" y2="22"/>
-            <line x1="2" y1="12" x2="5" y2="12"/>
-            <line x1="19" y1="12" x2="22" y2="12"/>
-            <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
-            <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
-            <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
-            <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
-          </svg>
-        )}
-      </div>
+      {/* Sun icon — glows gold in day mode */}
+      <svg
+        width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke={!isDark ? '#f59e0b' : 'rgba(255,255,255,0.22)'}
+        strokeWidth="2.5" strokeLinecap="round"
+        style={{
+          transition: 'all 0.3s ease',
+          filter: !isDark ? 'drop-shadow(0 0 5px #f59e0b) drop-shadow(0 0 2px #f59e0b)' : 'none',
+        }}
+      >
+        <circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="5" y2="12"/>
+        <line x1="19" y1="12" x2="22" y2="12"/>
+        <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+        <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+      </svg>
+      {/* Moon icon — glows blue in dark mode */}
+      <svg
+        width="13" height="13" viewBox="0 0 24 24"
+        fill={isDark ? '#1a6bbf' : 'rgba(255,255,255,0.2)'}
+        style={{
+          transition: 'all 0.3s ease',
+          filter: isDark ? 'drop-shadow(0 0 5px #1a6bbf) drop-shadow(0 0 2px #1a6bbf)' : 'none',
+        }}
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
     </button>
   )
 }
