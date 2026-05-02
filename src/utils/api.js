@@ -2,12 +2,8 @@ const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
 export const ELEVEN_VOICES = {
-  female: [
-    { id: 'g6xIsTj2HwM6VR4iXFCw', name: 'Female Prospect', style: 'natural female voice' },
-  ],
-  male: [
-    { id: 'UgBBYS2sOqTuMpoF3BR0', name: 'Male Prospect', style: 'natural male voice' },
-  ],
+  female: { id: 'g6xIsTj2HwM6VR4iXFCw', name: 'Female Prospect' },
+  male: { id: 'UgBBYS2sOqTuMpoF3BR0', name: 'Male Prospect' },
 }
 
 const getHeaders = () => ({
@@ -235,7 +231,7 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
   }
 
   console.log('[ELEVEN] Voice ID:', voiceId)
-  console.log('[ELEVEN] Text:', text.slice(0, 50))
+  console.log('[ELEVEN] Text length:', text.length, '| Preview:', text.slice(0, 50))
 
   try {
     const response = await fetch(
@@ -261,15 +257,41 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
       }
     )
 
+    console.log('[ELEVEN] HTTP status:', response.status)
+
+    if (response.status === 401) {
+      console.error('[ELEVEN] 401 — Invalid API key')
+      return null
+    }
+    if (response.status === 404) {
+      console.error('[ELEVEN] 404 — Voice ID not found:', voiceId)
+      return null
+    }
+    if (response.status === 422) {
+      const err = await response.text()
+      console.error('[ELEVEN] 422 — Validation error:', err.slice(0, 300))
+      return null
+    }
+    if (response.status === 429) {
+      console.error('[ELEVEN] 429 — Rate limit / quota exceeded')
+      return null
+    }
     if (!response.ok) {
       const err = await response.text()
-      console.error('[ELEVEN] API error:', response.status, err.slice(0, 200))
+      console.error('[ELEVEN] Error', response.status, ':', err.slice(0, 200))
       return null
     }
 
     const blob = await response.blob()
+    console.log('[ELEVEN] Blob size:', blob.size, 'type:', blob.type)
+
+    if (blob.size < 100) {
+      console.error('[ELEVEN] Blob too small — likely empty response')
+      return null
+    }
+
     const url = URL.createObjectURL(blob)
-    console.log('[ELEVEN] ✅ Audio blob received')
+    console.log('[ELEVEN] ✅ Audio blob ready')
     return url
   } catch (err) {
     console.error('[ELEVEN] Network error:', err)

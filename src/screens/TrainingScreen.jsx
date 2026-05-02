@@ -427,7 +427,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   // ── Audio playback ────────────────────────────────────────────
   const playAudio = (url, textLength) => {
     return new Promise((resolve) => {
-      const audio = new Audio(url)
+      const audio = new Audio()
       audioRef.current = audio
 
       let done = false
@@ -441,12 +441,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
       const maxMs = Math.max(textLength * 85, 4000)
       const safety = setTimeout(() => {
-        console.warn('[AUDIO] Safety timeout')
+        console.warn('[AUDIO] Safety timeout after', maxMs, 'ms')
         finish()
       }, maxMs)
 
+      audio.onloadeddata = () => { console.log('[AUDIO] Loaded — duration:', audio.duration?.toFixed(1), 's') }
       audio.onended = () => { clearTimeout(safety); finish() }
       audio.onerror = (e) => { console.error('[AUDIO] Error:', e); clearTimeout(safety); finish() }
+
+      audio.src = url
       audio.play().catch(err => { console.error('[AUDIO] play() failed:', err); clearTimeout(safety); finish() })
     })
   }
@@ -513,34 +516,32 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setIsSpeaking(true)
 
     if (!selectedVoiceIdRef.current) {
-      const voiceList = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
-      selectedVoiceIdRef.current = voiceList[0]
-      console.log('[VOICE] Using:', selectedVoiceIdRef.current.name, selectedVoiceIdRef.current.id)
+      selectedVoiceIdRef.current = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
+      console.log('[VOICE] Locked voice:', selectedVoiceIdRef.current.name, '|', selectedVoiceIdRef.current.id)
     }
 
     const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
 
-    if (elevenKey && elevenKey.length > 10 && elevenKey !== 'your_elevenlabs_key_here') {
-      try {
-        console.log('[ELEVEN] Requesting audio...')
+    try {
+      if (elevenKey && elevenKey.length > 10 && elevenKey !== 'your_elevenlabs_key_here') {
+        console.log('[ELEVEN] Requesting audio for voice:', selectedVoiceIdRef.current.id)
         const audioUrl = await speakWithElevenLabs(text, selectedVoiceIdRef.current.id, elevenKey)
         if (audioUrl) {
           await playAudio(audioUrl, text.length)
-          isSpeakingRef.current = false
-          setIsSpeaking(false)
           console.log('[SPEAK] ElevenLabs done ✅')
           return
         }
-      } catch (err) {
-        console.error('[ELEVEN] Error:', err)
+        console.warn('[ELEVEN] Returned null — falling back to browser TTS')
+      } else {
+        console.log('[ELEVEN] No key — using browser TTS')
       }
-    }
 
-    console.log('[SPEAK] Using browser TTS')
-    await browserTTS(text, gender)
-    isSpeakingRef.current = false
-    setIsSpeaking(false)
-    console.log('[SPEAK] Browser TTS done ✅')
+      await browserTTS(text, gender)
+      console.log('[SPEAK] Browser TTS done ✅')
+    } finally {
+      isSpeakingRef.current = false
+      setIsSpeaking(false)
+    }
   }
 
   // ── Mic permission ────────────────────────────────────────────
@@ -875,7 +876,7 @@ Return ONLY raw JSON, no markdown, no backticks:
 
   // ── Start call ────────────────────────────────────────────────
   const startCall = async () => {
-    console.log('[CALL] ====== STARTING CALL ======')
+    console.log('[CALL] ====== NEW CALL STARTING ======')
 
     callActiveRef.current = true
     exchangeCountRef.current = 0
