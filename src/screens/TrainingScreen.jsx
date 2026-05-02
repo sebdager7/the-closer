@@ -206,7 +206,14 @@ const buildSystemPrompt = (profile, industry, difficulty, language, mode, person
     ? `\nThe rep sells: ${customBrain.offer}. Their ideal customer: ${customBrain.icp}.`
     : ''
 
-  return `CRITICAL: This entire conversation must be conducted in ${language}. Every single word you say must be in ${language}. Do not use any other language under any circumstances.
+  return `MANDATORY LANGUAGE RULE — READ THIS FIRST:
+You must speak ONLY in ${language} for this entire call.
+Every single word you say must be in ${language}.
+Never switch to English unless ${language} is English.
+If ${language} is Spanish — speak only Spanish.
+If ${language} is French — speak only French.
+If ${language} is Portuguese — speak only Portuguese.
+This is the most important instruction in this entire prompt.
 
 You are ${profile.name}, ${profile.age} years old.
 Job: ${profile.occupation}
@@ -219,7 +226,6 @@ ${profile.backstory ? 'Backstory: ' + profile.backstory : ''}${brainCtx}${modeEx
 ${levels[difficulty] || levels['Intermediate']}
 
 You are receiving an unexpected phone call about ${industry}.
-Language to use: ${language}
 
 RULES — never break these:
 - You are a REAL HUMAN. Never admit you are AI.
@@ -249,7 +255,9 @@ Warming: ${patterns.warming.join(' | ')}
 Ready to buy: ${patterns.buying.join(' | ')}
 
 Your opening line when you answer: "${profile.opening_line}"
-Respond in ${language}`
+
+FINAL REMINDER — MOST IMPORTANT RULE:
+Speak ONLY in ${language}. Every single word must be in ${language}.`
 }
 
 const analyzeUserTone = (text) => {
@@ -297,6 +305,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const [voicesReady, setVoicesReady] = useState(false)
 
   const chatRef = useRef([])
+  const systemPromptRef = useRef(null)
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
   const muteRef = useRef(false)
@@ -467,9 +476,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   // ── speakText ─────────────────────────────────────────────────
-  const speakText = async (text, gender = 'female') => {
+  const speakText = async (text, gender = 'female', lang = language) => {
     console.log('[SPEAK] ====== SPEAK CALLED ======')
-    console.log('[SPEAK] Gender:', gender)
+    console.log('[SPEAK] Gender:', gender, '| Language:', lang)
     console.log('[SPEAK] Text:', text?.slice(0, 60))
     console.log('[SPEAK] Muted:', muteRef.current)
 
@@ -497,7 +506,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setIsSpeaking(true)
 
     try {
-      const audioUrl = await elevenLabsSpeak(text, gender, language)
+      const audioUrl = await elevenLabsSpeak(text, gender, lang)
       if (audioUrl) {
         await playElevenLabsAudio(audioUrl, text.length)
         console.log('[SPEAK] ElevenLabs done ✅')
@@ -887,11 +896,15 @@ Return ONLY raw JSON, no markdown, no backticks:
     console.log('[CALL] Prospect:', p.name, p.gender)
 
     const sys = buildSystemPrompt(p, industry, difficulty, language, mode, persona, customBrain)
-    chatRef.current = [{ role: 'user', content: sys + '\n\n[The phone is ringing. You answer it now.]' }]
+    systemPromptRef.current = sys
+    chatRef.current = [{ role: 'user', content: '[The phone is ringing. You answer it now.]' }]
+
+    console.log('[CALL] Language:', language)
+    console.log('[CALL] System prompt preview:', sys.slice(0, 120))
 
     try {
       console.log('[CALL] Getting opening line...')
-      const raw = await callClaudeConversation(chatRef.current, 100)
+      const raw = await callClaudeConversation(chatRef.current, 100, sys)
       const opening = cleanAIResponse(raw)
       console.log('[CALL] Opening line:', opening)
 
@@ -903,7 +916,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       setLoading(false)
 
       console.log('[CALL] Speaking opening...')
-      await speakText(opening, p.gender)
+      await speakText(opening, p.gender, language)
       console.log('[CALL] Opening spoken.')
 
       if (callActiveRef.current) {
@@ -965,8 +978,8 @@ Return ONLY raw JSON, no markdown, no backticks:
     await new Promise(r => setTimeout(r, thinkMs))
 
     try {
-      console.log('[CALL] Calling API with', chatRef.current.length, 'messages')
-      const raw = await callClaudeConversation(chatRef.current, 150)
+      console.log('[CALL] Calling API with', chatRef.current.length, 'messages, language:', language)
+      const raw = await callClaudeConversation(chatRef.current, 150, systemPromptRef.current)
       const reply = cleanAIResponse(raw)
       console.log('[CALL] AI reply:', reply)
 
@@ -984,7 +997,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (checkForClose(reply)) {
         console.log('[CALL] 🏆 DEAL CLOSED after', exchangeCountRef.current, 'exchanges!')
         isProcessingRef.current = false
-        await speakText(reply, gender)
+        await speakText(reply, gender, language)
         showCallResults(true)
         return
       }
@@ -992,7 +1005,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (checkForHangup(reply)) {
         console.log('[CALL] Prospect hung up')
         isProcessingRef.current = false
-        await speakText(reply, gender)
+        await speakText(reply, gender, language)
         setTimeout(() => showCallResults(false), 1000)
         return
       }
@@ -1000,14 +1013,14 @@ Return ONLY raw JSON, no markdown, no backticks:
       if (emoji === '😡') {
         console.log('[CALL] Prospect rage quit')
         isProcessingRef.current = false
-        await speakText(reply, gender)
+        await speakText(reply, gender, language)
         setTimeout(() => showCallResults(false), 1500)
         return
       }
 
       console.log('[CALL] Speaking reply...')
       isProcessingRef.current = false
-      await speakText(reply, gender)
+      await speakText(reply, gender, language)
       console.log('[CALL] Reply spoken.')
 
       if (callActiveRef.current) {

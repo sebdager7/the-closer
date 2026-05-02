@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import { useApp } from '../context/AppContext'
-import { getRebuttal } from '../utils/api'
+import { getRebuttal, callClaude } from '../utils/api'
 import { INDUSTRIES } from '../data/constants'
 
 export default function ObjectionsScreen() {
@@ -66,6 +66,26 @@ export default function ObjectionsScreen() {
           className="w-full bg-navy-800/80 border border-white/15 rounded-xl px-3.5 py-3 text-white text-sm placeholder-white/30 focus:outline-none focus:border-closer-blue resize-none"
         />
         <p className="text-[10px] text-white/30 mt-1 italic">Responses in {state.language}</p>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+          🌐 Responding in {state.language}
+        </span>
+        <button
+          onClick={async () => {
+            try {
+              const result = await callClaude(`Say "Hello, I am testing the language system" in ${state.language}. Return ONLY the translated sentence, nothing else.`, 80)
+              alert(`Language test:\n\n${result}\n\nIf this is in ${state.language} — it's working!`)
+            } catch (e) {
+              alert('Test failed: ' + e.message)
+            }
+          }}
+          className="text-[9px] px-2 py-1 rounded-lg border hover:opacity-80 transition-opacity"
+          style={{ borderColor: 'var(--border)', color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+        >
+          Test language
+        </button>
       </div>
 
       <button

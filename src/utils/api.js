@@ -22,7 +22,7 @@ export const checkAPIKey = async () => {
   return true
 }
 
-export async function callClaude(prompt, maxTokens = 1200) {
+export async function callClaude(prompt, maxTokens = 1200, system = null) {
   const key = import.meta.env.VITE_ANTHROPIC_API_KEY
 
   if (!key) {
@@ -35,14 +35,17 @@ export async function callClaude(prompt, maxTokens = 1200) {
 
   console.log('[API] Calling Claude...', { promptLength: prompt.length, maxTokens, keyPresent: true })
 
+  const body = {
+    model: MODEL,
+    max_tokens: maxTokens,
+    messages: [{ role: 'user', content: prompt }],
+  }
+  if (system) body.system = system
+
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    body: JSON.stringify(body),
   })
 
   console.log('[API] Response status:', response.status)
@@ -59,20 +62,24 @@ export async function callClaude(prompt, maxTokens = 1200) {
   return data.content.map(c => c.text || '').join('')
 }
 
-export async function callClaudeConversation(messages, maxTokens = 200) {
+export async function callClaudeConversation(messages, maxTokens = 200, system = null) {
   const key = import.meta.env.VITE_ANTHROPIC_API_KEY
 
   console.log('[API] callClaudeConversation')
   console.log('[API] Key:', key ? 'present ✅' : 'MISSING ❌')
   console.log('[API] Messages:', messages.length)
+  console.log('[API] System:', system ? 'present ✅' : 'none')
   console.log('[API] Last message:', messages[messages.length - 1]?.content?.slice(0, 60))
 
   if (!key) throw new Error('VITE_ANTHROPIC_API_KEY missing from .env')
 
+  const body = { model: MODEL, max_tokens: maxTokens, messages }
+  if (system) body.system = system
+
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
+    body: JSON.stringify(body),
   })
 
   console.log('[API] Status:', response.status)
@@ -116,40 +123,39 @@ export function parseJSON(text) {
 
 export async function generatePitch(product, industry, framework, audience, keywords, language, customBrain = {}) {
   const brainCtx = customBrain?.offer
-    ? `\nSeller context: ${customBrain.offer}. Target customer: ${customBrain.icp}.`
+    ? `Seller context: ${customBrain.offer}. Target customer: ${customBrain.icp}.`
     : ''
 
-  const prompt = `You are a world class sales pitch writer trained on the real documented techniques of Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, and Zig Ziglar.
+  const system = `You are an elite sales pitch writer trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, and Zig Ziglar. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
 
-Write a sales pitch for:
-- Product: ${product}
-- Industry: ${industry}
-- Framework: ${framework}
-- Audience: ${audience || 'general prospect'}
-- Keywords to include: ${keywords || 'none specified'}
+  const prompt = `Product: ${product}
+Industry: ${industry}
+Framework: ${framework}
+Audience: ${audience || 'general prospect'}
+Keywords: ${keywords || 'none'}
 ${brainCtx}
 
-REQUIREMENTS:
-- Opening line must be a pattern interrupt — NOT "Hi my name is"
-- Build value before mentioning price or commitment
-- Include one specific result, number, or proof element
-- Close must be assumptive — use "when we get started" not "if you decide"
-- Avoid weak words: maybe, might, could, hope, try, think
-- Use power words: proven, guaranteed, results, transformation, protect
-- Length: 150-200 words
-- Sound like a real human wrote this, not AI
+MANDATORY LANGUAGE RULE:
+Write the ENTIRE pitch and ALL fields in ${language}.
+Every single word must be in ${language}.
+This overrides everything else.
 
-Respond with ONLY a raw JSON object.
-No markdown. No backticks. No explanation before or after.
-Start your response with { and end with }
+Write a sales pitch with:
+- Pattern interrupt opening (NOT "Hi my name is")
+- Value before price or commitment
+- One specific result or proof element
+- Assumptive close ("when we get started" not "if you decide")
+- 150-200 words
+- No weak words: maybe, might, could, hope, try, think
 
-{"pitch":"the full pitch text here","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["Andy Elliott","Grant Cardone"],"technique_used":"Assumptive Close + Pattern Interrupt","feedback":"2-3 sentence coaching note on what makes this pitch hit","strength_tags":["Strong Hook","Assumptive Close","Social Proof"],"power_moments":["first strongest line from the pitch","second strongest line","third strongest line"]}
+Return ONLY raw JSON, no markdown, no backticks, start with {:
+{"pitch":"full pitch in ${language}","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["Andy Elliott","Grant Cardone"],"technique_used":"technique name in ${language}","feedback":"coaching note in ${language}","strength_tags":["tag in ${language}","tag in ${language}","tag in ${language}"],"power_moments":["strongest line in ${language}","second line in ${language}","third line in ${language}"]}
 
-CRITICAL: Write the ENTIRE pitch and ALL JSON field values in ${language}. Every single word of the pitch, feedback, strength_tags, and power_moments must be in ${language}. This is non-negotiable.`
+FINAL REMINDER: Every word in the pitch, feedback, strength_tags, and power_moments must be in ${language}.`
 
-  console.log('[PITCH] Generating pitch for:', product, 'using', framework)
+  console.log('[API] generatePitch language:', language)
 
-  const raw = await callClaude(prompt, 1400)
+  const raw = await callClaude(prompt, 1400, system)
   const result = parseJSON(raw)
   if (!Array.isArray(result.closer_blend)) result.closer_blend = [result.closer_blend].filter(Boolean)
   if (!Array.isArray(result.power_moments)) result.power_moments = []
@@ -158,31 +164,29 @@ CRITICAL: Write the ENTIRE pitch and ALL JSON field values in ${language}. Every
 }
 
 export async function improvePitch(existingPitch, industry, framework, language) {
-  const prompt = `You are an elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, Zig Ziglar, Tony Robbins, and Chris Voss.
+  const system = `You are an elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, and Zig Ziglar. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
 
-STEP 1 — DIAGNOSE this pitch for these 8 specific weaknesses:
-1. Weak or missing hook (no pattern interrupt)
-2. No pain amplification (inaction doesn't hurt)
-3. Missing certainty (sounds hesitant)
-4. No urgency driver (prospect can sleep on it)
-5. Feature dumping (benefits not tied to outcomes)
-6. Weak close (no assumptive language)
-7. Missing social proof or authority
-8. No tonality direction (reads flat)
-
-STEP 2 — REBUILD using ${framework} patterns. Inject real closer power.
+  const prompt = `Rebuild this sales pitch using ${framework}.
 
 Original pitch: "${existingPitch}"
 Industry: ${industry}
 
-Respond with ONLY a raw JSON object. No markdown. No backticks. Start with { end with }
+MANDATORY LANGUAGE RULE:
+Rewrite entirely in ${language}.
+Every single word of every field must be in ${language}.
+If ${language} is Spanish — write in Spanish.
+If ${language} is French — write in French.
+This overrides everything else.
 
-{"pitch":"completely rebuilt 150-200 word pitch","hook_score":0,"confidence_score":0,"close_score":0,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":["exact quote from rebuilt pitch showing elite technique 1","exact quote showing technique 2","exact quote showing technique 3"]}
+Diagnose weaknesses, then rebuild with elite closer power.
 
-CRITICAL: Write EVERYTHING — the pitch, feedback, all tags, all analysis — entirely in ${language}. Every single word must be in ${language}.`
+Return ONLY raw JSON, no markdown, no backticks, start with {:
+{"pitch":"rebuilt 150-200 word pitch in ${language}","hook_score":85,"confidence_score":82,"close_score":79,"framework_applied":"${framework}","what_was_wrong":["weakness in ${language}","weakness in ${language}","weakness in ${language}"],"what_was_fixed":["fix in ${language}","fix in ${language}","fix in ${language}"],"feedback":"coaching in ${language}","strength_tags":["tag in ${language}","tag in ${language}"],"power_moments":["line in ${language}","line in ${language}","line in ${language}"]}
 
-  console.log('[improvePitch] framework:', framework, '| industry:', industry)
-  const raw = await callClaude(prompt, 1400)
+FINAL REMINDER: Every word in every field must be in ${language}.`
+
+  console.log('[API] improvePitch language:', language)
+  const raw = await callClaude(prompt, 1400, system)
   const result = parseJSON(raw)
   if (!Array.isArray(result.power_moments)) result.power_moments = []
   result.power_moments = result.power_moments.map(pm => typeof pm === 'string' ? pm : pm.line || JSON.stringify(pm))
@@ -190,24 +194,48 @@ CRITICAL: Write EVERYTHING — the pitch, feedback, all tags, all analysis — e
 }
 
 export async function getBrutalFeedback(userText, language = 'English') {
-  const prompt = `Brutal sales coach Andy Elliott style. Find the biggest mistake in: "${userText}". 1-2 sentence brutal callout with the elite version. Start with "BLITZ:". Respond in ${language}.`
-  return callClaude(prompt, 120)
+  const system = `You are a brutal sales coach. Respond entirely in ${language}. Every word must be in ${language}.`
+  const prompt = `Find the biggest mistake in this sales line: "${userText}". Give a 1-2 sentence brutal callout with the elite version. Start with "BLITZ:". Write entirely in ${language}.`
+  return callClaude(prompt, 120, system)
 }
 
 export async function getReframes(objection, language) {
-  const prompt = `Sales coach. Prospect said: "${objection}". 3 elite reframes — Elliott (empathy+certainty), Belfort (logical certainty), Cardone (bold). Under 2 sentences each. Language: ${language}. Respond with ONLY raw JSON, no markdown: {"r1":"Elliott reframe","r2":"Belfort reframe","r3":"Cardone reframe"}`
-  const raw = await callClaude(prompt, 380)
+  const system = `You are an elite sales coach. Respond entirely in ${language}. Every word must be in ${language}.`
+  const prompt = `Prospect said: "${objection}". Give 3 elite reframes — Elliott (empathy+certainty), Belfort (logical certainty), Cardone (bold). Under 2 sentences each. Write entirely in ${language}. Respond with ONLY raw JSON, no markdown: {"r1":"Elliott reframe in ${language}","r2":"Belfort reframe in ${language}","r3":"Cardone reframe in ${language}"}`
+  const raw = await callClaude(prompt, 380, system)
   return parseJSON(raw)
 }
 
 export async function getRebuttal(objection, industry, language, customBrain = {}) {
-  const brainCtx = customBrain.offer
-    ? `Company context: ${customBrain.offer}. ICP: ${customBrain.icp}.`
+  const brainCtx = customBrain?.offer
+    ? `Seller context: ${customBrain.offer}. ICP: ${customBrain.icp}.`
     : ''
-  const prompt = `Elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone. Industry: "${industry}". Objection: "${objection}". ${brainCtx} Respond with ONLY raw JSON, no markdown: {"soft":{"script":"Andy Elliott empathize-then-close rebuttal","tone":"warm but certain","closer":"Andy Elliott — Soft Close","followup":"follow-up line"},"direct":{"script":"Jordan Belfort direct confident rebuttal","tone":"certain and belief-driven","closer":"Jordan Belfort — Direct","followup":"follow-up line"},"aggressive":{"script":"Grant Cardone bold aggressive rebuttal","tone":"high energy and bold","closer":"Grant Cardone — Aggressive","followup":"follow-up line"}}
 
-CRITICAL: You MUST write every single word of every JSON value in ${language}. The "script", "tone", "closer", and "followup" fields must all be written entirely in ${language}. Do not use English if ${language} is not English. Every word must be in ${language}.`
-  const raw = await callClaude(prompt, 1200)
+  const system = `You are an elite sales coach. You MUST respond entirely in ${language}. Every single word of your response must be in ${language}. Do not use any other language.`
+
+  const prompt = `Industry: "${industry}"
+Objection: "${objection}"
+${brainCtx}
+
+Generate 3 rebuttal scripts:
+- soft: Andy Elliott empathy-then-close style
+- direct: Jordan Belfort logical certainty style
+- aggressive: Grant Cardone bold energy style
+
+MANDATORY LANGUAGE RULE:
+Write every word of every field in ${language}.
+If ${language} is Spanish — write in Spanish.
+If ${language} is French — write in French.
+If ${language} is Portuguese — write in Portuguese.
+Do not include any English words if ${language} is not English.
+
+Return ONLY raw JSON, no markdown, no backticks:
+{"soft":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Andy Elliott","followup":"follow-up in ${language}"},"direct":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Jordan Belfort","followup":"follow-up in ${language}"},"aggressive":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Grant Cardone","followup":"follow-up in ${language}"}}
+
+FINAL REMINDER: All text values must be in ${language}.`
+
+  console.log('[API] getRebuttal language:', language)
+  const raw = await callClaude(prompt, 1100, system)
   return parseJSON(raw)
 }
 
