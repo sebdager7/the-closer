@@ -22,7 +22,7 @@ export default function BottomNav() {
   const active = state.activeTab
 
   return (
-    <nav className="bg-navy-900 border-t border-navy-700 flex-shrink-0 safe-bottom">
+    <nav className="border-t flex-shrink-0 safe-bottom transition-colors duration-300" style={{ background: 'var(--nav-bg)', borderColor: 'var(--topbar-border)' }}>
       <div className="flex overflow-x-auto scrollbar-none">
         {TABS.map(({ id, Icon, label }) => {
           const isActive = active === id
@@ -31,8 +31,9 @@ export default function BottomNav() {
               key={id}
               onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: id })}
               className={`flex-shrink-0 flex flex-col items-center gap-0.5 py-2 px-3 min-w-[58px] transition-all ${
-                isActive ? 'text-closer-blue' : 'text-white/40 hover:text-white/60'
+                isActive ? 'text-closer-blue' : 'hover:opacity-80'
               }`}
+              style={isActive ? {} : { color: 'var(--text-muted)' }}
             >
               <Icon size={20} active={isActive} />
               <span
@@ -41,7 +42,7 @@ export default function BottomNav() {
                   fontFamily: "'Fredoka One', cursive",
                   fontSize: '10px',
                   letterSpacing: '0.03em',
-                  color: isActive ? '#1a6bbf' : 'rgba(255,255,255,0.4)',
+                  color: isActive ? '#1a6bbf' : 'var(--text-muted)',
                 }}
               >
                 {label}

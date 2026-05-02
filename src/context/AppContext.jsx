@@ -108,8 +108,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     try {
-      const { user, plan, isAuthenticated, xp, gems, streak, completedActs, customBrain, metrics, callCount, closeCount, totalRevenue, callStreak } = state
-      localStorage.setItem('closer_state', JSON.stringify({ user, plan, isAuthenticated, xp, gems, streak, completedActs, customBrain, metrics, callCount, closeCount, totalRevenue, callStreak }))
+      const { user, plan, isAuthenticated, xp, gems, streak, completedActs, customBrain, metrics, callCount, closeCount, totalRevenue, callStreak, theme, language } = state
+      localStorage.setItem('closer_state', JSON.stringify({ user, plan, isAuthenticated, xp, gems, streak, completedActs, customBrain, metrics, callCount, closeCount, totalRevenue, callStreak, theme, language }))
     } catch {}
   }, [state])
 

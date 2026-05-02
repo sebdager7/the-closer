@@ -36,8 +36,19 @@ function MainApp() {
   const { state } = useApp()
   const ActiveScreen = TAB_SCREENS[state.activeTab] || ObjectionsScreen
 
+  useEffect(() => {
+    const root = document.documentElement
+    if (state.theme === 'light') {
+      root.classList.remove('dark')
+      root.classList.add('light')
+    } else {
+      root.classList.add('dark')
+      root.classList.remove('light')
+    }
+  }, [state.theme])
+
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto bg-navy-950 overflow-hidden">
+    <div className="flex flex-col h-screen max-w-lg mx-auto overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <TopBar />
       <main className="flex-1 overflow-hidden relative">
         <ActiveScreen />

@@ -12,8 +12,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>The Closer — Elite Sales Intelligence</title>
+    <script>
+      try {
+        const saved = JSON.parse(localStorage.getItem('closer_state') || '{}')
+        if (saved.theme === 'light') {
+          document.documentElement.classList.add('light')
+        } else {
+          document.documentElement.classList.add('dark')
+        }
+      } catch(e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
   </head>
-  <body class="bg-gray-950 text-white">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
