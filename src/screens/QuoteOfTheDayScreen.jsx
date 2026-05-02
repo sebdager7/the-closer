@@ -73,10 +73,11 @@ const BLITZ_BY_DAY = [
 export default function QuoteOfTheDayScreen({ onDone }) {
   const { dispatch } = useApp()
   const [vis, setVis] = useState({ date: false, quote: false, attr: false, bubble: false, btn: false })
+  // Random quote each refresh — stable during the animation via useState initializer
+  const [quoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length))
 
   const now = new Date()
-  const idx = now.getDate() % QUOTES.length
-  const quote = QUOTES[idx]
+  const quote = QUOTES[quoteIdx]
   const day = now.getDay()
 
   const dateStr =

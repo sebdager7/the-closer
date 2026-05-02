@@ -483,12 +483,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   // ── speakText ─────────────────────────────────────────────────
   const speakText = async (text, gender = 'female') => {
-    console.log('[SPEAK] ===== speakText called =====')
-    console.log('[SPEAK] text   :', text?.slice(0, 60))
-    console.log('[SPEAK] gender :', gender)
+    // Normalize gender — catch any edge case where it's undefined or unexpected
+    const normalizedGender = (gender === 'male') ? 'male' : 'female'
+    const normalizedLang = language || 'English'
+
+    console.log('[SPEAK] text    :', text?.slice(0, 60))
+    console.log('[SPEAK] gender  :', gender, '→ normalized:', normalizedGender)
+    console.log('[SPEAK] language:', normalizedLang)
 
     if (!text?.trim()) {
-      console.log('[SPEAK] Empty text — clearing state')
       isSpeakingRef.current = false
       setIsSpeaking(false)
       return
@@ -501,7 +504,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       return
     }
 
-    // Stop anything currently playing
     window.speechSynthesis.cancel()
     if (audioRef.current) {
       try { audioRef.current.pause() } catch (e) {}
@@ -511,32 +513,27 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     isSpeakingRef.current = true
     setIsSpeaking(true)
 
-    console.log('[SPEAK] Calling elevenLabsSpeak...')
+    console.log('[SPEAK] Calling elevenLabsSpeak with:', normalizedGender, normalizedLang)
 
     try {
-      // Voice IDs are hardcoded inside elevenLabsSpeak — just pass gender and language
-      const audioUrl = await elevenLabsSpeak(text, gender, language)
+      const audioUrl = await elevenLabsSpeak(text, normalizedGender, normalizedLang)
 
       if (audioUrl) {
-        console.log('[SPEAK] Got audio URL ✅ — playing now')
-        // Store audio in ref so mute button can cancel mid-playback
+        console.log('[SPEAK] ✅ Got audio — playing')
         await playAudioBlob(audioUrl, text.length, (a) => { audioRef.current = a })
         audioRef.current = null
-        console.log('[SPEAK] Playback complete ✅')
+        console.log('[SPEAK] ✅ Done playing')
       } else {
-        console.error('[SPEAK] elevenLabsSpeak returned null')
-        console.error('[SPEAK] Falling back to browser TTS')
-        console.error('[SPEAK] Check [ELEVEN] errors above for cause')
-        await fallbackBrowserTTS(text, gender)
+        console.error('[SPEAK] ❌ ElevenLabs returned null — using browser fallback')
+        await fallbackBrowserTTS(text, normalizedGender)
       }
     } catch (err) {
-      console.error('[SPEAK] Unexpected error:', err.message)
-      try { await fallbackBrowserTTS(text, gender) } catch (e) {}
+      console.error('[SPEAK] Error:', err.message)
+      try { await fallbackBrowserTTS(text, normalizedGender) } catch (e) {}
     } finally {
-      // ALWAYS clear speaking state — guarantees mic can start even if everything fails
       isSpeakingRef.current = false
       setIsSpeaking(false)
-      console.log('[SPEAK] isSpeakingRef cleared ✅')
+      console.log('[SPEAK] Speaking cleared ✅')
     }
   }
 
@@ -957,8 +954,9 @@ Return ONLY raw JSON, no markdown, no backticks:
       setMoodEmoji(analyzeMood(opening))
       setLoading(false)
 
-      console.log('[CALL] Speaking opening...')
-      await speakText(opening, p.gender)
+      const openingGender = p.gender || 'female'
+      console.log('[CALL] Speaking opening with gender:', openingGender)
+      await speakText(opening, openingGender)
       console.log('[CALL] Opening spoken.')
 
       if (callActiveRef.current) {
@@ -1035,6 +1033,7 @@ Return ONLY raw JSON, no markdown, no backticks:
       setLoading(false)
 
       const gender = profileRef.current?.gender || 'female'
+      console.log('[CALL] Speaking reply with gender:', gender, '| profile.gender:', profileRef.current?.gender)
 
       if (checkForClose(reply)) {
         console.log('[CALL] 🏆 DEAL CLOSED after', exchangeCountRef.current, 'exchanges!')
@@ -1598,19 +1597,25 @@ export default function TrainingScreen() {
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             onClick={async () => {
-              console.log('=== TESTING FEMALE VOICE cNYrMw9glwJZXR8RwbuR ===')
-              const url = await elevenLabsSpeak("Hello, who's calling?", 'female', state.language)
+              console.log('=== FEMALE VOICE TEST ===')
+              console.log('Expected ID: cNYrMw9glwJZXR8RwbuR')
+              const url = await elevenLabsSpeak("Hey, who is this calling?", 'female', 'English')
               if (url) {
                 const a = new Audio(url)
-                a.play().catch(e => console.error('[TEST] blocked:', e.message))
+                a.play().catch(e => {
+                  console.error('[TEST] play() blocked:', e.message)
+                  alert('Tap OK then try again — browser needs gesture first.')
+                })
                 a.onended = () => URL.revokeObjectURL(url)
-                console.log('Female voice ✅')
               } else {
                 alert(
-                  'Female voice failed.\n' +
-                  'Check console for [ELEVEN] errors.\n\n' +
-                  'Voice ID: cNYrMw9glwJZXR8RwbuR\n' +
-                  'Must be in your ElevenLabs account.'
+                  'Female voice FAILED.\n\n' +
+                  'Check DevTools console (F12) for:\n' +
+                  '[ELEVEN] status: (number)\n\n' +
+                  '401 = wrong API key\n' +
+                  '404 = voice not in your account\n' +
+                  '429 = rate limited\n\n' +
+                  'Voice ID: cNYrMw9glwJZXR8RwbuR'
                 )
               }
             }}
@@ -1621,24 +1626,30 @@ export default function TrainingScreen() {
               color: '#a78bfa',
             }}
           >
-            🎙️ Test Female Voice
+            Test Female Voice
           </button>
 
           <button
             onClick={async () => {
-              console.log('=== TESTING MALE VOICE ljX1ZrXuDIIRVcmiVSyR ===')
-              const url = await elevenLabsSpeak("Yeah, who is this?", 'male', state.language)
+              console.log('=== MALE VOICE TEST ===')
+              console.log('Expected ID: ljX1ZrXuDIIRVcmiVSyR')
+              const url = await elevenLabsSpeak("Yeah, who is calling?", 'male', 'English')
               if (url) {
                 const a = new Audio(url)
-                a.play().catch(e => console.error('[TEST] blocked:', e.message))
+                a.play().catch(e => {
+                  console.error('[TEST] play() blocked:', e.message)
+                  alert('Tap OK then try again.')
+                })
                 a.onended = () => URL.revokeObjectURL(url)
-                console.log('Male voice ✅')
               } else {
                 alert(
-                  'Male voice failed.\n' +
-                  'Check console for [ELEVEN] errors.\n\n' +
-                  'Voice ID: ljX1ZrXuDIIRVcmiVSyR\n' +
-                  'Must be in your ElevenLabs account.'
+                  'Male voice FAILED.\n\n' +
+                  'Check DevTools console (F12) for:\n' +
+                  '[ELEVEN] status: (number)\n\n' +
+                  '401 = wrong API key\n' +
+                  '404 = voice not in your account\n' +
+                  '429 = rate limited\n\n' +
+                  'Voice ID: ljX1ZrXuDIIRVcmiVSyR'
                 )
               }
             }}
@@ -1649,7 +1660,7 @@ export default function TrainingScreen() {
               color: '#60a5fa',
             }}
           >
-            🎙️ Test Male Voice
+            Test Male Voice
           </button>
         </div>
       )}

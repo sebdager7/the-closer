@@ -61,19 +61,19 @@ function MainApp() {
 
 function AppRouter() {
   const { state } = useApp()
-  const [quoteShown, setQuoteShown] = useState(() => {
-    const today = new Date().toDateString()
-    const alreadySeen = localStorage.getItem('closer_quote_date') === today
-    if (!alreadySeen) localStorage.setItem('closer_quote_date', today)
-    return alreadySeen
-  })
+  // Show quote on every page load — quoteShown is session-only state, not persisted
+  const [quoteShown, setQuoteShown] = useState(false)
 
   if (!state.isAuthenticated) {
     return <LoginScreen />
   }
 
   if (!quoteShown) {
-    return <QuoteOfTheDayScreen onDone={() => setQuoteShown(true)} />
+    return (
+      <QuoteOfTheDayScreen
+        onDone={() => setQuoteShown(true)}
+      />
+    )
   }
 
   return (

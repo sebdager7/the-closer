@@ -1,6 +1,15 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
+// ================================================
+// ELEVENLABS VOICE IDs — MODULE LEVEL CONSTANTS
+// These are the ONLY voice IDs used in this app
+// DO NOT move these or reference them anywhere else
+// ================================================
+const _ELEVEN_FEMALE_VOICE = 'cNYrMw9glwJZXR8RwbuR'
+const _ELEVEN_MALE_VOICE   = 'ljX1ZrXuDIIRVcmiVSyR'
+// ================================================
+
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
@@ -271,14 +280,8 @@ export async function runAutopsy(transcript, closePct, dealValue) {
 }
 
 export async function elevenLabsSpeak(text, gender, language = 'English') {
-  // ============================================
-  // VOICE IDs — UPDATED
-  // ============================================
-  const FEMALE_ID = 'cNYrMw9glwJZXR8RwbuR'
-  const MALE_ID   = 'ljX1ZrXuDIIRVcmiVSyR'
-  // ============================================
-
-  const voiceId = (gender === 'male') ? MALE_ID : FEMALE_ID
+  // Pick voice ID directly from module-level constants — cannot be overridden
+  const voiceId = (gender === 'male') ? _ELEVEN_MALE_VOICE : _ELEVEN_FEMALE_VOICE
 
   const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
 
@@ -290,82 +293,84 @@ export async function elevenLabsSpeak(text, gender, language = 'English') {
   }
   const langCode = langMap[language] || 'en'
 
-  console.log('[ELEVEN] ============ CALL ============')
-  console.log('[ELEVEN] gender    :', gender)
-  console.log('[ELEVEN] voiceId   :', voiceId)
-  console.log('[ELEVEN] language  :', language, '→', langCode)
-  console.log('[ELEVEN] text      :', text?.slice(0, 60))
-  console.log('[ELEVEN] key length:', apiKey?.length ?? 0)
-  console.log('[ELEVEN] =====================================')
+  // Log EVERYTHING so we can see exactly what is happening
+  console.log('%c[ELEVEN] VOICE CALL', 'color: #e8c87a; font-weight: bold')
+  console.log('[ELEVEN] gender  :', gender)
+  console.log('[ELEVEN] voiceId :', voiceId)
+  console.log('[ELEVEN] expected female:', _ELEVEN_FEMALE_VOICE)
+  console.log('[ELEVEN] expected male  :', _ELEVEN_MALE_VOICE)
+  console.log('[ELEVEN] match   :', (voiceId === _ELEVEN_FEMALE_VOICE || voiceId === _ELEVEN_MALE_VOICE) ? '✅ CORRECT' : '❌ WRONG')
+  console.log('[ELEVEN] language:', language, '→', langCode)
+  console.log('[ELEVEN] text    :', text?.slice(0, 70))
+  console.log('[ELEVEN] apiKey  :', apiKey ? `present (${apiKey.length} chars)` : 'MISSING ❌')
 
   if (!text?.trim()) {
-    console.error('[ELEVEN] FAIL: text is empty')
+    console.error('[ELEVEN] ❌ text is empty')
     return null
   }
-
   if (!apiKey || apiKey.length < 10) {
-    console.error('[ELEVEN] FAIL: API key missing or too short')
+    console.error('[ELEVEN] ❌ API key missing or invalid')
     console.error('[ELEVEN] Add VITE_ELEVENLABS_API_KEY to .env')
+    console.error('[ELEVEN] Then restart: npm run dev')
+    return null
+  }
+  if (apiKey === 'your_elevenlabs_key_here' || apiKey === 'your_key_here') {
+    console.error('[ELEVEN] ❌ API key is still a placeholder')
     return null
   }
 
-  if (apiKey === 'your_elevenlabs_key_here' || apiKey === 'your_key_here') {
-    console.error('[ELEVEN] FAIL: API key is still a placeholder')
-    return null
-  }
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
+  console.log('[ELEVEN] URL:', url)
 
   let response
   try {
-    response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: 'eleven_turbo_v2',
+        language_code: langCode,
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.85,
+          style: 0.3,
+          use_speaker_boost: true,
         },
-        body: JSON.stringify({
-          text: text.trim(),
-          model_id: 'eleven_turbo_v2',
-          language_code: langCode,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.85,
-            style: 0.3,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    )
-  } catch (networkError) {
-    console.error('[ELEVEN] NETWORK ERROR:', networkError.message)
+      }),
+    })
+  } catch (networkErr) {
+    console.error('[ELEVEN] ❌ Network error:', networkErr.message)
     return null
   }
 
-  console.log('[ELEVEN] status:', response.status)
+  console.log('[ELEVEN] Response status:', response.status)
+  console.log('[ELEVEN] Response ok:', response.ok)
 
   if (!response.ok) {
     let body = ''
     try { body = await response.text() } catch (e) {}
-    console.error('[ELEVEN] API ERROR:', response.status)
-    console.error('[ELEVEN] body:', body.slice(0, 200))
-
+    console.error('[ELEVEN] ❌ API Error:', response.status)
+    console.error('[ELEVEN] Body:', body.slice(0, 300))
     if (response.status === 401) {
-      console.error('[ELEVEN] 401 = Wrong or expired API key')
-      console.error('[ELEVEN] Get new key: elevenlabs.io/app/settings/api-keys')
+      console.error('[ELEVEN] 401 = API key wrong or expired')
+      console.error('[ELEVEN] Get new key: elevenlabs.io > Settings > API Keys')
     }
     if (response.status === 404) {
-      console.error('[ELEVEN] 404 = Voice ID not found in your account')
-      console.error('[ELEVEN] Check voice exists: elevenlabs.io/app/voice-library')
-      console.error('[ELEVEN] Female ID used:', FEMALE_ID, '(cNYrMw9glwJZXR8RwbuR)')
-      console.error('[ELEVEN] Male ID used:', MALE_ID, '(ljX1ZrXuDIIRVcmiVSyR)')
+      console.error('[ELEVEN] 404 = Voice ID not found in account')
+      console.error('[ELEVEN] voiceId tried:', voiceId)
+      console.error('[ELEVEN] Make sure this voice is in your Voice Library')
+      console.error('[ELEVEN] Go to: elevenlabs.io/app/voice-library')
     }
     if (response.status === 422) {
-      console.error('[ELEVEN] 422 = Invalid request format')
+      console.error('[ELEVEN] 422 = Invalid request body')
     }
     if (response.status === 429) {
-      console.error('[ELEVEN] 429 = Rate limited. Wait then retry.')
+      console.error('[ELEVEN] 429 = Rate limited — wait and retry')
     }
     return null
   }
@@ -373,23 +378,23 @@ export async function elevenLabsSpeak(text, gender, language = 'English') {
   let blob
   try {
     blob = await response.blob()
-  } catch (blobError) {
-    console.error('[ELEVEN] BLOB ERROR:', blobError.message)
+  } catch (blobErr) {
+    console.error('[ELEVEN] ❌ Blob error:', blobErr.message)
     return null
   }
 
   if (!blob || blob.size === 0) {
-    console.error('[ELEVEN] EMPTY BLOB — no audio data')
+    console.error('[ELEVEN] ❌ Empty blob — no audio received')
     return null
   }
 
-  console.log('[ELEVEN] SUCCESS — blob size:', blob.size, 'bytes')
+  console.log('[ELEVEN] ✅ Audio received:', blob.size, 'bytes')
+  console.log('[ELEVEN] ✅ Voice used:', voiceId)
 
   try {
-    const url = URL.createObjectURL(blob)
-    return url
-  } catch (urlError) {
-    console.error('[ELEVEN] URL CREATE ERROR:', urlError.message)
+    return URL.createObjectURL(blob)
+  } catch (urlErr) {
+    console.error('[ELEVEN] ❌ URL error:', urlErr.message)
     return null
   }
 }
