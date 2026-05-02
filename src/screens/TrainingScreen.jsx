@@ -118,37 +118,6 @@ const INDUSTRY_OBJECTIONS = {
   ],
 }
 
-const HUMAN_VOICE_DB = {
-  female: [
-    'Google US English',
-    'Microsoft Aria Online (Natural)',
-    'Microsoft Jenny Online (Natural)',
-    'Microsoft Michelle Online (Natural)',
-    'Samantha (Enhanced)',
-    'Samantha',
-    'Karen (Enhanced)',
-    'Karen',
-    'Moira',
-    'Tessa',
-    'Victoria',
-    'Google UK English Female',
-  ],
-  male: [
-    'Google UK English Male',
-    'Microsoft Guy Online (Natural)',
-    'Microsoft Davis Online (Natural)',
-    'Microsoft Ryan Online (Natural)',
-    'Daniel (Enhanced)',
-    'Daniel',
-    'Alex (Enhanced)',
-    'Alex',
-    'Aaron',
-    'Gordon',
-    'Oliver',
-    'Thomas',
-  ],
-}
-
 const REAL_BUYER_PATTERNS = {
   skeptical_homeowner: {
     resistance: ["Yeah I've heard this before", "What's the catch", "I don't make decisions like this at the door"],
@@ -173,7 +142,7 @@ const REAL_BUYER_PATTERNS = {
 }
 
 const MOOD_MAP = [
-  { pattern: /hang up|stop calling|remove me|don't call|not calling back/i, emoji: '😡' },
+  { pattern: /take me off your list|never call me again|don't ever call|stop bothering me/i, emoji: '😡' },
   { pattern: /annoyed|frustrated|gotta go|got to go|busy right now|waste.*time/i, emoji: '😤' },
   { pattern: /not sure|expensive|think about|budget|spouse|not ready|maybe later/i, emoji: '🤨' },
   { pattern: /hmm|interesting|tell me more|how does|could be|possibly|not bad/i, emoji: '🤔' },
@@ -193,29 +162,29 @@ function analyzeMood(text) {
 const cleanAIResponse = (text) => {
   if (!text) return ''
   let clean = text
-  clean = clean.replace(/\*[^*]{1,50}\*/g, '')
-  clean = clean.replace(/\[[^\]]{1,50}\]/g, '')
+  clean = clean.replace(/\*[^*]{1,60}\*/g, '')
+  clean = clean.replace(/\[[^\]]{1,60}\]/g, '')
   clean = clean.replace(
-    /\((sighs?|pauses?|laughs?|chuckles?|hesitates?|clears? throat|thinks?)[^)]{0,30}\)/gi,
-    ''
+    /\((sighs?|pauses?|laughs?|chuckles?|hesitates?|clears? throat|thinks?|speaks? \w+ly)[^)]{0,40}\)/gi, ''
   )
   clean = clean.replace(
-    /^(pauses?|sighs?|laughs?|chuckles?|clears? throat|takes? a (breath|moment|pause))[,.]?\s*/gi,
-    ''
+    /^(pauses?|sighs?|laughs?|chuckles?|clears? throat|takes? a \w+)[,.]?\s*/gi, ''
   )
-  clean = clean.replace(/speaks? (slowly|quickly|quietly|firmly|carefully)[,.]?\s*/gi, '')
-  clean = clean.replace(/says? (quietly|firmly|slowly|warmly)[,.]?\s*/gi, '')
+  clean = clean.replace(
+    /(speaks? (slowly|quickly|quietly|firmly)|in a \w+ tone|with a \w+ voice)[,.]?\s*/gi, ''
+  )
   clean = clean.replace(/\s{2,}/g, ' ').trim()
-  return clean.length >= 3 ? clean : 'Yeah?'
+  if (!clean || clean.length < 2) return 'Yeah?'
+  return clean
 }
 
 const buildSystemPrompt = (profile, industry, difficulty, language, mode, persona, customBrain) => {
-  const resistance = {
-    'Beginner': 'You push back mildly. After 4 solid responses you warm up. Buy around exchange 6.',
-    'Beginner+': 'You are cautious. Need 2 objections handled well. Buy around exchange 8.',
-    'Intermediate': 'Real skeptic. Need real specific answers. Buy around exchange 10.',
-    'Advanced': 'Tough and busy. Test them hard. Only 12+ great exchanges wins you over.',
-    'Elite Closer': 'Hardest prospect. Know sales tricks. Call them out. 14+ exchanges minimum.',
+  const levels = {
+    'Beginner': `Start skeptical but warm up after 3-4 solid rep responses. Buy around exchange 5-6.`,
+    'Beginner+': `Cautious but fair. Need 2 objections handled properly. Buy after 7-8 solid exchanges.`,
+    'Intermediate': `Real skeptic. Test them. Push back on price, timing, and need. Need specific answers not fluff. Buy after 9-10 great exchanges.`,
+    'Advanced': `Tough and experienced. You have heard every pitch before. Call out vague or scripted lines. Only 11-13 genuinely compelling exchanges wins you.`,
+    'Elite Closer': `Hardest prospect alive. You know exactly what sales tricks sound like. Every cliche gets called out immediately. Only 14+ exchanges of genuine connection wins you.`,
   }
 
   const pKey = (() => {
@@ -237,42 +206,47 @@ const buildSystemPrompt = (profile, industry, difficulty, language, mode, person
     ? `\nThe rep sells: ${customBrain.offer}. Their ideal customer: ${customBrain.icp}.`
     : ''
 
-  return `You are ${profile.name}, ${profile.age}, ${profile.occupation}.
-Mood: ${profile.mood_today || profile.mood || 'neutral'}
+  return `You are ${profile.name}, ${profile.age} years old.
+Job: ${profile.occupation}
+Mood today: ${profile.mood_today || profile.mood || 'neutral'}
 How you talk: ${profile.speech_pattern || profile.speech || 'conversational'}
-Main resistance to this call: ${profile.main_objection}
+Your main resistance: ${profile.main_objection}
 What would make you buy: ${profile.trigger_to_buy}
 ${profile.backstory ? 'Backstory: ' + profile.backstory : ''}${brainCtx}${modeExtras[mode] || ''}
-${resistance[difficulty] || resistance['Intermediate']}
 
-You are on a real phone call receiving an unexpected pitch about ${industry}.
-Language: ${language}
+${levels[difficulty] || levels['Intermediate']}
 
-STRICT RULES — never break these:
-- You are a real human. NEVER say you are AI.
-- Keep every response to 1-3 sentences MAXIMUM. This is a phone call.
-- NEVER write actions like *pauses* or (sighs) or [thinking]. Not ever.
-- NEVER describe your emotions or what you are doing. Only say what you say out loud.
-- Use real natural filler: "Uh", "I mean", "Look", "Yeah", "Right", "Hmm"
+You are receiving an unexpected phone call about ${industry}.
+Language to use: ${language}
+
+RULES — never break these:
+- You are a REAL HUMAN. Never admit you are AI.
+- Maximum 2 sentences per response. Real phone call pace.
+- NEVER write *pauses* or (sighs) or [thinking] — ever.
+- NEVER describe your emotions or actions. Only say what you say out loud.
+- Natural filler when it fits: "Uh", "I mean", "Look", "Yeah", "Right", "Hmm"
 - React to EXACTLY what they just said — not a generic response.
-- Your resistance changes:
-  Vague or pushy = stay skeptical or get shorter and end the call
+- Remember everything said in this conversation.
+- Never repeat an objection you already accepted an answer to.
+- Your resistance shifts based on rep quality:
+  Vague or pushy = stay skeptical or get shorter
   Specific with real proof = warm up one level
   Handles your exact objection = warm up more
   Great sustained conversation = start asking buying questions
-  Ready to close = say yes the way a real person does
-- YES sounds like: "Alright fine, how do we do this" or "Okay you got me, what's next" or "Yeah alright let's just do it"
+  All concerns addressed = say yes like a real person says yes
+- YES sounds like: "Alright fine how do we do this" or "Okay you got me what do I need to do" or "Yeah alright let's just do it"
 - WRONG: "I appreciate your compelling pitch and I am now convinced"
 - RIGHT: "Okay yeah, let's do it"
-- NEVER repeat an objection you already accepted an answer to
-- Remember everything said in this call
+- Keep the conversation going naturally.
+- Ask follow-up questions when curious.
+- Give specific objections not generic ones.
 
 Real phrases for your personality:
 Resistance: ${patterns.resistance.join(' | ')}
 Warming: ${patterns.warming.join(' | ')}
 Ready to buy: ${patterns.buying.join(' | ')}
 
-Your opening line: "${profile.opening_line}"
+Your opening line when you answer: "${profile.opening_line}"
 Respond in ${language}`
 }
 
@@ -324,21 +298,20 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const timerRef = useRef(null)
   const oneshotRef = useRef(null)
   const muteRef = useRef(false)
-  const loadingRef = useRef(false)
   const isSpeakingRef = useRef(false)
+  const isListeningRef = useRef(false)
+  const isProcessingRef = useRef(false)
+  const callActiveRef = useRef(false)
   const voicesRef = useRef([])
   const audioCtxRef = useRef(null)
   const staticRef = useRef(null)
   const profileRef = useRef(null)
   const recognitionRef = useRef(null)
   const voicePersonalityRef = useRef(null)
-  const conversationStateRef = useRef('cold')
   const exchangeCountRef = useRef(0)
-  const isListeningRef = useRef(false)
   const closePctRef = useRef(30)
   const callMsgRef = useRef([])
   const secsRef = useRef(0)
-  const callEndedRef = useRef(false)
   const selectedVoiceIdRef = useRef(null)
   const audioRef = useRef(null)
 
@@ -358,8 +331,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       src.connect(filter); filter.connect(gain); gain.connect(ctx.destination)
       src.start()
       staticRef.current = src
-      console.log('[AMBIENCE] Phone static on')
-    } catch (e) { console.log('[AMBIENCE] Skipped') }
+    } catch (e) {}
   }
 
   const stopPhoneStatic = () => {
@@ -398,21 +370,28 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   // ── Cleanup on unmount ────────────────────────────────────────
   useEffect(() => {
     return () => {
+      console.log('[CALL] Cleanup on unmount')
+      callActiveRef.current = false
+      window.speechSynthesis.cancel()
+      if (audioRef.current) {
+        try { audioRef.current.pause() } catch (e) {}
+        audioRef.current = null
+      }
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort() } catch (e) {}
+      }
       clearInterval(timerRef.current)
       clearInterval(oneshotRef.current)
-      window.speechSynthesis.cancel()
       stopPhoneStatic()
-      try { recognitionRef.current?.abort() } catch (e) {}
-      if (audioRef.current) { try { audioRef.current.pause() } catch (e) {} }
     }
   }, [])
 
   // ── Voice helpers ─────────────────────────────────────────────
   const generateVoicePersonality = (gender) => {
     if (gender === 'male') {
-      return { baseRate: 0.84 + Math.random() * 0.1, basePitch: 0.88 + Math.random() * 0.1, rateVar: 0.05, pitchVar: 0.05 }
+      return { baseRate: 0.84 + Math.random() * 0.1, basePitch: 0.88 + Math.random() * 0.1 }
     }
-    return { baseRate: 0.90 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14, rateVar: 0.05, pitchVar: 0.06 }
+    return { baseRate: 0.90 + Math.random() * 0.1, basePitch: 1.04 + Math.random() * 0.14 }
   }
 
   const getBestBrowserVoice = (gender = 'female') => {
@@ -423,26 +402,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (!voices.length) return null
 
     const femaleNames = [
-      'Google US English',
-      'Microsoft Aria Online (Natural)',
-      'Microsoft Jenny Online (Natural)',
-      'Samantha (Enhanced)', 'Samantha',
-      'Karen (Enhanced)', 'Karen',
-      'Nicky (Enhanced)', 'Nicky',
-      'Allison (Enhanced)', 'Allison',
-      'Ava (Enhanced)', 'Ava',
-      'Moira', 'Tessa',
+      'Google US English', 'Microsoft Aria Online (Natural)', 'Microsoft Jenny Online (Natural)',
+      'Samantha (Enhanced)', 'Samantha', 'Karen (Enhanced)', 'Karen',
+      'Nicky (Enhanced)', 'Nicky', 'Allison (Enhanced)', 'Allison',
+      'Ava (Enhanced)', 'Ava', 'Moira', 'Tessa',
     ]
     const maleNames = [
-      'Google UK English Male',
-      'Microsoft Guy Online (Natural)',
-      'Microsoft Davis Online (Natural)',
-      'Daniel (Enhanced)', 'Daniel',
-      'Alex (Enhanced)', 'Alex',
-      'Aaron (Enhanced)', 'Aaron',
-      'Tom (Enhanced)', 'Tom',
-      'Oliver (Enhanced)', 'Oliver',
-      'Gordon',
+      'Google UK English Male', 'Microsoft Guy Online (Natural)', 'Microsoft Davis Online (Natural)',
+      'Daniel (Enhanced)', 'Daniel', 'Alex (Enhanced)', 'Alex',
+      'Aaron (Enhanced)', 'Aaron', 'Tom (Enhanced)', 'Tom', 'Oliver (Enhanced)', 'Oliver', 'Gordon',
     ]
 
     const list = gender === 'male' ? maleNames : femaleNames
@@ -456,66 +424,65 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     ) || voices[0] || null
   }
 
-  const resetVoice = () => {
-    selectedVoiceIdRef.current = null
-    if (audioRef.current) {
-      try { audioRef.current.pause() } catch (e) {}
-      audioRef.current = null
-    }
-  }
-
-  const playAudioUrl = (url, text) => {
+  // ── Audio playback ────────────────────────────────────────────
+  const playAudio = (url, textLength) => {
     return new Promise((resolve) => {
       const audio = new Audio(url)
       audioRef.current = audio
 
-      const maxTime = Math.max((text?.length || 100) * 70, 5000)
-      const safety = setTimeout(() => {
-        console.warn('[AUDIO] Safety timeout')
-        resolve()
-      }, maxTime)
-
+      let done = false
       const finish = () => {
-        clearTimeout(safety)
-        URL.revokeObjectURL(url)
+        if (done) return
+        done = true
+        try { URL.revokeObjectURL(url) } catch (e) {}
         audioRef.current = null
         resolve()
       }
 
-      audio.onended = () => { console.log('[AUDIO] Playback finished'); finish() }
-      audio.onerror = (e) => { console.error('[AUDIO] Playback error:', e); finish() }
-      audio.play().catch(err => { console.error('[AUDIO] play() failed:', err); finish() })
+      const maxMs = Math.max(textLength * 85, 4000)
+      const safety = setTimeout(() => {
+        console.warn('[AUDIO] Safety timeout')
+        finish()
+      }, maxMs)
+
+      audio.onended = () => { clearTimeout(safety); finish() }
+      audio.onerror = (e) => { console.error('[AUDIO] Error:', e); clearTimeout(safety); finish() }
+      audio.play().catch(err => { console.error('[AUDIO] play() failed:', err); clearTimeout(safety); finish() })
     })
   }
 
-  const speakWithBrowserTTS = (text, gender) => {
+  // ── Browser TTS fallback ──────────────────────────────────────
+  const browserTTS = (text, gender) => {
     return new Promise((resolve) => {
-      const humanized = text
+      const processed = text
         .replace(/\. ([A-Z])/g, '.  $1')
-        .replace(/, but /gi, ',  but ')
         .replace(/Well, /gi, 'Well... ')
         .replace(/Look, /gi, 'Look... ')
+        .replace(/Yeah, /gi, 'Yeah... ')
         .replace(/I mean, /gi, 'I mean... ')
         .replace(/Hmm/gi, 'Hmm...')
-        .replace(/Yeah, /gi, 'Yeah... ')
 
-      const utter = new SpeechSynthesisUtterance(humanized)
+      const utter = new SpeechSynthesisUtterance(processed)
       const voice = getBestBrowserVoice(gender)
       if (voice) utter.voice = voice
 
-      utter.rate = gender === 'male' ? 0.84 + Math.random() * 0.07 : 0.88 + Math.random() * 0.08
+      utter.rate = gender === 'male' ? 0.85 + Math.random() * 0.06 : 0.88 + Math.random() * 0.08
       utter.pitch = gender === 'male' ? 0.86 + Math.random() * 0.08 : 1.02 + Math.random() * 0.1
       utter.volume = 1.0
-
-      console.log('[BROWSER TTS] Rate:', utter.rate.toFixed(2), '| Pitch:', utter.pitch.toFixed(2))
 
       let done = false
       const finish = () => { if (done) return; done = true; resolve() }
 
-      const safety = setTimeout(finish, Math.max(text.length * 70, 5000))
+      const maxMs = Math.max(text.length * 75, 4000)
+      const safety = setTimeout(finish, maxMs)
+
       const keep = setInterval(() => {
-        if (window.speechSynthesis.speaking) { window.speechSynthesis.pause(); window.speechSynthesis.resume() }
-        else clearInterval(keep)
+        if (window.speechSynthesis.speaking) {
+          window.speechSynthesis.pause()
+          window.speechSynthesis.resume()
+        } else {
+          clearInterval(keep)
+        }
       }, 8000)
 
       utter.onend = () => { clearTimeout(safety); clearInterval(keep); finish() }
@@ -525,21 +492,67 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     })
   }
 
-  const thinkingTime = (text) => Math.min(600 + text.split(' ').length * 30 + Math.random() * 400, 2500)
+  // ── speakText ─────────────────────────────────────────────────
+  const speakText = async (text, gender = 'female') => {
+    if (!text?.trim()) return
+
+    console.log('[SPEAK] Speaking:', text.slice(0, 60))
+
+    if (muteRef.current) {
+      console.log('[SPEAK] Muted — skipping')
+      return
+    }
+
+    window.speechSynthesis.cancel()
+    if (audioRef.current) {
+      try { audioRef.current.pause() } catch (e) {}
+      audioRef.current = null
+    }
+
+    isSpeakingRef.current = true
+    setIsSpeaking(true)
+
+    if (!selectedVoiceIdRef.current) {
+      const voiceList = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
+      selectedVoiceIdRef.current = voiceList[Math.floor(Math.random() * voiceList.length)]
+      console.log('[SPEAK] Voice locked:', selectedVoiceIdRef.current.name)
+    }
+
+    const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
+
+    if (elevenKey && elevenKey.length > 10 && elevenKey !== 'your_elevenlabs_key_here') {
+      try {
+        console.log('[ELEVEN] Requesting audio...')
+        const audioUrl = await speakWithElevenLabs(text, selectedVoiceIdRef.current.id, elevenKey)
+        if (audioUrl) {
+          await playAudio(audioUrl, text.length)
+          isSpeakingRef.current = false
+          setIsSpeaking(false)
+          console.log('[SPEAK] ElevenLabs done ✅')
+          return
+        }
+      } catch (err) {
+        console.error('[ELEVEN] Error:', err)
+      }
+    }
+
+    console.log('[SPEAK] Using browser TTS')
+    await browserTTS(text, gender)
+    isSpeakingRef.current = false
+    setIsSpeaking(false)
+    console.log('[SPEAK] Browser TTS done ✅')
+  }
 
   // ── Mic permission ────────────────────────────────────────────
   const requestMicPermission = async () => {
     try {
-      console.log('[MIC] Requesting permission...')
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       stream.getTracks().forEach(t => t.stop())
-      console.log('[MIC] Permission granted')
       return true
     } catch (err) {
       console.error('[MIC] Permission denied:', err)
       alert(
         'Microphone access is required for voice training.\n\n' +
-        'Please allow microphone access when prompted.\n\n' +
         'On iPhone: Settings → Safari → Microphone → Allow\n' +
         'On Chrome: Click the camera icon in the address bar → Allow'
       )
@@ -547,58 +560,15 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     }
   }
 
-  // ── speakText ─────────────────────────────────────────────────
-  const speakText = async (text, gender = 'female') => {
-    if (!text?.trim()) return
-    if (muteRef.current) { console.log('[SPEECH] Muted — skipping'); return }
-
-    window.speechSynthesis.cancel()
-    if (audioRef.current) { try { audioRef.current.pause() } catch (e) {}; audioRef.current = null }
-
-    isSpeakingRef.current = true
-    setIsSpeaking(true)
-
-    const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
-
-    if (!selectedVoiceIdRef.current) {
-      const voices = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
-      const picked = voices[Math.floor(Math.random() * voices.length)]
-      selectedVoiceIdRef.current = picked
-      console.log('[VOICE] Selected ElevenLabs voice:', picked.name)
-    }
-
-    if (elevenKey && elevenKey !== 'your_elevenlabs_key_here') {
-      try {
-        const audioUrl = await speakWithElevenLabs(text, selectedVoiceIdRef.current.id, elevenKey)
-        if (audioUrl) {
-          await playAudioUrl(audioUrl, text)
-          isSpeakingRef.current = false
-          setIsSpeaking(false)
-          return
-        }
-      } catch (err) {
-        console.error('[ELEVEN] Playback failed:', err)
-      }
-    }
-
-    console.log('[VOICE] Using browser TTS fallback')
-    await speakWithBrowserTTS(text, gender)
-    isSpeakingRef.current = false
-    setIsSpeaking(false)
-  }
-
   // ── Speech recognition ────────────────────────────────────────
   const startListening = () => {
-    console.log('[MIC] Called. Speaking:', isSpeakingRef.current)
-    if (isSpeakingRef.current === true) { console.log('[MIC] BLOCKED by speaking ref'); return }
-    if (isListeningRef.current === true) { console.log('[MIC] Already listening'); return }
-    if (callEndedRef.current) return
+    console.log('[MIC] startListening called')
+    console.log('[MIC] speaking:', isSpeakingRef.current, 'listening:', isListeningRef.current, 'processing:', isProcessingRef.current)
 
-    console.log('[MIC] Starting...')
-    window.speechSynthesis.cancel()
-
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { alert('Voice requires Chrome or Safari. Please use Chrome.'); return }
+    if (isSpeakingRef.current) { console.log('[MIC] BLOCKED — AI speaking'); return }
+    if (isListeningRef.current) { console.log('[MIC] Already listening'); return }
+    if (isProcessingRef.current) { console.log('[MIC] BLOCKED — processing response'); return }
+    if (!callActiveRef.current) { console.log('[MIC] Call not active'); return }
 
     if (recognitionRef.current) {
       try {
@@ -610,6 +580,9 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       recognitionRef.current = null
     }
 
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) { alert('Voice needs Chrome or Safari.'); return }
+
     const r = new SR()
     r.continuous = false
     r.interimResults = true
@@ -617,7 +590,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     r.maxAlternatives = 1
 
     r.onstart = () => {
-      console.log('[MIC] ✅ Listening started')
+      console.log('[MIC] ✅ Listening')
       isListeningRef.current = true
       setIsListening(true)
       setTranscript('')
@@ -634,24 +607,35 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
       }
       const current = final || interim
       setTranscript(current)
-      console.log('[MIC]', final ? 'FINAL:' : 'interim:', current)
+
       if (final.trim()) {
+        console.log('[MIC] ✅ Final:', final)
         isListeningRef.current = false
         setIsListening(false)
+        setTranscript('')
         try { r.stop() } catch (e) {}
-        setTimeout(() => handleVoiceInput(final.trim()), 80)
+        handleVoiceInput(final.trim())
       }
     }
 
-    r.onerror = (e) => {
-      console.error('[MIC] Error:', e.error)
+    r.onerror = (event) => {
+      console.error('[MIC] Error:', event.error)
       isListeningRef.current = false
       setIsListening(false)
-      if (e.error === 'not-allowed') {
-        alert('Microphone blocked.\n\niPhone: Settings > Safari > Microphone > Allow\nChrome: Click the lock icon > Allow mic')
+
+      if (event.error === 'not-allowed') {
+        alert('Microphone blocked.\n\niPhone: Settings > Safari > Microphone > Allow\nChrome: Click lock icon > Microphone > Allow\n\nReload after allowing.')
+        return
       }
-      if (e.error === 'no-speech') {
-        setTimeout(() => { if (!isSpeakingRef.current && !callEndedRef.current) startListening() }, 800)
+
+      if (
+        event.error === 'no-speech' ||
+        event.error === 'network' ||
+        event.error === 'aborted'
+      ) {
+        if (callActiveRef.current && !isSpeakingRef.current && !isProcessingRef.current) {
+          setTimeout(() => startListening(), 800)
+        }
       }
     }
 
@@ -664,11 +648,12 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     recognitionRef.current = r
 
     setTimeout(() => {
+      if (!callActiveRef.current) return
       try {
         r.start()
-        console.log('[MIC] start() called')
+        console.log('[MIC] r.start() called')
       } catch (err) {
-        console.error('[MIC] start() failed:', err.name, err.message)
+        console.error('[MIC] start() failed:', err.name)
         isListeningRef.current = false
         setIsListening(false)
         if (err.name === 'InvalidStateError') {
@@ -679,12 +664,74 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   }
 
   const stopListening = () => {
-    console.log('[MIC] Stopping...')
+    console.log('[MIC] Stopping')
     isListeningRef.current = false
     setIsListening(false)
     if (recognitionRef.current) {
       try { recognitionRef.current.stop() } catch (e) {}
     }
+  }
+
+  // ── Close / hangup detection ──────────────────────────────────
+  const checkForClose = (reply) => {
+    const r = reply.toLowerCase()
+    return [
+      "let's do it", "let's go ahead", "i'm in", "sign me up",
+      "okay fine", "alright fine", "you convinced me",
+      "how do we get started", "what do i need to",
+      "when can you start", "send me the contract",
+      "yeah let's do", "okay let's do", "i'll do it",
+      "let's move forward", "you've got a deal",
+      "okay you got me", "alright you've earned",
+      "yeah alright let's", "okay walk me through",
+    ].some(s => r.includes(s))
+  }
+
+  const checkForHangup = (reply) => {
+    const r = reply.toLowerCase()
+    return [
+      "don't call again", "take me off your list",
+      "not interested goodbye", "please don't call",
+      "remove me from", "never call me again",
+    ].some(s => r.includes(s))
+  }
+
+  // ── Tone & UI updates ─────────────────────────────────────────
+  const updateTone = (text, role = 'bot') => {
+    const t = text.toLowerCase()
+    setClosePct(prev => {
+      let p = prev
+      if (role === 'bot') {
+        if (/that makes sense|actually interesting|not bad|fair enough|good point/.test(t)) p = Math.min(p + 15, 92)
+        if (/tell me more|how does|what exactly|okay so|right|uh huh/.test(t)) p = Math.min(p + 8, 92)
+        if (/how do we|what's the next step|next step/.test(t)) p = Math.min(p + 22, 96)
+        if (/not interested|take me off|never call/.test(t)) p = Math.max(p - 25, 5)
+        if (/too expensive|can't afford|over budget/.test(t)) p = Math.max(p - 15, 10)
+        if (/need to think|call me back|maybe later/.test(t)) p = Math.max(p - 10, 10)
+        if (/busy|bad time|gotta go/.test(t)) p = Math.max(p - 5, 15)
+      }
+      if (role === 'usr') {
+        if (/imagine|picture this|most people|what if/.test(t)) p = Math.min(p + 4, 92)
+        if (/when we get started|once you start/.test(t)) p = Math.min(p + 3, 92)
+        if (/\$[\d,]+|\d+%|\d+ (days|weeks|months)/.test(t)) p = Math.min(p + 5, 92)
+      }
+      closePctRef.current = p
+      return p
+    })
+    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget']
+    if (role === 'bot' && objKw.some(k => t.includes(k))) {
+      setLastObjection(text)
+      setReframeOpen(true)
+      setReframes(null)
+    }
+  }
+
+  const addMsg = (role, text, isBrutal = false) => {
+    setMessages(m => [...m, { role, text, isBrutal, ts: Date.now() }])
+    if (!isBrutal) {
+      callMsgRef.current = [...callMsgRef.current, { role, text, time: secsRef.current }]
+    }
+    if (role === 'bot' && !isBrutal) setLastBotText(text)
   }
 
   // ── Prospect generation ───────────────────────────────────────
@@ -693,7 +740,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     const load = async () => {
       setGeneratingProfile(true)
       try {
-        console.log('[PROSPECT] Generating...')
         const profile = await generateProspectProfile(industry, difficulty)
         if (!cancelled) {
           if (!profile.gender) profile.gender = Math.random() > 0.5 ? 'female' : 'male'
@@ -731,7 +777,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     return () => { cancelled = true }
   }, [])
 
-  // ── Start call after preview ───────────────────────────────────
+  // ── Start call after preview ──────────────────────────────────
   useEffect(() => {
     if (!prospectProfile || showPreview) return
     const t = setTimeout(() => {
@@ -751,74 +797,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     return () => clearTimeout(t)
   }, [showPreview])
 
-  // ── Tone detection ────────────────────────────────────────────
-  const updateTone = (text, role = 'bot') => {
-    const t = text.toLowerCase()
-    setClosePct(prev => {
-      let p = prev
-      if (role === 'bot') {
-        if (/that makes sense|actually interesting|not bad|fair enough|good point/.test(t)) p = Math.min(p + 15, 92)
-        if (/tell me more|how does|what exactly|okay so|right|uh huh/.test(t)) p = Math.min(p + 8, 92)
-        if (/how do we|what's the next step|next step/.test(t)) p = Math.min(p + 22, 96)
-        if (/not interested|don't call|stop calling/.test(t)) p = Math.max(p - 25, 5)
-        if (/too expensive|can't afford|over budget/.test(t)) p = Math.max(p - 15, 10)
-        if (/need to think|call me back|maybe later/.test(t)) p = Math.max(p - 10, 10)
-        if (/busy|bad time|gotta go/.test(t)) p = Math.max(p - 5, 15)
-      }
-      if (role === 'usr') {
-        if (/imagine|picture this|most people|what if/.test(t)) p = Math.min(p + 4, 92)
-        if (/when we get started|once you start/.test(t)) p = Math.min(p + 3, 92)
-        if (/\$[\d,]+|\d+%|\d+ (days|weeks|months)/.test(t)) p = Math.min(p + 5, 92)
-      }
-      closePctRef.current = p
-      return p
-    })
-    const objKw = ['think about', 'expensive', 'too much', 'not interested', 'call back', 'spouse', 'budget', 'not now', "can't afford", 'price is', 'not ready', 'over budget']
-    if (objKw.some(k => t.includes(k))) { setLastObjection(text); setReframeOpen(true); setReframes(null) }
-  }
-
-  const addMsg = (role, text, isBrutal = false) => {
-    setMessages(m => [...m, { role, text, isBrutal, ts: Date.now() }])
-    if (!isBrutal) {
-      const entry = { role, text, time: secsRef.current }
-      callMsgRef.current = [...callMsgRef.current, entry]
-    }
-    if (role === 'bot' && !isBrutal) setLastBotText(text)
-  }
-
-  // ── Conversation tracking ─────────────────────────────────────
-  const checkForClose = (reply) => {
-    const r = reply.toLowerCase()
-    return [
-      "let's do it", "let's go", "i'm in", "sign me up", "you convinced me",
-      "alright fine", "okay fine", "yeah let's", "how do we get started",
-      "when can you start", "what do i need to sign", "send me the contract",
-      "you've earned it", "you've made your case", "i'll do it",
-      "let's move forward", "alright, you've", "okay, you've",
-      "alright let's", "yeah let's do", "okay let's do",
-    ].some(phrase => r.includes(phrase))
-  }
-
-  const analyzeConversationState = (reply) => {
-    exchangeCountRef.current += 1
-    const r = reply.toLowerCase()
-    if (checkForClose(reply)) {
-      conversationStateRef.current = 'sold'
-      console.log('[CALL] PROSPECT SOLD after', exchangeCountRef.current, 'exchanges')
-      setTimeout(() => showCallResults(true), 1500)
-      return
-    }
-    if (/that makes sense|actually interesting|tell me more|how does that|what exactly/.test(r)) {
-      if (conversationStateRef.current === 'cold') conversationStateRef.current = 'curious'
-      else if (conversationStateRef.current === 'skeptical') conversationStateRef.current = 'interested'
-    }
-    console.log('[CALL] State:', conversationStateRef.current, '| Exchange:', exchangeCountRef.current)
-  }
-
-  // ── Show results / end call ───────────────────────────────────
+  // ── Show results ──────────────────────────────────────────────
   const showCallResults = async (dealClosed) => {
-    if (callEndedRef.current) return
-    callEndedRef.current = true
+    if (!callActiveRef.current) return
+    callActiveRef.current = false
 
     clearInterval(timerRef.current)
     clearInterval(oneshotRef.current)
@@ -826,9 +808,10 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     if (audioRef.current) { try { audioRef.current.pause() } catch (e) {}; audioRef.current = null }
     isSpeakingRef.current = false; setIsSpeaking(false)
     isListeningRef.current = false; setIsListening(false)
+    isProcessingRef.current = false
     stopPhoneStatic()
     try { recognitionRef.current?.abort() } catch (e) {}
-    loadingRef.current = false; setLoading(false)
+    setLoading(false)
 
     if (dealClosed) {
       navigator.vibrate?.([100, 50, 100, 50, 200])
@@ -855,7 +838,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setResultsLoading(true)
 
     const transcriptText = msgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'}: ${m.text}`).join('\n')
-
     const analysisPrompt = `You are Blitz, elite sales coach trained on Andy Elliott, Grant Cardone, and Jordan Belfort.
 
 Analyze this ${industry} training call transcript:
@@ -891,121 +873,183 @@ Return ONLY raw JSON, no markdown, no backticks:
     setShowResults(true)
   }
 
-  // ── Show bot reply ────────────────────────────────────────────
-  const showBotReply = async (rawReply, isOpener = false) => {
-    try { recognitionRef.current?.abort() } catch (e) {}
-    isListeningRef.current = false; setIsListening(false); setTranscript('')
-
-    const delay = isOpener ? 1400 + Math.random() * 400 : 500 + Math.random() * 400
-    await new Promise(res => setTimeout(res, delay))
-
-    const cleaned = cleanAIResponse(rawReply)
-
-    addMsg('bot', cleaned)
-    updateTone(cleaned, 'bot')
-    const emoji = analyzeMood(cleaned)
-    setMoodEmoji(emoji)
-    const gender = profileRef.current?.gender || 'female'
-    console.log('[CALL] AI response:', cleaned.slice(0, 80))
-
-    await speakText(cleaned, gender)
-    // isSpeakingRef.current is now false — safe to listen
-
-    if (emoji === '😡' && !callEndedRef.current) {
-      setTimeout(() => showCallResults(false), 2000)
-    }
-  }
-
   // ── Start call ────────────────────────────────────────────────
   const startCall = async () => {
+    console.log('[CALL] ====== STARTING CALL ======')
+
+    callActiveRef.current = true
+    exchangeCountRef.current = 0
+    chatRef.current = []
+    selectedVoiceIdRef.current = null
+    isProcessingRef.current = false
+    isSpeakingRef.current = false
+    isListeningRef.current = false
+    callMsgRef.current = []
+    setMessages([])
+    setTranscript('')
+    setMoodEmoji('😐')
+    setLastBotText('')
+    setLoading(true)
+
+    window.speechSynthesis.cancel()
+    if (audioRef.current) {
+      try { audioRef.current.pause() } catch (e) {}
+      audioRef.current = null
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null
+        recognitionRef.current.onerror = null
+        recognitionRef.current.onend = null
+        recognitionRef.current.abort()
+      } catch (e) {}
+      recognitionRef.current = null
+    }
+
     if (!window.speechSynthesis) { alert('Your browser does not support voice. Use Chrome.'); return }
 
     const hasPermission = await requestMicPermission()
-    if (!hasPermission) return
+    if (!hasPermission) { callActiveRef.current = false; return }
 
     const p = profileRef.current
-    if (!p) return
+    if (!p) { console.error('[CALL] No prospect profile'); setLoading(false); return }
 
-    resetVoice()
-    callEndedRef.current = false
-    conversationStateRef.current = 'cold'
-    exchangeCountRef.current = 0
-    callMsgRef.current = []
+    console.log('[CALL] Prospect:', p.name, p.gender)
 
     const sys = buildSystemPrompt(p, industry, difficulty, language, mode, persona, customBrain)
-
-    chatRef.current = [{ role: 'user', content: sys + '\n\nThe phone rings. Answer it now.' }]
-    loadingRef.current = true; setLoading(true)
-    console.log('[CALL] Starting...')
+    chatRef.current = [{ role: 'user', content: sys + '\n\n[The phone is ringing. You answer it now.]' }]
 
     try {
-      const reply = await callClaudeConversation(chatRef.current, 200)
-      chatRef.current.push({ role: 'assistant', content: reply })
-      console.log('[CALL] Opening line:', reply.slice(0, 60))
-      await showBotReply(reply, true)
+      console.log('[CALL] Getting opening line...')
+      const raw = await callClaudeConversation(chatRef.current, 100)
+      const opening = cleanAIResponse(raw)
+      console.log('[CALL] Opening line:', opening)
+
+      chatRef.current.push({ role: 'assistant', content: opening })
+
+      addMsg('bot', opening)
+      updateTone(opening, 'bot')
+      setMoodEmoji(analyzeMood(opening))
+      setLoading(false)
+
+      console.log('[CALL] Speaking opening...')
+      await speakText(opening, p.gender)
+      console.log('[CALL] Opening spoken.')
+
+      if (callActiveRef.current) {
+        await new Promise(r => setTimeout(r, 300))
+        startListening()
+      }
     } catch (e) {
       console.error('[CALL] Start error:', e)
+      setLoading(false)
       addMsg('brutal', '⚠️ Connection error. Check your API key and internet connection.', true)
-    }
-
-    loadingRef.current = false; setLoading(false)
-    if (!callEndedRef.current) {
-      await new Promise(r => setTimeout(r, 350))
-      console.log('[FLOW] After speak. isSpeaking:', isSpeakingRef.current)
-      startListening()
     }
   }
 
   // ── Handle voice input ────────────────────────────────────────
   const handleVoiceInput = async (text) => {
-    if (!text || loadingRef.current || callEndedRef.current) return
-    console.log('[CALL] User said:', text)
-    isListeningRef.current = false; setIsListening(false); setTranscript('')
+    if (!text?.trim()) {
+      console.log('[CALL] Empty input — ignoring')
+      if (callActiveRef.current && !isSpeakingRef.current) startListening()
+      return
+    }
+
+    if (isProcessingRef.current) {
+      console.log('[CALL] Already processing — ignoring')
+      return
+    }
+
+    if (!callActiveRef.current) {
+      console.log('[CALL] Call not active — ignoring')
+      return
+    }
+
+    console.log('[CALL] ====== USER SAID:', text, '======')
+    isProcessingRef.current = true
+    setLoading(true)
+
+    addMsg('usr', text)
+    updateTone(text, 'usr')
+    chatRef.current.push({ role: 'user', content: text })
+    exchangeCountRef.current += 1
 
     const toneScore = analyzeUserTone(text)
-    console.log('[TONE] User tone score:', toneScore)
-
-    // Update close probability based on how confident/specific the rep sounds
     setClosePct(prev => {
-      const change = (toneScore - 50) * 0.3
-      const next = Math.max(5, Math.min(95, prev + change))
+      const next = Math.max(5, Math.min(95, prev + (toneScore - 50) * 0.3))
       closePctRef.current = next
       return next
     })
 
-    addMsg('usr', text)
-    chatRef.current.push({ role: 'user', content: text })
+    console.log('[CALL] Exchange #', exchangeCountRef.current)
+    console.log('[CALL] Chat history length:', chatRef.current.length)
 
     const userCount = callMsgRef.current.filter(m => m.role === 'usr').length
-    updateTone(text, 'usr')
-    loadingRef.current = true; setLoading(true)
-
     if (mode === 'bru' && userCount % 3 === 0) {
       getBrutalFeedback(text).then(fb => {
         addMsg('brutal', '😤 BLITZ: ' + fb.replace(/^(BLITZ:|Blitz:)/i, '').trim(), true)
       }).catch(() => {})
     }
 
-    await new Promise(r => setTimeout(r, thinkingTime(text)))
-    console.log('[API] Calling. Messages:', chatRef.current.length)
+    const thinkMs = 500 + Math.random() * 600
+    await new Promise(r => setTimeout(r, thinkMs))
 
     try {
-      const reply = await callClaudeConversation(chatRef.current, 200)
+      console.log('[CALL] Calling API with', chatRef.current.length, 'messages')
+      const raw = await callClaudeConversation(chatRef.current, 150)
+      const reply = cleanAIResponse(raw)
+      console.log('[CALL] AI reply:', reply)
+
       chatRef.current.push({ role: 'assistant', content: reply })
-      analyzeConversationState(reply)
-      if (!callEndedRef.current) {
-        await showBotReply(reply, false)
+
+      addMsg('bot', reply)
+      updateTone(reply, 'bot')
+      const emoji = analyzeMood(reply)
+      setMoodEmoji(emoji)
+
+      setLoading(false)
+      isProcessingRef.current = false
+
+      const gender = profileRef.current?.gender || 'female'
+
+      if (checkForClose(reply)) {
+        console.log('[CALL] 🏆 DEAL CLOSED after', exchangeCountRef.current, 'exchanges!')
+        await speakText(reply, gender)
+        showCallResults(true)
+        return
+      }
+
+      if (checkForHangup(reply)) {
+        console.log('[CALL] Prospect hung up')
+        await speakText(reply, gender)
+        setTimeout(() => showCallResults(false), 1000)
+        return
+      }
+
+      if (emoji === '😡') {
+        console.log('[CALL] Prospect rage quit')
+        await speakText(reply, gender)
+        setTimeout(() => showCallResults(false), 1500)
+        return
+      }
+
+      console.log('[CALL] Speaking reply...')
+      await speakText(reply, gender)
+      console.log('[CALL] Reply spoken.')
+
+      if (callActiveRef.current) {
+        await new Promise(r => setTimeout(r, 300))
+        console.log('[CALL] Restarting mic...')
+        startListening()
       }
     } catch (e) {
-      console.error('[CALL] API error:', e)
+      console.error('[CALL] Response error:', e)
+      setLoading(false)
+      isProcessingRef.current = false
       addMsg('brutal', '⚠️ No response. Check your connection.', true)
-    }
-
-    loadingRef.current = false; setLoading(false)
-    if (!callEndedRef.current) {
-      await new Promise(r => setTimeout(r, 350))
-      console.log('[FLOW] After speak. isSpeaking:', isSpeakingRef.current)
-      startListening()
+      if (callActiveRef.current) {
+        setTimeout(() => startListening(), 1000)
+      }
     }
   }
 
@@ -1144,10 +1188,11 @@ Return ONLY raw JSON, no markdown, no backticks:
           <div className="flex gap-3 pb-4">
             <button
               onClick={() => {
-                setShowResults(false); setResultsData(null); callEndedRef.current = false
-                setMessages([]); callMsgRef.current = []; setLastBotText(''); setClosePct(30)
-                closePctRef.current = 30; setMoodEmoji('😐'); chatRef.current = []
-                setSecs(0); secsRef.current = 0
+                setShowResults(false)
+                setResultsData(null)
+                setSecs(0)
+                secsRef.current = 0
+                clearInterval(timerRef.current)
                 timerRef.current = setInterval(() => setSecs(s => s + 1), 1000)
                 startCall()
               }}

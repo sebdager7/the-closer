@@ -77,9 +77,13 @@ export async function callClaude(prompt, maxTokens = 1200) {
 
 export async function callClaudeConversation(messages, maxTokens = 200) {
   const key = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!key) throw new Error('API key missing.')
 
-  console.log('[API] Conversation call. Messages:', messages.length)
+  console.log('[API] callClaudeConversation')
+  console.log('[API] Key:', key ? 'present ✅' : 'MISSING ❌')
+  console.log('[API] Messages:', messages.length)
+  console.log('[API] Last message:', messages[messages.length - 1]?.content?.slice(0, 60))
+
+  if (!key) throw new Error('VITE_ANTHROPIC_API_KEY missing from .env')
 
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -87,14 +91,18 @@ export async function callClaudeConversation(messages, maxTokens = 200) {
     body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
   })
 
+  console.log('[API] Status:', response.status)
+
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error('[API] Conversation error:', errorText)
-    throw new Error(`Conversation API failed (${response.status}): ${errorText.slice(0, 200)}`)
+    const err = await response.text()
+    console.error('[API] Error:', response.status, err)
+    throw new Error(`API ${response.status}: ${err}`)
   }
 
   const data = await response.json()
-  return data.content.map(c => c.text || '').join('')
+  const text = data.content.map(c => c.text || '').join('').trim()
+  console.log('[API] Response:', text.slice(0, 80))
+  return text
 }
 
 export function parseJSON(text) {
