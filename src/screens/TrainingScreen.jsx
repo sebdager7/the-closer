@@ -514,8 +514,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
     if (!selectedVoiceIdRef.current) {
       const voiceList = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
-      selectedVoiceIdRef.current = voiceList[Math.floor(Math.random() * voiceList.length)]
-      console.log('[SPEAK] Voice locked:', selectedVoiceIdRef.current.name)
+      selectedVoiceIdRef.current = voiceList[0]
+      console.log('[VOICE] Using:', selectedVoiceIdRef.current.name, selectedVoiceIdRef.current.id)
     }
 
     const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
@@ -881,6 +881,7 @@ Return ONLY raw JSON, no markdown, no backticks:
     exchangeCountRef.current = 0
     chatRef.current = []
     selectedVoiceIdRef.current = null
+    console.log('[VOICE] Voice reset for new call')
     isProcessingRef.current = false
     isSpeakingRef.current = false
     isListeningRef.current = false

@@ -1,19 +1,12 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
-// ElevenLabs voice IDs — most natural human-sounding
 export const ELEVEN_VOICES = {
   female: [
-    { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Warm, clear American female voice' },
-    { id: 'AZnzlk1XvdvUeBnXmlld', name: 'Domi', description: 'Strong confident American female' },
-    { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', description: 'Soft natural American female' },
-    { id: 'MF3mGyEYCl7XYWbV9V6O', name: 'Elli', description: 'Young natural American female' },
+    { id: 'g6xIsTj2HwM6VR4iXFCw', name: 'Female Prospect', style: 'natural female voice' },
   ],
   male: [
-    { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Deep natural American male' },
-    { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', description: 'Confident grounded American male' },
-    { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', description: 'Deep direct American male' },
-    { id: 'yoZ06aMxZJJ28mfd3POQ', name: 'Sam', description: 'Raspy natural American male' },
+    { id: 'UgBBYS2sOqTuMpoF3BR0', name: 'Male Prospect', style: 'natural male voice' },
   ],
 }
 
@@ -237,11 +230,12 @@ export async function runAutopsy(transcript, closePct, dealValue) {
 
 export async function speakWithElevenLabs(text, voiceId, apiKey) {
   if (!apiKey || apiKey === 'your_elevenlabs_key_here') {
-    console.warn('[ELEVEN] No API key configured')
+    console.warn('[ELEVEN] No API key — cannot use ElevenLabs')
     return null
   }
 
-  console.log('[ELEVEN] Requesting audio for:', text.slice(0, 50))
+  console.log('[ELEVEN] Voice ID:', voiceId)
+  console.log('[ELEVEN] Text:', text.slice(0, 50))
 
   try {
     const response = await fetch(
