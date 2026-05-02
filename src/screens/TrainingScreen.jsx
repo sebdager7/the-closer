@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, speakWithElevenLabs, VOICE_FEMALE_ID, VOICE_MALE_ID } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, elevenLabsSpeak, playElevenLabsAudio } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
@@ -266,12 +266,6 @@ const analyzeUserTone = (text) => {
   return Math.max(10, Math.min(90, score))
 }
 
-const getVoiceId = (gender) => {
-  const id = gender === 'male' ? VOICE_MALE_ID : VOICE_FEMALE_ID
-  console.log('[VOICE] ID for', gender, ':', id)
-  return id
-}
-
 // ─── CALL SCREEN ──────────────────────────────────────────────────────────────
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
   const { dispatch } = useApp()
@@ -429,63 +423,8 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     ) || voices[0] || null
   }
 
-  // ── Audio playback ────────────────────────────────────────────
-  const playAudio = (url, textLength) => {
-    return new Promise((resolve) => {
-      if (!url) {
-        console.error('[AUDIO] No URL')
-        resolve()
-        return
-      }
-
-      console.log('[AUDIO] Creating audio element')
-      const audio = new Audio(url)
-      audioRef.current = audio
-
-      let done = false
-      const finish = (reason) => {
-        if (done) return
-        done = true
-        console.log('[AUDIO] Done:', reason)
-        try { URL.revokeObjectURL(url) } catch (e) {}
-        if (audioRef.current === audio) audioRef.current = null
-        resolve()
-      }
-
-      const maxMs = Math.max((textLength || 50) * 100, 6000)
-      const safety = setTimeout(() => {
-        console.warn('[AUDIO] Safety timeout after', maxMs, 'ms')
-        finish('safety timeout')
-      }, maxMs)
-
-      audio.oncanplaythrough = () => { console.log('[AUDIO] Can play — starting') }
-      audio.onended = () => { clearTimeout(safety); finish('ended') }
-      audio.onerror = () => {
-        console.error('[AUDIO] Error code:', audio.error?.code, '| message:', audio.error?.message)
-        clearTimeout(safety)
-        finish('error')
-      }
-
-      audio.load()
-
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => { console.log('[AUDIO] ✅ Playing') })
-          .catch(err => {
-            console.error('[AUDIO] play() blocked:', err.name, err.message)
-            if (err.name === 'NotAllowedError') {
-              console.error('[AUDIO] ❌ Autoplay blocked — tap screen or use Test Voice buttons first')
-            }
-            clearTimeout(safety)
-            finish('play blocked')
-          })
-      }
-    })
-  }
-
   // ── Browser TTS fallback ──────────────────────────────────────
-  const browserTTS = (text, gender) => {
+  const fallbackBrowserTTS = (text, gender) => {
     return new Promise((resolve) => {
       const processed = text
         .replace(/\. ([A-Z])/g, '.  $1')
@@ -555,47 +494,19 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     isSpeakingRef.current = true
     setIsSpeaking(true)
 
-    const voiceId = getVoiceId(gender)
-    const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
-
-    console.log('[SPEAK] Voice ID:', voiceId)
-    console.log('[SPEAK] Key present:', !!elevenKey)
-    console.log('[SPEAK] Key length:', elevenKey?.length)
-
-    const canUseEleven = (
-      elevenKey &&
-      elevenKey.length > 10 &&
-      elevenKey !== 'your_elevenlabs_key_here' &&
-      elevenKey !== 'your_key_here' &&
-      voiceId &&
-      voiceId.length > 5
-    )
-
-    console.log('[SPEAK] Can use ElevenLabs:', canUseEleven)
-
     try {
-      if (canUseEleven) {
-        const audioUrl = await speakWithElevenLabs(text, voiceId, elevenKey)
-
-        if (audioUrl) {
-          console.log('[SPEAK] ✅ Got audio URL — playing')
-          await playAudio(audioUrl, text.length)
-          console.log('[SPEAK] ✅ Playback complete')
-          return
-        }
-
-        console.error('[SPEAK] ❌ ElevenLabs returned null')
-        console.error('[SPEAK] ❌ Falling back to ROBOT VOICE')
-        console.error('[SPEAK] ❌ Check ElevenLabs errors above')
+      const audioUrl = await elevenLabsSpeak(text, gender)
+      if (audioUrl) {
+        await playElevenLabsAudio(audioUrl, text.length)
+        console.log('[SPEAK] ElevenLabs done ✅')
+      } else {
+        console.error('[SPEAK] ❌ ElevenLabs failed — using browser fallback')
+        await fallbackBrowserTTS(text, gender)
       }
-
-      console.warn('[SPEAK] Using browser TTS — will sound robotic')
-      await browserTTS(text, gender)
     } catch (err) {
       console.error('[SPEAK] Unexpected error:', err)
-      try { await browserTTS(text, gender) } catch (e) {}
+      try { await fallbackBrowserTTS(text, gender) } catch (e) {}
     } finally {
-      console.log('[SPEAK] Clearing speaking state')
       isSpeakingRef.current = false
       setIsSpeaking(false)
     }
@@ -1521,11 +1432,8 @@ export default function TrainingScreen() {
   const [restartKey, setRestartKey] = useState(0)
 
   const testVoice = async (gender) => {
-    const voiceId = getVoiceId(gender)
-    const key = import.meta.env.VITE_ELEVENLABS_API_KEY
-    console.log('[TEST] Testing voice:', voiceId)
-    console.log('[TEST] Key:', key ? 'present' : 'MISSING')
-    const url = await speakWithElevenLabs('Hello, this is a voice test.', voiceId, key)
+    console.log('[TEST] Testing', gender, 'voice')
+    const url = await elevenLabsSpeak('Hello, this is a voice test.', gender)
     if (url) {
       const audio = new Audio(url)
       audio.play().catch(e => {

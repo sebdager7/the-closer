@@ -1,10 +1,6 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
-// Hardcoded voice IDs — do not change these
-export const VOICE_FEMALE_ID = 'g6xIsTj2HwM6VR4iXFCw'
-export const VOICE_MALE_ID = 'UgBBYS2sOqTuMpoF3BR0'
-
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
@@ -223,34 +219,21 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-export async function speakWithElevenLabs(text, voiceId, apiKey) {
-  console.log('[ELEVEN] ==================')
-  console.log('[ELEVEN] Voice ID:', voiceId)
-  console.log('[ELEVEN] API Key length:', apiKey?.length)
-  console.log('[ELEVEN] Text:', text?.slice(0, 60))
-  console.log('[ELEVEN] ==================')
+export async function elevenLabsSpeak(text, gender) {
+  const FEMALE_VOICE = 'g6xIsTj2HwM6VR4iXFCw'
+  const MALE_VOICE = 'UgBBYS2sOqTuMpoF3BR0'
+  const voiceId = gender === 'male' ? MALE_VOICE : FEMALE_VOICE
+  const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
 
-  if (!voiceId || voiceId.length < 5) {
-    console.error('[ELEVEN] ❌ INVALID VOICE ID:', voiceId)
-    return null
-  }
+  console.log('[ELEVEN] gender:', gender, '| voiceId:', voiceId)
+  console.log('[ELEVEN] apiKey length:', apiKey?.length)
 
-  if (!apiKey || apiKey.length < 10) {
-    console.error('[ELEVEN] ❌ API KEY MISSING OR TOO SHORT')
-    return null
-  }
-
-  if (!text || !text.trim()) {
-    console.error('[ELEVEN] ❌ EMPTY TEXT')
-    return null
-  }
-
-  const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
-  console.log('[ELEVEN] Calling:', endpoint)
+  if (!text?.trim()) { console.error('[ELEVEN] Empty text'); return null }
+  if (!apiKey || apiKey.length < 10) { console.error('[ELEVEN] Missing API key'); return null }
 
   let response
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
@@ -260,16 +243,11 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
       body: JSON.stringify({
         text: text.trim(),
         model_id: 'eleven_turbo_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.85,
-          style: 0.25,
-          use_speaker_boost: true,
-        },
+        voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true },
       }),
     })
-  } catch (networkErr) {
-    console.error('[ELEVEN] ❌ Network error:', networkErr.message)
+  } catch (err) {
+    console.error('[ELEVEN] Network error:', err.message)
     return null
   }
 
@@ -278,41 +256,54 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
   if (!response.ok) {
     let body = ''
     try { body = await response.text() } catch (e) {}
-    console.error('[ELEVEN] ❌ Failed:', response.status, body)
-    if (response.status === 401) {
-      console.error('[ELEVEN] 401 = API key is wrong or expired')
-      console.error('[ELEVEN] Key used:', apiKey.slice(0, 8) + '...')
-    }
-    if (response.status === 422 || response.status === 404) {
-      console.error('[ELEVEN] 422/404 = Voice ID is wrong:', voiceId)
-    }
-    if (response.status === 429) {
-      console.error('[ELEVEN] 429 = Rate limit — too many requests')
-    }
+    console.error('[ELEVEN] Failed:', response.status, body)
     return null
   }
 
   let blob
-  try {
-    blob = await response.blob()
-  } catch (blobErr) {
-    console.error('[ELEVEN] ❌ Blob error:', blobErr.message)
+  try { blob = await response.blob() } catch (err) {
+    console.error('[ELEVEN] Blob error:', err.message)
     return null
   }
 
   if (!blob || blob.size === 0) {
-    console.error('[ELEVEN] ❌ Empty blob — no audio received')
+    console.error('[ELEVEN] Empty blob')
     return null
   }
-
-  console.log('[ELEVEN] ✅ Got audio blob:', blob.size, 'bytes')
 
   try {
     const url = URL.createObjectURL(blob)
-    console.log('[ELEVEN] ✅ URL created')
+    console.log('[ELEVEN] ✅ Audio URL ready, blob size:', blob.size)
     return url
-  } catch (urlErr) {
-    console.error('[ELEVEN] ❌ URL creation failed:', urlErr.message)
+  } catch (err) {
+    console.error('[ELEVEN] URL error:', err.message)
     return null
   }
+}
+
+export function playElevenLabsAudio(url, textLength) {
+  return new Promise((resolve) => {
+    if (!url) { resolve(); return }
+    const audio = new Audio(url)
+    const maxMs = Math.max((textLength || 100) * 100, 8000)
+    let done = false
+    const finish = (reason) => {
+      if (done) return
+      done = true
+      console.log('[ELEVEN PLAY] Done:', reason)
+      try { URL.revokeObjectURL(url) } catch (e) {}
+      resolve()
+    }
+    const timeout = setTimeout(() => finish('timeout'), maxMs)
+    audio.onended = () => { clearTimeout(timeout); finish('ended') }
+    audio.onerror = () => { clearTimeout(timeout); finish('error') }
+    audio.load()
+    audio.play()
+      .then(() => console.log('[ELEVEN PLAY] ✅ Playing'))
+      .catch(err => {
+        console.error('[ELEVEN PLAY] play() blocked:', err.name, err.message)
+        clearTimeout(timeout)
+        finish('play blocked')
+      })
+  })
 }
