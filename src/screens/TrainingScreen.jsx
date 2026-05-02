@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
-import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, speakWithElevenLabs, ELEVEN_VOICES } from '../utils/api'
+import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, speakWithElevenLabs, VOICE_FEMALE_ID, VOICE_MALE_ID } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
@@ -266,6 +266,12 @@ const analyzeUserTone = (text) => {
   return Math.max(10, Math.min(90, score))
 }
 
+const getVoiceId = (gender) => {
+  const id = gender === 'male' ? VOICE_MALE_ID : VOICE_FEMALE_ID
+  console.log('[VOICE] ID for', gender, ':', id)
+  return id
+}
+
 // ─── CALL SCREEN ──────────────────────────────────────────────────────────────
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
   const { dispatch } = useApp()
@@ -312,7 +318,6 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   const closePctRef = useRef(30)
   const callMsgRef = useRef([])
   const secsRef = useRef(0)
-  const selectedVoiceIdRef = useRef(null)
   const audioRef = useRef(null)
 
   // ── Phone static ──────────────────────────────────────────────
@@ -427,30 +432,55 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
   // ── Audio playback ────────────────────────────────────────────
   const playAudio = (url, textLength) => {
     return new Promise((resolve) => {
-      const audio = new Audio()
+      if (!url) {
+        console.error('[AUDIO] No URL')
+        resolve()
+        return
+      }
+
+      console.log('[AUDIO] Creating audio element')
+      const audio = new Audio(url)
       audioRef.current = audio
 
       let done = false
-      const finish = () => {
+      const finish = (reason) => {
         if (done) return
         done = true
+        console.log('[AUDIO] Done:', reason)
         try { URL.revokeObjectURL(url) } catch (e) {}
-        audioRef.current = null
+        if (audioRef.current === audio) audioRef.current = null
         resolve()
       }
 
-      const maxMs = Math.max(textLength * 85, 4000)
+      const maxMs = Math.max((textLength || 50) * 100, 6000)
       const safety = setTimeout(() => {
         console.warn('[AUDIO] Safety timeout after', maxMs, 'ms')
-        finish()
+        finish('safety timeout')
       }, maxMs)
 
-      audio.onloadeddata = () => { console.log('[AUDIO] Loaded — duration:', audio.duration?.toFixed(1), 's') }
-      audio.onended = () => { clearTimeout(safety); finish() }
-      audio.onerror = (e) => { console.error('[AUDIO] Error:', e); clearTimeout(safety); finish() }
+      audio.oncanplaythrough = () => { console.log('[AUDIO] Can play — starting') }
+      audio.onended = () => { clearTimeout(safety); finish('ended') }
+      audio.onerror = () => {
+        console.error('[AUDIO] Error code:', audio.error?.code, '| message:', audio.error?.message)
+        clearTimeout(safety)
+        finish('error')
+      }
 
-      audio.src = url
-      audio.play().catch(err => { console.error('[AUDIO] play() failed:', err); clearTimeout(safety); finish() })
+      audio.load()
+
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => { console.log('[AUDIO] ✅ Playing') })
+          .catch(err => {
+            console.error('[AUDIO] play() blocked:', err.name, err.message)
+            if (err.name === 'NotAllowedError') {
+              console.error('[AUDIO] ❌ Autoplay blocked — tap screen or use Test Voice buttons first')
+            }
+            clearTimeout(safety)
+            finish('play blocked')
+          })
+      }
     })
   }
 
@@ -497,12 +527,22 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
 
   // ── speakText ─────────────────────────────────────────────────
   const speakText = async (text, gender = 'female') => {
-    if (!text?.trim()) return
+    console.log('[SPEAK] ====== SPEAK CALLED ======')
+    console.log('[SPEAK] Gender:', gender)
+    console.log('[SPEAK] Text:', text?.slice(0, 60))
+    console.log('[SPEAK] Muted:', muteRef.current)
 
-    console.log('[SPEAK] Speaking:', text.slice(0, 60))
+    if (!text?.trim()) {
+      console.log('[SPEAK] Empty — skipping')
+      isSpeakingRef.current = false
+      setIsSpeaking(false)
+      return
+    }
 
     if (muteRef.current) {
       console.log('[SPEAK] Muted — skipping')
+      isSpeakingRef.current = false
+      setIsSpeaking(false)
       return
     }
 
@@ -515,30 +555,47 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     isSpeakingRef.current = true
     setIsSpeaking(true)
 
-    if (!selectedVoiceIdRef.current) {
-      selectedVoiceIdRef.current = gender === 'male' ? ELEVEN_VOICES.male : ELEVEN_VOICES.female
-      console.log('[VOICE] Locked voice:', selectedVoiceIdRef.current.name, '|', selectedVoiceIdRef.current.id)
-    }
-
+    const voiceId = getVoiceId(gender)
     const elevenKey = import.meta.env.VITE_ELEVENLABS_API_KEY
 
+    console.log('[SPEAK] Voice ID:', voiceId)
+    console.log('[SPEAK] Key present:', !!elevenKey)
+    console.log('[SPEAK] Key length:', elevenKey?.length)
+
+    const canUseEleven = (
+      elevenKey &&
+      elevenKey.length > 10 &&
+      elevenKey !== 'your_elevenlabs_key_here' &&
+      elevenKey !== 'your_key_here' &&
+      voiceId &&
+      voiceId.length > 5
+    )
+
+    console.log('[SPEAK] Can use ElevenLabs:', canUseEleven)
+
     try {
-      if (elevenKey && elevenKey.length > 10 && elevenKey !== 'your_elevenlabs_key_here') {
-        console.log('[ELEVEN] Requesting audio for voice:', selectedVoiceIdRef.current.id)
-        const audioUrl = await speakWithElevenLabs(text, selectedVoiceIdRef.current.id, elevenKey)
+      if (canUseEleven) {
+        const audioUrl = await speakWithElevenLabs(text, voiceId, elevenKey)
+
         if (audioUrl) {
+          console.log('[SPEAK] ✅ Got audio URL — playing')
           await playAudio(audioUrl, text.length)
-          console.log('[SPEAK] ElevenLabs done ✅')
+          console.log('[SPEAK] ✅ Playback complete')
           return
         }
-        console.warn('[ELEVEN] Returned null — falling back to browser TTS')
-      } else {
-        console.log('[ELEVEN] No key — using browser TTS')
+
+        console.error('[SPEAK] ❌ ElevenLabs returned null')
+        console.error('[SPEAK] ❌ Falling back to ROBOT VOICE')
+        console.error('[SPEAK] ❌ Check ElevenLabs errors above')
       }
 
+      console.warn('[SPEAK] Using browser TTS — will sound robotic')
       await browserTTS(text, gender)
-      console.log('[SPEAK] Browser TTS done ✅')
+    } catch (err) {
+      console.error('[SPEAK] Unexpected error:', err)
+      try { await browserTTS(text, gender) } catch (e) {}
     } finally {
+      console.log('[SPEAK] Clearing speaking state')
       isSpeakingRef.current = false
       setIsSpeaking(false)
     }
@@ -881,8 +938,6 @@ Return ONLY raw JSON, no markdown, no backticks:
     callActiveRef.current = true
     exchangeCountRef.current = 0
     chatRef.current = []
-    selectedVoiceIdRef.current = null
-    console.log('[VOICE] Voice reset for new call')
     isProcessingRef.current = false
     isSpeakingRef.current = false
     isListeningRef.current = false
@@ -1193,6 +1248,11 @@ Return ONLY raw JSON, no markdown, no backticks:
           <div className="flex gap-3 pb-4">
             <button
               onClick={() => {
+                // Unlock HTMLMediaElement audio context for iOS autoplay
+                try {
+                  const unlock = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+                  unlock.play().catch(() => {})
+                } catch (e) {}
                 setShowResults(false)
                 setResultsData(null)
                 setSecs(0)
@@ -1460,6 +1520,33 @@ export default function TrainingScreen() {
   const [inCall, setInCall] = useState(false)
   const [restartKey, setRestartKey] = useState(0)
 
+  const testVoice = async (gender) => {
+    const voiceId = getVoiceId(gender)
+    const key = import.meta.env.VITE_ELEVENLABS_API_KEY
+    console.log('[TEST] Testing voice:', voiceId)
+    console.log('[TEST] Key:', key ? 'present' : 'MISSING')
+    const url = await speakWithElevenLabs('Hello, this is a voice test.', voiceId, key)
+    if (url) {
+      const audio = new Audio(url)
+      audio.play().catch(e => {
+        console.error('[TEST] play() failed:', e.message)
+        alert('Audio blocked. Tap the screen first then test again.')
+      })
+      audio.onended = () => URL.revokeObjectURL(url)
+      console.log('[TEST] ✅ Voice test playing')
+    } else {
+      alert(
+        'ElevenLabs voice test failed.\n\n' +
+        'Check the console for the error.\n\n' +
+        'Common causes:\n' +
+        '1. API key wrong or expired\n' +
+        '2. Voice ID not found\n' +
+        '3. No internet connection\n' +
+        '4. Free tier limit reached'
+      )
+    }
+  }
+
   const handleEnd = (closePct, action) => {
     if (action !== 'restart') {
       dispatch({ type: 'COMPLETE_CALL', payload: { closed: closePct >= 70, dealValue: dealVal } })
@@ -1560,17 +1647,39 @@ export default function TrainingScreen() {
           </a>
         </div>
       ) : (
-        <div className="bg-green-500/10 border border-green-500/25 rounded-xl p-3 mb-4">
+        <div className="bg-green-500/10 border border-green-500/25 rounded-xl p-3 mb-3">
           <p className="text-[10px] font-bold text-green-400">✅ ElevenLabs voice enabled — real human audio active</p>
+        </div>
+      )}
+
+      {(import.meta.env.VITE_ELEVENLABS_API_KEY && import.meta.env.VITE_ELEVENLABS_API_KEY !== 'your_elevenlabs_key_here') && (
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => testVoice('female')}
+            className="flex-1 py-2 rounded-xl text-xs font-bold bg-purple-500/20 border border-purple-500/30 text-purple-300 hover:bg-purple-500/30 active:scale-95 transition-all"
+          >
+            🎙️ Test Female Voice
+          </button>
+          <button
+            onClick={() => testVoice('male')}
+            className="flex-1 py-2 rounded-xl text-xs font-bold bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:bg-blue-500/30 active:scale-95 transition-all"
+          >
+            🎙️ Test Male Voice
+          </button>
         </div>
       )}
 
       <button
         onClick={() => {
+          // Unlock both speech synthesis and HTMLMediaElement audio
           try {
             window.speechSynthesis.cancel()
             const prime = new SpeechSynthesisUtterance('')
             window.speechSynthesis.speak(prime)
+          } catch (e) {}
+          try {
+            const unlock = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+            unlock.play().catch(() => {})
           } catch (e) {}
           setInCall(true)
         }}

@@ -1,10 +1,9 @@
 const API_URL = 'https://api.anthropic.com/v1/messages'
 const MODEL = 'claude-sonnet-4-6'
 
-export const ELEVEN_VOICES = {
-  female: { id: 'g6xIsTj2HwM6VR4iXFCw', name: 'Female Prospect' },
-  male: { id: 'UgBBYS2sOqTuMpoF3BR0', name: 'Male Prospect' },
-}
+// Hardcoded voice IDs — do not change these
+export const VOICE_FEMALE_ID = 'g6xIsTj2HwM6VR4iXFCw'
+export const VOICE_MALE_ID = 'UgBBYS2sOqTuMpoF3BR0'
 
 const getHeaders = () => ({
   'Content-Type': 'application/json',
@@ -224,82 +223,96 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-async function fetchElevenLabsAudio(text, voiceId, apiKey) {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 12000)
+export async function speakWithElevenLabs(text, voiceId, apiKey) {
+  console.log('[ELEVEN] ==================')
+  console.log('[ELEVEN] Voice ID:', voiceId)
+  console.log('[ELEVEN] API Key length:', apiKey?.length)
+  console.log('[ELEVEN] Text:', text?.slice(0, 60))
+  console.log('[ELEVEN] ==================')
+
+  if (!voiceId || voiceId.length < 5) {
+    console.error('[ELEVEN] ❌ INVALID VOICE ID:', voiceId)
+    return null
+  }
+
+  if (!apiKey || apiKey.length < 10) {
+    console.error('[ELEVEN] ❌ API KEY MISSING OR TOO SHORT')
+    return null
+  }
+
+  if (!text || !text.trim()) {
+    console.error('[ELEVEN] ❌ EMPTY TEXT')
+    return null
+  }
+
+  const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
+  console.log('[ELEVEN] Calling:', endpoint)
+
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Accept': 'audio/mpeg',
+        'Content-Type': 'application/json',
+        'xi-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: 'eleven_turbo_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.85,
+          style: 0.25,
+          use_speaker_boost: true,
+        },
+      }),
+    })
+  } catch (networkErr) {
+    console.error('[ELEVEN] ❌ Network error:', networkErr.message)
+    return null
+  }
+
+  console.log('[ELEVEN] Status:', response.status)
+
+  if (!response.ok) {
+    let body = ''
+    try { body = await response.text() } catch (e) {}
+    console.error('[ELEVEN] ❌ Failed:', response.status, body)
+    if (response.status === 401) {
+      console.error('[ELEVEN] 401 = API key is wrong or expired')
+      console.error('[ELEVEN] Key used:', apiKey.slice(0, 8) + '...')
+    }
+    if (response.status === 422 || response.status === 404) {
+      console.error('[ELEVEN] 422/404 = Voice ID is wrong:', voiceId)
+    }
+    if (response.status === 429) {
+      console.error('[ELEVEN] 429 = Rate limit — too many requests')
+    }
+    return null
+  }
+
+  let blob
+  try {
+    blob = await response.blob()
+  } catch (blobErr) {
+    console.error('[ELEVEN] ❌ Blob error:', blobErr.message)
+    return null
+  }
+
+  if (!blob || blob.size === 0) {
+    console.error('[ELEVEN] ❌ Empty blob — no audio received')
+    return null
+  }
+
+  console.log('[ELEVEN] ✅ Got audio blob:', blob.size, 'bytes')
 
   try {
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': apiKey,
-          'Accept': 'audio/mpeg',
-        },
-        body: JSON.stringify({
-          text,
-          model_id: 'eleven_turbo_v2',
-          voice_settings: {
-            stability: 0.40,
-            similarity_boost: 0.85,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    )
-
-    clearTimeout(timeout)
-    console.log('[ELEVEN] HTTP status:', response.status)
-
-    if (response.status === 401) { console.error('[ELEVEN] 401 — Invalid API key'); return null }
-    if (response.status === 404) { console.error('[ELEVEN] 404 — Voice ID not found:', voiceId); return null }
-    if (response.status === 422) {
-      const err = await response.text()
-      console.error('[ELEVEN] 422 — Validation error:', err.slice(0, 300))
-      return null
-    }
-    if (response.status === 429) { console.error('[ELEVEN] 429 — Rate limit / quota exceeded'); return null }
-    if (!response.ok) {
-      const err = await response.text()
-      console.error('[ELEVEN] Error', response.status, ':', err.slice(0, 200))
-      return null
-    }
-
-    const blob = await response.blob()
-    console.log('[ELEVEN] Blob size:', blob.size, 'type:', blob.type)
-    if (blob.size < 500) { console.error('[ELEVEN] Blob too small:', blob.size); return null }
-
-    return URL.createObjectURL(blob)
-  } catch (err) {
-    clearTimeout(timeout)
-    if (err.name === 'AbortError') {
-      console.error('[ELEVEN] Request timed out after 12s')
-    } else {
-      console.error('[ELEVEN] Network error:', err.message)
-    }
+    const url = URL.createObjectURL(blob)
+    console.log('[ELEVEN] ✅ URL created')
+    return url
+  } catch (urlErr) {
+    console.error('[ELEVEN] ❌ URL creation failed:', urlErr.message)
     return null
   }
-}
-
-export async function speakWithElevenLabs(text, voiceId, apiKey) {
-  if (!apiKey || apiKey === 'your_elevenlabs_key_here') {
-    console.warn('[ELEVEN] No API key')
-    return null
-  }
-
-  console.log('[ELEVEN] Requesting voice:', voiceId, '| chars:', text.length)
-
-  let url = await fetchElevenLabsAudio(text, voiceId, apiKey)
-  if (url) { console.log('[ELEVEN] ✅ Got audio'); return url }
-
-  console.warn('[ELEVEN] Attempt 1 failed — retrying in 1.5s...')
-  await new Promise(r => setTimeout(r, 1500))
-  url = await fetchElevenLabsAudio(text, voiceId, apiKey)
-  if (url) { console.log('[ELEVEN] ✅ Got audio on retry'); return url }
-
-  console.error('[ELEVEN] Both attempts failed — falling back to browser TTS')
-  return null
 }
