@@ -206,7 +206,9 @@ const buildSystemPrompt = (profile, industry, difficulty, language, mode, person
     ? `\nThe rep sells: ${customBrain.offer}. Their ideal customer: ${customBrain.icp}.`
     : ''
 
-  return `You are ${profile.name}, ${profile.age} years old.
+  return `CRITICAL: This entire conversation must be conducted in ${language}. Every single word you say must be in ${language}. Do not use any other language under any circumstances.
+
+You are ${profile.name}, ${profile.age} years old.
 Job: ${profile.occupation}
 Mood today: ${profile.mood_today || profile.mood || 'neutral'}
 How you talk: ${profile.speech_pattern || profile.speech || 'conversational'}
@@ -495,7 +497,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setIsSpeaking(true)
 
     try {
-      const audioUrl = await elevenLabsSpeak(text, gender)
+      const audioUrl = await elevenLabsSpeak(text, gender, language)
       if (audioUrl) {
         await playElevenLabsAudio(audioUrl, text.length)
         console.log('[SPEAK] ElevenLabs done ✅')
@@ -954,7 +956,7 @@ Return ONLY raw JSON, no markdown, no backticks:
 
     const userCount = callMsgRef.current.filter(m => m.role === 'usr').length
     if (mode === 'bru' && userCount % 3 === 0) {
-      getBrutalFeedback(text).then(fb => {
+      getBrutalFeedback(text, language).then(fb => {
         addMsg('brutal', '😤 BLITZ: ' + fb.replace(/^(BLITZ:|Blitz:)/i, '').trim(), true)
       }).catch(() => {})
     }
@@ -1432,8 +1434,8 @@ export default function TrainingScreen() {
   const [restartKey, setRestartKey] = useState(0)
 
   const testVoice = async (gender) => {
-    console.log('[TEST] Testing', gender, 'voice')
-    const url = await elevenLabsSpeak('Hello, this is a voice test.', gender)
+    console.log('[TEST] Testing', gender, 'voice in', state.language)
+    const url = await elevenLabsSpeak('Hello, this is a voice test.', gender, state.language)
     if (url) {
       const audio = new Audio(url)
       audio.play().catch(e => {

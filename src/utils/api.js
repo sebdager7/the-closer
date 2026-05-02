@@ -127,7 +127,6 @@ Write a sales pitch for:
 - Framework: ${framework}
 - Audience: ${audience || 'general prospect'}
 - Keywords to include: ${keywords || 'none specified'}
-- Language: ${language}
 ${brainCtx}
 
 REQUIREMENTS:
@@ -144,7 +143,9 @@ Respond with ONLY a raw JSON object.
 No markdown. No backticks. No explanation before or after.
 Start your response with { and end with }
 
-{"pitch":"the full pitch text here","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["Andy Elliott","Grant Cardone"],"technique_used":"Assumptive Close + Pattern Interrupt","feedback":"2-3 sentence coaching note on what makes this pitch hit","strength_tags":["Strong Hook","Assumptive Close","Social Proof"],"power_moments":["first strongest line from the pitch","second strongest line","third strongest line"]}`
+{"pitch":"the full pitch text here","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["Andy Elliott","Grant Cardone"],"technique_used":"Assumptive Close + Pattern Interrupt","feedback":"2-3 sentence coaching note on what makes this pitch hit","strength_tags":["Strong Hook","Assumptive Close","Social Proof"],"power_moments":["first strongest line from the pitch","second strongest line","third strongest line"]}
+
+CRITICAL: Write the ENTIRE pitch and ALL JSON field values in ${language}. Every single word of the pitch, feedback, strength_tags, and power_moments must be in ${language}. This is non-negotiable.`
 
   console.log('[PITCH] Generating pitch for:', product, 'using', framework)
 
@@ -169,14 +170,16 @@ STEP 1 — DIAGNOSE this pitch for these 8 specific weaknesses:
 7. Missing social proof or authority
 8. No tonality direction (reads flat)
 
-STEP 2 — REBUILD using ${framework} patterns. Inject real closer power. Language: ${language}.
+STEP 2 — REBUILD using ${framework} patterns. Inject real closer power.
 
 Original pitch: "${existingPitch}"
 Industry: ${industry}
 
 Respond with ONLY a raw JSON object. No markdown. No backticks. Start with { end with }
 
-{"pitch":"completely rebuilt 150-200 word pitch","hook_score":0,"confidence_score":0,"close_score":0,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":["exact quote from rebuilt pitch showing elite technique 1","exact quote showing technique 2","exact quote showing technique 3"]}`
+{"pitch":"completely rebuilt 150-200 word pitch","hook_score":0,"confidence_score":0,"close_score":0,"feedback":"what framework was applied and how","strength_tags":["tag1","tag2","tag3"],"framework_applied":"${framework}","what_was_wrong":["specific weakness 1","specific weakness 2","specific weakness 3"],"what_was_fixed":["exactly how fix 1 was applied","exactly how fix 2","exactly how fix 3"],"power_moments":["exact quote from rebuilt pitch showing elite technique 1","exact quote showing technique 2","exact quote showing technique 3"]}
+
+CRITICAL: Write EVERYTHING — the pitch, feedback, all tags, all analysis — entirely in ${language}. Every single word must be in ${language}.`
 
   console.log('[improvePitch] framework:', framework, '| industry:', industry)
   const raw = await callClaude(prompt, 1400)
@@ -186,9 +189,9 @@ Respond with ONLY a raw JSON object. No markdown. No backticks. Start with { end
   return result
 }
 
-export async function getBrutalFeedback(userText) {
-  const prompt = `Brutal sales coach Andy Elliott style. Find the biggest mistake in: "${userText}". 1-2 sentence brutal callout with the elite version. Start with "BLITZ:".`
-  return callClaude(prompt, 110)
+export async function getBrutalFeedback(userText, language = 'English') {
+  const prompt = `Brutal sales coach Andy Elliott style. Find the biggest mistake in: "${userText}". 1-2 sentence brutal callout with the elite version. Start with "BLITZ:". Respond in ${language}.`
+  return callClaude(prompt, 120)
 }
 
 export async function getReframes(objection, language) {
@@ -201,8 +204,10 @@ export async function getRebuttal(objection, industry, language, customBrain = {
   const brainCtx = customBrain.offer
     ? `Company context: ${customBrain.offer}. ICP: ${customBrain.icp}.`
     : ''
-  const prompt = `Elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone. Industry: "${industry}". Objection: "${objection}". ${brainCtx} Language: ${language}. Respond with ONLY raw JSON, no markdown: {"soft":{"script":"Andy Elliott empathize-then-close rebuttal","tone":"warm but certain","closer":"Andy Elliott — Soft Close","followup":"follow-up line"},"direct":{"script":"Jordan Belfort direct confident rebuttal","tone":"certain and belief-driven","closer":"Jordan Belfort — Direct","followup":"follow-up line"},"aggressive":{"script":"Grant Cardone bold aggressive rebuttal","tone":"high energy and bold","closer":"Grant Cardone — Aggressive","followup":"follow-up line"}}`
-  const raw = await callClaude(prompt)
+  const prompt = `Elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone. Industry: "${industry}". Objection: "${objection}". ${brainCtx} Respond with ONLY raw JSON, no markdown: {"soft":{"script":"Andy Elliott empathize-then-close rebuttal","tone":"warm but certain","closer":"Andy Elliott — Soft Close","followup":"follow-up line"},"direct":{"script":"Jordan Belfort direct confident rebuttal","tone":"certain and belief-driven","closer":"Jordan Belfort — Direct","followup":"follow-up line"},"aggressive":{"script":"Grant Cardone bold aggressive rebuttal","tone":"high energy and bold","closer":"Grant Cardone — Aggressive","followup":"follow-up line"}}
+
+CRITICAL: You MUST write every single word of every JSON value in ${language}. The "script", "tone", "closer", and "followup" fields must all be written entirely in ${language}. Do not use English if ${language} is not English. Every word must be in ${language}.`
+  const raw = await callClaude(prompt, 1200)
   return parseJSON(raw)
 }
 
@@ -219,13 +224,20 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-export async function elevenLabsSpeak(text, gender) {
+const ELEVEN_LANG_MAP = {
+  'English': 'en', 'Spanish': 'es', 'Portuguese': 'pt', 'French': 'fr',
+  'German': 'de', 'Italian': 'it', 'Mandarin Chinese': 'zh',
+  'Japanese': 'ja', 'Arabic': 'ar', 'Hindi': 'hi',
+}
+
+export async function elevenLabsSpeak(text, gender, language = 'English') {
   const FEMALE_VOICE = 'g6xIsTj2HwM6VR4iXFCw'
   const MALE_VOICE = 'UgBBYS2sOqTuMpoF3BR0'
   const voiceId = gender === 'male' ? MALE_VOICE : FEMALE_VOICE
   const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
+  const langCode = ELEVEN_LANG_MAP[language] || 'en'
 
-  console.log('[ELEVEN] gender:', gender, '| voiceId:', voiceId)
+  console.log('[ELEVEN] gender:', gender, '| voiceId:', voiceId, '| language_code:', langCode)
   console.log('[ELEVEN] apiKey length:', apiKey?.length)
 
   if (!text?.trim()) { console.error('[ELEVEN] Empty text'); return null }
@@ -243,7 +255,8 @@ export async function elevenLabsSpeak(text, gender) {
       body: JSON.stringify({
         text: text.trim(),
         model_id: 'eleven_turbo_v2',
-        voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.25, use_speaker_boost: true },
+        language_code: langCode,
+        voice_settings: { stability: 0.5, similarity_boost: 0.85, style: 0.3, use_speaker_boost: true },
       }),
     })
   } catch (err) {

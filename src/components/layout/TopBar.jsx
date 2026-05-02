@@ -77,7 +77,7 @@ export default function TopBar() {
   const { state, dispatch } = useApp()
   const isDark = state.theme !== 'light'
   const badge = PLAN_BADGES[state.plan || 'free']
-  const badgeCls = isDark ? badge.dark : badge.light
+  const badgeCls = badge.dark
 
   return (
     <header
@@ -89,7 +89,7 @@ export default function TopBar() {
         <BlitzIcon size={26} />
         <div>
           <div className="text-sm font-bubble text-gold-400 tracking-wide leading-none">THE CLOSER</div>
-          <div className="text-[7px] tracking-[0.15em] uppercase mt-0.5" style={{ color: 'var(--text-muted)' }}>Elite Sales Intelligence</div>
+          <div className="text-[7px] tracking-[0.15em] uppercase mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Elite Sales Intelligence</div>
         </div>
       </div>
 
@@ -112,9 +112,9 @@ export default function TopBar() {
           }}
           className="text-xs rounded-lg px-1.5 py-1 border focus:outline-none transition-colors cursor-pointer"
           style={{
-            background: isDark ? 'rgba(255,255,255,0.1)' : '#ffffff',
-            borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#d1d9ef',
-            color: 'var(--text-primary)',
+            background: 'rgba(255,255,255,0.12)',
+            borderColor: 'rgba(255,255,255,0.2)',
+            color: '#ffffff',
           }}
         >
           {LANGUAGES.map(l => (
