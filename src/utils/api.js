@@ -239,10 +239,28 @@ FINAL REMINDER: All text values must be in ${language}.`
   return parseJSON(raw)
 }
 
-export async function generateProspectProfile(industry, difficulty) {
-  const prompt = `Generate a realistic sales prospect for a ${industry} cold call. Difficulty: ${difficulty}. Respond with ONLY raw JSON, no markdown:
-{"name":"Full Name","age":42,"occupation":"specific job title","location":"City, State","personality":"2-sentence personality description","mood_today":"brief current mood affecting how they answer","main_objection":"their most likely specific objection","trigger_to_buy":"what would make them say yes","speech_pattern":"how they talk — pace, formality, verbal habits","backstory":"2-sentence personal context","opening_line":"exactly how they answer this unexpected call"}`
-  const raw = await callClaude(prompt, 500)
+export async function generateProspectProfile(industry, difficulty, hints = {}) {
+  const { name, gender, personalityType, mood } = hints
+
+  const nameLine = name ? `Name: ${name} (use this exact name)` : 'Generate a realistic full name'
+  const genderLine = gender ? `Gender: ${gender}` : 'Pick a gender'
+  const personalityLine = personalityType
+    ? `Personality archetype: ${personalityType.type}. Speech style: ${personalityType.speech}.`
+    : 'Give them a distinct personality'
+  const moodLine = mood ? `Mood today: ${mood}` : 'Give them a realistic current mood'
+
+  const prompt = `Generate a realistic and unique sales prospect for a ${industry} cold call. Difficulty: ${difficulty}.
+${nameLine}
+${genderLine}
+${personalityLine}
+${moodLine}
+
+Make this person feel completely real — specific job, specific life situation, specific reason they would or would not be interested in ${industry}.
+
+Respond with ONLY raw JSON, no markdown:
+{"name":"${name || 'Full Name'}","gender":"${gender || 'female'}","age":42,"occupation":"specific job title","location":"City, State","personality":"2-sentence personality description","mood_today":"brief current mood affecting how they answer","main_objection":"their most likely specific objection","trigger_to_buy":"what would make them say yes","speech_pattern":"how they talk — pace, formality, verbal habits","backstory":"2-sentence personal context","opening_line":"exactly how they answer this unexpected call"}`
+
+  const raw = await callClaude(prompt, 550)
   return parseJSON(raw)
 }
 
@@ -254,10 +272,10 @@ export async function runAutopsy(transcript, closePct, dealValue) {
 
 export async function elevenLabsSpeak(text, gender, language = 'English') {
   // ============================================
-  // HARDCODED VOICE IDs — DO NOT CHANGE
+  // VOICE IDs — UPDATED
   // ============================================
-  const FEMALE_ID = 'g6xIsTj2HwM6VR4iXFCw'
-  const MALE_ID   = 'UgBBYS2sOqTuMpoF3BR0'
+  const FEMALE_ID = 'cNYrMw9glwJZXR8RwbuR'
+  const MALE_ID   = 'ljX1ZrXuDIIRVcmiVSyR'
   // ============================================
 
   const voiceId = (gender === 'male') ? MALE_ID : FEMALE_ID
@@ -340,8 +358,8 @@ export async function elevenLabsSpeak(text, gender, language = 'English') {
     if (response.status === 404) {
       console.error('[ELEVEN] 404 = Voice ID not found in your account')
       console.error('[ELEVEN] Check voice exists: elevenlabs.io/app/voice-library')
-      console.error('[ELEVEN] Female ID used:', FEMALE_ID)
-      console.error('[ELEVEN] Male ID used:', MALE_ID)
+      console.error('[ELEVEN] Female ID used:', FEMALE_ID, '(cNYrMw9glwJZXR8RwbuR)')
+      console.error('[ELEVEN] Male ID used:', MALE_ID, '(ljX1ZrXuDIIRVcmiVSyR)')
     }
     if (response.status === 422) {
       console.error('[ELEVEN] 422 = Invalid request format')

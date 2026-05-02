@@ -3,7 +3,7 @@ import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
 import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, elevenLabsSpeak, playAudioBlob } from '../utils/api'
-import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES } from '../data/constants'
+import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES, PROSPECT_PERSONALITIES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
 import { TrophyEmoji, LightningEmoji } from '../components/icons/CustomEmoji'
 
@@ -741,34 +741,54 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     let cancelled = false
     const load = async () => {
       setGeneratingProfile(true)
+
+      // 60% female, 40% male
+      const gender = Math.random() < 0.6 ? 'female' : 'male'
+      const namePool = PROSPECT_NAMES[gender] || PROSPECT_NAMES.female
+      const nameEntry = namePool[Math.floor(Math.random() * namePool.length)]
+      const personalityPool = PROSPECT_PERSONALITIES[gender] || PROSPECT_PERSONALITIES.female
+      const personalityType = personalityPool[Math.floor(Math.random() * personalityPool.length)]
+      const mood = personalityType.mood_templates[Math.floor(Math.random() * personalityType.mood_templates.length)]
+
+      console.log('[PROSPECT] Generating:', nameEntry[0], gender, personalityType.type)
+
       try {
-        const profile = await generateProspectProfile(industry, difficulty)
+        const profile = await generateProspectProfile(industry, difficulty, {
+          name: nameEntry[0],
+          gender,
+          personalityType,
+          mood,
+        })
         if (!cancelled) {
-          if (!profile.gender) profile.gender = Math.random() > 0.5 ? 'female' : 'male'
+          profile.gender = gender
+          profile.initials = nameEntry[1]
           const objPool = INDUSTRY_OBJECTIONS[industry]
           if (objPool) profile.main_objection = objPool[Math.floor(Math.random() * objPool.length)]
-          voicePersonalityRef.current = generateVoicePersonality(profile.gender)
+          voicePersonalityRef.current = generateVoicePersonality(gender)
           profileRef.current = profile
           setProspectProfile(profile)
-          console.log('[PROSPECT] Generated:', profile.name, profile.gender)
+          console.log('[PROSPECT] Generated:', profile.name, profile.gender, '|', personalityType.type)
         }
       } catch (e) {
         if (!cancelled) {
-          const gender = Math.random() > 0.5 ? 'female' : 'male'
-          const nameList = PROSPECT_NAMES[gender] || PROSPECT_NAMES.female
-          const fb = nameList[Math.floor(Math.random() * nameList.length)]
           const objPool = INDUSTRY_OBJECTIONS[industry] || INDUSTRY_OBJECTIONS['Door-to-Door']
+          const age = 28 + Math.floor(Math.random() * 34)
           const fallback = {
-            name: fb[0], gender, age: 42, occupation: 'Business Owner', location: 'Phoenix, AZ',
-            personality: 'Direct and skeptical. Values their time above all else.',
-            mood_today: 'Busy and slightly stressed.',
+            name: nameEntry[0],
+            gender,
+            initials: nameEntry[1],
+            age,
+            occupation: gender === 'female' ? 'Homeowner and part-time teacher' : 'Small business owner',
+            location: 'Austin, TX',
+            personality: `${personalityType.type}. ${personalityType.speech}`,
+            mood_today: mood,
             main_objection: objPool[Math.floor(Math.random() * objPool.length)],
-            trigger_to_buy: 'Clear ROI with specific numbers and fast results.',
-            speech_pattern: 'Short, direct. Few pleasantries.',
-            backstory: 'Has dealt with many salespeople.',
-            opening_line: 'Yeah?',
+            trigger_to_buy: 'Clear ROI with specific numbers and no commitment',
+            speech_pattern: personalityType.speech,
+            backstory: 'Works hard and watches every dollar carefully.',
+            opening_line: gender === 'female' ? 'Hello?' : 'Yeah?',
           }
-          voicePersonalityRef.current = generateVoicePersonality(fallback.gender)
+          voicePersonalityRef.current = generateVoicePersonality(gender)
           profileRef.current = fallback
           setProspectProfile(fallback)
         }
@@ -1578,20 +1598,19 @@ export default function TrainingScreen() {
         <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             onClick={async () => {
-              console.log('=== TESTING FEMALE VOICE ===')
+              console.log('=== TESTING FEMALE VOICE cNYrMw9glwJZXR8RwbuR ===')
               const url = await elevenLabsSpeak("Hello, who's calling?", 'female', state.language)
               if (url) {
-                await playAudioBlob(url, 30)
-                console.log('Female voice test ✅')
+                const a = new Audio(url)
+                a.play().catch(e => console.error('[TEST] blocked:', e.message))
+                a.onended = () => URL.revokeObjectURL(url)
+                console.log('Female voice ✅')
               } else {
                 alert(
-                  'Female voice FAILED.\n\n' +
-                  'Open DevTools console (F12) and look for\n' +
-                  '[ELEVEN] errors to see exactly why.\n\n' +
-                  'Common fixes:\n' +
-                  '1. Check VITE_ELEVENLABS_API_KEY in .env\n' +
-                  '2. Restart dev server after changing .env\n' +
-                  '3. Verify voice ID on elevenlabs.io'
+                  'Female voice failed.\n' +
+                  'Check console for [ELEVEN] errors.\n\n' +
+                  'Voice ID: cNYrMw9glwJZXR8RwbuR\n' +
+                  'Must be in your ElevenLabs account.'
                 )
               }
             }}
@@ -1607,20 +1626,19 @@ export default function TrainingScreen() {
 
           <button
             onClick={async () => {
-              console.log('=== TESTING MALE VOICE ===')
+              console.log('=== TESTING MALE VOICE ljX1ZrXuDIIRVcmiVSyR ===')
               const url = await elevenLabsSpeak("Yeah, who is this?", 'male', state.language)
               if (url) {
-                await playAudioBlob(url, 30)
-                console.log('Male voice test ✅')
+                const a = new Audio(url)
+                a.play().catch(e => console.error('[TEST] blocked:', e.message))
+                a.onended = () => URL.revokeObjectURL(url)
+                console.log('Male voice ✅')
               } else {
                 alert(
-                  'Male voice FAILED.\n\n' +
-                  'Open DevTools console (F12) and look for\n' +
-                  '[ELEVEN] errors to see exactly why.\n\n' +
-                  'Common fixes:\n' +
-                  '1. Check VITE_ELEVENLABS_API_KEY in .env\n' +
-                  '2. Restart dev server after changing .env\n' +
-                  '3. Verify voice ID on elevenlabs.io'
+                  'Male voice failed.\n' +
+                  'Check console for [ELEVEN] errors.\n\n' +
+                  'Voice ID: ljX1ZrXuDIIRVcmiVSyR\n' +
+                  'Must be in your ElevenLabs account.'
                 )
               }
             }}

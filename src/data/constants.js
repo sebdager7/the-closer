@@ -947,24 +947,163 @@ export const CONF_METRICS = [
 ]
 
 export const PROSPECT_NAMES = {
+  female: [
+    // Professional women
+    ['Ashley Martinez', 'AM'],
+    ['Jennifer Thompson', 'JT'],
+    ['Michelle Rodriguez', 'MR'],
+    ['Stephanie Johnson', 'SJ'],
+    ['Nicole Williams', 'NW'],
+    ['Amber Davis', 'AD'],
+    ['Brittany Wilson', 'BW'],
+    ['Samantha Brown', 'SB'],
+    ['Kayla Anderson', 'KA'],
+    ['Tiffany Jackson', 'TJ'],
+    // Homeowners / suburban
+    ['Linda Garcia', 'LG'],
+    ['Patricia Moore', 'PM'],
+    ['Barbara Taylor', 'BT'],
+    ['Susan Thomas', 'ST'],
+    ['Karen White', 'KW'],
+    ['Donna Harris', 'DH'],
+    ['Sharon Martin', 'SM'],
+    ['Carol Thompson', 'CT'],
+    ['Ruth Garcia', 'RG'],
+    ['Nancy Lewis', 'NL'],
+    // Business owners
+    ['Rachel Green', 'RG'],
+    ['Megan Clark', 'MC'],
+    ['Lauren Hall', 'LH'],
+    ['Chelsea Young', 'CY'],
+    ['Kristen Allen', 'KA'],
+    ['Danielle King', 'DK'],
+    ['Heather Wright', 'HW'],
+    ['Vanessa Scott', 'VS'],
+    ['Jasmine Torres', 'JT'],
+    ['Priya Patel', 'PP'],
+    // Diverse backgrounds
+    ['Aisha Washington', 'AW'],
+    ['Maria Santos', 'MS'],
+    ['Yuki Tanaka', 'YT'],
+    ['Elena Petrov', 'EP'],
+    ['Fatima Hassan', 'FH'],
+    ['Grace Okafor', 'GO'],
+    ['Sofia Reyes', 'SR'],
+    ['Hannah Fischer', 'HF'],
+  ],
   male: [
+    // Homeowners / suburban
     ['James Mitchell', 'JM'],
     ['Robert Chen', 'RC'],
     ['David Thompson', 'DT'],
-    ['Marcus Wright', 'MW'],
+    ['Michael Johnson', 'MJ'],
+    ['Christopher Lee', 'CL'],
+    ['William Garcia', 'WG'],
+    ['Daniel Brown', 'DB'],
+    ['Anthony Davis', 'AD'],
+    ['Kevin Wilson', 'KW'],
+    ['Brian Martinez', 'BM'],
+    // Business owners
+    ['Jason Scott', 'JS'],
+    ['Ryan Walker', 'RW'],
+    ['Eric Hall', 'EH'],
+    ['Tyler Young', 'TY'],
+    ['Justin Allen', 'JA'],
+    // Diverse backgrounds
     ['Carlos Rivera', 'CR'],
-    ['Tyler Brooks', 'TB'],
-    ['Kevin Hayes', 'KH'],
-    ['Brian Foster', 'BF'],
+    ['Marcus Williams', 'MW'],
+    ['Raj Patel', 'RP'],
+    ['Andre Jackson', 'AJ'],
+    ['Omar Hassan', 'OH'],
+    ['Diego Morales', 'DM'],
+    ['Viktor Petrov', 'VP'],
   ],
+}
+
+export const PROSPECT_PERSONALITIES = {
   female: [
-    ['Sarah Patterson', 'SP'],
-    ['Maria Gonzalez', 'MG'],
-    ['Karen Williams', 'KW'],
-    ['Aisha Johnson', 'AJ'],
-    ['Priya Patel', 'PP'],
-    ['Jessica Moore', 'JM'],
-    ['Rachel Torres', 'RT'],
-    ['Amanda Chen', 'AC'],
+    {
+      type: 'Busy Mom',
+      speech: 'Fast talker, says "I only have a minute", interrupts sometimes',
+      mood_templates: [
+        'Just got home from school pickup, tired but listening',
+        'In between Zoom calls, stressed about work deadline',
+        'Cooking dinner, can hear kids in background',
+      ],
+    },
+    {
+      type: 'Professional Woman',
+      speech: 'Precise and direct, asks sharp questions, values data',
+      mood_templates: [
+        'Finishing up end of quarter reports, focused',
+        'Just came from a long meeting, mentally drained',
+        'Had a productive morning, in a decent mood',
+      ],
+    },
+    {
+      type: 'Skeptical Homeowner',
+      speech: 'Cautious, has been burned before, asks "what\'s the catch"',
+      mood_templates: [
+        'Relaxing at home on a weekday, was just watching TV',
+        'Doing yard work, a bit annoyed by the interruption',
+        'Had coffee, in an okay mood but naturally suspicious',
+      ],
+    },
+    {
+      type: 'Friendly but Busy',
+      speech: 'Warm and polite but always says she needs to think about it',
+      mood_templates: [
+        'Running errands, called while walking into the store',
+        'Just sat down for lunch, has 15 minutes',
+        'Good morning energy, open to a quick conversation',
+      ],
+    },
+    {
+      type: 'Business Owner',
+      speech: 'ROI focused, asks about numbers immediately, no fluff',
+      mood_templates: [
+        'Between client calls, has 5 minutes max',
+        'Slow afternoon at the office, actually has time',
+        'Just dealt with a frustrating vendor, cautious',
+      ],
+    },
+  ],
+  male: [
+    {
+      type: 'Skeptical Homeowner',
+      speech: 'Short answers, says "yeah" and "look", gets suspicious fast',
+      mood_templates: [
+        'Watching the game, called at a bad time',
+        'Just got home from work, wants to relax',
+        'Doing home repairs, distracted',
+      ],
+    },
+    {
+      type: 'Busy Professional',
+      speech: 'Clipped and efficient, respects people who get to the point',
+      mood_templates: [
+        'Between back to back meetings, literally 3 minutes',
+        'Working late, tired but answering calls',
+        'Early morning before the day gets crazy',
+      ],
+    },
+    {
+      type: 'Price Focused',
+      speech: 'Everything comes back to cost, says "how much" early',
+      mood_templates: [
+        'Just paid a big bill, budget is on his mind',
+        'Comfortable afternoon, open to ideas that save money',
+        'Researching options online when call came in',
+      ],
+    },
+    {
+      type: 'Direct and Blunt',
+      speech: 'No small talk, "get to the point", respects confidence',
+      mood_templates: [
+        'Had 3 sales calls today already, short on patience',
+        'Feeling sharp and decisive today',
+        'Ran a good meeting this morning, in deal mode',
+      ],
+    },
   ],
 }
