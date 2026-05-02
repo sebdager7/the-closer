@@ -1010,12 +1010,12 @@ Return ONLY raw JSON, no markdown, no backticks:
       setMoodEmoji(emoji)
 
       setLoading(false)
-      isProcessingRef.current = false
 
       const gender = profileRef.current?.gender || 'female'
 
       if (checkForClose(reply)) {
         console.log('[CALL] 🏆 DEAL CLOSED after', exchangeCountRef.current, 'exchanges!')
+        isProcessingRef.current = false
         await speakText(reply, gender)
         showCallResults(true)
         return
@@ -1023,6 +1023,7 @@ Return ONLY raw JSON, no markdown, no backticks:
 
       if (checkForHangup(reply)) {
         console.log('[CALL] Prospect hung up')
+        isProcessingRef.current = false
         await speakText(reply, gender)
         setTimeout(() => showCallResults(false), 1000)
         return
@@ -1030,12 +1031,14 @@ Return ONLY raw JSON, no markdown, no backticks:
 
       if (emoji === '😡') {
         console.log('[CALL] Prospect rage quit')
+        isProcessingRef.current = false
         await speakText(reply, gender)
         setTimeout(() => showCallResults(false), 1500)
         return
       }
 
       console.log('[CALL] Speaking reply...')
+      isProcessingRef.current = false
       await speakText(reply, gender)
       console.log('[CALL] Reply spoken.')
 

@@ -224,20 +224,16 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-export async function speakWithElevenLabs(text, voiceId, apiKey) {
-  if (!apiKey || apiKey === 'your_elevenlabs_key_here') {
-    console.warn('[ELEVEN] No API key — cannot use ElevenLabs')
-    return null
-  }
-
-  console.log('[ELEVEN] Voice ID:', voiceId)
-  console.log('[ELEVEN] Text length:', text.length, '| Preview:', text.slice(0, 50))
+async function fetchElevenLabsAudio(text, voiceId, apiKey) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 12000)
 
   try {
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           'xi-api-key': apiKey,
@@ -249,33 +245,23 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
           voice_settings: {
             stability: 0.40,
             similarity_boost: 0.85,
-            style: 0.30,
             use_speaker_boost: true,
           },
-          optimize_streaming_latency: 3,
         }),
       }
     )
 
+    clearTimeout(timeout)
     console.log('[ELEVEN] HTTP status:', response.status)
 
-    if (response.status === 401) {
-      console.error('[ELEVEN] 401 — Invalid API key')
-      return null
-    }
-    if (response.status === 404) {
-      console.error('[ELEVEN] 404 — Voice ID not found:', voiceId)
-      return null
-    }
+    if (response.status === 401) { console.error('[ELEVEN] 401 — Invalid API key'); return null }
+    if (response.status === 404) { console.error('[ELEVEN] 404 — Voice ID not found:', voiceId); return null }
     if (response.status === 422) {
       const err = await response.text()
       console.error('[ELEVEN] 422 — Validation error:', err.slice(0, 300))
       return null
     }
-    if (response.status === 429) {
-      console.error('[ELEVEN] 429 — Rate limit / quota exceeded')
-      return null
-    }
+    if (response.status === 429) { console.error('[ELEVEN] 429 — Rate limit / quota exceeded'); return null }
     if (!response.ok) {
       const err = await response.text()
       console.error('[ELEVEN] Error', response.status, ':', err.slice(0, 200))
@@ -284,17 +270,36 @@ export async function speakWithElevenLabs(text, voiceId, apiKey) {
 
     const blob = await response.blob()
     console.log('[ELEVEN] Blob size:', blob.size, 'type:', blob.type)
+    if (blob.size < 500) { console.error('[ELEVEN] Blob too small:', blob.size); return null }
 
-    if (blob.size < 100) {
-      console.error('[ELEVEN] Blob too small — likely empty response')
-      return null
-    }
-
-    const url = URL.createObjectURL(blob)
-    console.log('[ELEVEN] ✅ Audio blob ready')
-    return url
+    return URL.createObjectURL(blob)
   } catch (err) {
-    console.error('[ELEVEN] Network error:', err)
+    clearTimeout(timeout)
+    if (err.name === 'AbortError') {
+      console.error('[ELEVEN] Request timed out after 12s')
+    } else {
+      console.error('[ELEVEN] Network error:', err.message)
+    }
     return null
   }
+}
+
+export async function speakWithElevenLabs(text, voiceId, apiKey) {
+  if (!apiKey || apiKey === 'your_elevenlabs_key_here') {
+    console.warn('[ELEVEN] No API key')
+    return null
+  }
+
+  console.log('[ELEVEN] Requesting voice:', voiceId, '| chars:', text.length)
+
+  let url = await fetchElevenLabsAudio(text, voiceId, apiKey)
+  if (url) { console.log('[ELEVEN] ✅ Got audio'); return url }
+
+  console.warn('[ELEVEN] Attempt 1 failed — retrying in 1.5s...')
+  await new Promise(r => setTimeout(r, 1500))
+  url = await fetchElevenLabsAudio(text, voiceId, apiKey)
+  if (url) { console.log('[ELEVEN] ✅ Got audio on retry'); return url }
+
+  console.error('[ELEVEN] Both attempts failed — falling back to browser TTS')
+  return null
 }
