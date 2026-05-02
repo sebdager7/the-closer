@@ -614,7 +614,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
         setIsListening(false)
         setTranscript('')
         try { r.stop() } catch (e) {}
-        handleVoiceInput(final.trim())
+        setTimeout(() => handleVoiceInput(final.trim()), 80)
       }
     }
 
@@ -1353,7 +1353,16 @@ Return ONLY raw JSON, no markdown, no backticks:
         {/* Mic button */}
         <div className="flex flex-col items-center gap-2 mb-2">
           <button
-            onClick={() => { if (isListening) stopListening(); else startListening() }}
+            onClick={() => {
+              if (isListening) {
+                stopListening()
+              } else {
+                // Force active — if call UI is visible the call is running
+                if (!callActiveRef.current) callActiveRef.current = true
+                isProcessingRef.current = false
+                startListening()
+              }
+            }}
             disabled={isSpeaking || loading}
             className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${isListening ? 'bg-red-500 scale-110' : 'bg-closer-blue hover:scale-105 active:scale-95'}`}
             style={isListening ? { animation: 'mic-pulse 1.2s ease-in-out infinite' } : { boxShadow: '0 8px 32px rgba(26,107,191,0.4)' }}
