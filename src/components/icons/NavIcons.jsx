@@ -1,14 +1,12 @@
 import React from 'react'
 
-const GLOW = '#1a6bbf'
-
-const g = (active) => active
-  ? { filter: `drop-shadow(0 0 5px ${GLOW}) drop-shadow(0 0 2px ${GLOW})` }
+const g = (active, color = '#1a6bbf') => active
+  ? { filter: `drop-shadow(0 0 5px ${color}) drop-shadow(0 0 2px ${color})` }
   : undefined
 
-export function ObjectionsIcon({ size = 20, active = false }) {
+export function ObjectionsIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Bubble body */}
       <path d="M3 5a3 3 0 013-3h12a3 3 0 013 3v8a3 3 0 01-3 3H9.5L5 20v-4H6a3 3 0 01-3-3V5z"
         fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2.3" strokeLinejoin="round" strokeLinecap="round"/>
@@ -18,9 +16,9 @@ export function ObjectionsIcon({ size = 20, active = false }) {
   )
 }
 
-export function PitchIcon({ size = 20, active = false }) {
+export function PitchIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Pencil body */}
       <path d="M16.5 3.5a2 2 0 013 3L8 18l-4 1 1-4L16.5 3.5z"
         fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2.3" strokeLinejoin="round" strokeLinecap="round"/>
@@ -32,9 +30,9 @@ export function PitchIcon({ size = 20, active = false }) {
   )
 }
 
-export function PsychologyIcon({ size = 20, active = false }) {
+export function PsychologyIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Brain left lobe */}
       <path d="M12 5c-4 0-7 2.5-7 6 0 1.8.8 3.4 2 4.5-.8.8-1.3 2-1 3.3.3 1.3 1.4 2.2 2.7 2.2H12"
         fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -51,9 +49,9 @@ export function PsychologyIcon({ size = 20, active = false }) {
   )
 }
 
-export function TrainingIcon({ size = 20, active = false }) {
+export function TrainingIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Antenna */}
       <line x1="12" y1="1.5" x2="12" y2="5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
       <circle cx="12" cy="1.5" r="1.5" fill="currentColor"/>
@@ -71,9 +69,9 @@ export function TrainingIcon({ size = 20, active = false }) {
   )
 }
 
-export function ProgressIcon({ size = 20, active = false }) {
+export function ProgressIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Bar 1 */}
       <rect x="2" y="17" width="5" height="5" rx="1.2" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2.2"/>
       {/* Bar 2 */}
@@ -87,9 +85,9 @@ export function ProgressIcon({ size = 20, active = false }) {
   )
 }
 
-export function BrainNavIcon({ size = 20, active = false }) {
+export function BrainNavIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Head silhouette */}
       <path d="M7 22v-2.5c0-1.2.6-2.3 1.5-3C7.6 15.6 7 14.4 7 13c0-2.8 2.2-5 5-5s5 2.2 5 5c0 1.4-.6 2.6-1.5 3.5.9.7 1.5 1.8 1.5 3V22"
         fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -104,9 +102,9 @@ export function BrainNavIcon({ size = 20, active = false }) {
   )
 }
 
-export function AgencyIcon({ size = 20, active = false }) {
+export function AgencyIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Crown */}
       <path d="M7 9l5-5 5 5 2.5-3v4.5H4.5V6L7 9z"
         fill="currentColor" fillOpacity="0.3" stroke="currentColor" strokeWidth="2.1" strokeLinejoin="round" strokeLinecap="round"/>
@@ -122,9 +120,9 @@ export function AgencyIcon({ size = 20, active = false }) {
   )
 }
 
-export function ChatIcon({ size = 20, active = false }) {
+export function ChatIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Back bubble (top-right) */}
       <path d="M9 3h9a3 3 0 013 3v5a3 3 0 01-3 3h-1v3l-4-3H9a3 3 0 01-3-3V6a3 3 0 013-3z"
         fill="currentColor" fillOpacity="0.13" stroke="currentColor" strokeWidth="2.1" strokeLinejoin="round"/>
@@ -138,9 +136,9 @@ export function ChatIcon({ size = 20, active = false }) {
   )
 }
 
-export function PlansIcon({ size = 20, active = false }) {
+export function PlansIcon({ size = 20, active = false, activeColor }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active)}>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={g(active, activeColor)}>
       {/* Shield */}
       <path d="M12 2L3.5 6v6c0 4.8 3.7 9.3 8.5 10.7C16.8 21.3 20.5 16.8 20.5 12V6L12 2z"
         fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="2.3" strokeLinejoin="round" strokeLinecap="round"/>

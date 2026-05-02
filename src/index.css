@@ -20,21 +20,21 @@
   --cursor-money: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect x='1' y='14' width='22' height='8' rx='2' fill='%2322c55e' stroke='%23166534' stroke-width='1'/%3E%3Crect x='3' y='15.5' width='18' height='5' rx='1' fill='%2316a34a'/%3E%3Crect x='1' y='10' width='22' height='8' rx='2' fill='%2316a34a' stroke='%23166534' stroke-width='1'/%3E%3Crect x='3' y='11.5' width='18' height='5' rx='1' fill='%2315803d'/%3E%3Crect x='1' y='6' width='22' height='8' rx='2' fill='%2315803d' stroke='%23166534' stroke-width='1'/%3E%3Crect x='3' y='7.5' width='18' height='5' rx='1' fill='%23166534'/%3E%3Ctext x='12' y='12.5' font-family='Arial' font-size='5' font-weight='bold' fill='%2386efac' text-anchor='middle'%3E%24%3C/text%3E%3C/svg%3E") 4 4, auto;
 }
 
-/* Light mode */
+/* Gold/Navy Day Mode */
 :root.light {
-  --bg-primary: #f0f4ff;
-  --bg-secondary: #e4ecff;
-  --bg-card: #ffffff;
-  --text-primary: #0a1628;
-  --text-secondary: rgba(10,22,40,0.65);
-  --text-muted: rgba(10,22,40,0.4);
-  --border: rgba(10,22,40,0.12);
-  --border-light: rgba(10,22,40,0.06);
-  --navy-900: #dde8ff;
-  --navy-800: #e8eeff;
-  --nav-bg: #ffffff;
-  --topbar-bg: #0a2744;
-  --topbar-border: rgba(13,58,110,0.8);
+  --bg-primary: #0d1a2e;
+  --bg-secondary: #111f38;
+  --bg-card: #142440;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.75);
+  --text-muted: rgba(200,168,74,0.55);
+  --border: rgba(200,168,74,0.25);
+  --border-light: rgba(200,168,74,0.12);
+  --navy-900: #0d1a2e;
+  --navy-800: #142440;
+  --nav-bg: #0a1628;
+  --topbar-bg: #0d1a2e;
+  --topbar-border: rgba(200,168,74,0.4);
 }
 
 
@@ -292,76 +292,45 @@ textarea {
   }
 }
 
-/* ── Light mode global overrides ─────────────────────────────── */
+/* ── Gold/Navy Day Mode overrides ───────────────────────────── */
 
 :root.light body {
   background: var(--bg-primary);
   color: var(--text-primary);
 }
 
-/* ── Page / screen backgrounds ─── */
-:root.light .bg-navy-950,
-:root.light .bg-navy-900 { background-color: #f0f4ff !important; background-image: none !important; }
-:root.light .bg-navy-800 { background-color: #ffffff !important; background-image: none !important; }
-:root.light .bg-gray-950,
-:root.light .bg-gray-900 { background-color: #eef2ff !important; }
+/* closer-blue → gold accent in day mode */
+:root.light .text-closer-blue           { color: #c8a84a !important; }
+:root.light .bg-closer-blue             { background-color: #c8a84a !important; }
+:root.light .border-closer-blue         { border-color: #c8a84a !important; }
+:root.light .border-closer-blue\/30     { border-color: rgba(200,168,74,0.35) !important; }
+:root.light .hover\:bg-blue-600:hover   { background-color: #b8942a !important; }
+:root.light .focus\:border-closer-blue:focus { border-color: #c8a84a !important; }
 
-/* Gradient resets — bg-gradient-to-* using navy colors */
-:root.light [class*="from-navy-"] { background-image: none !important; background-color: #f0f4ff !important; }
-:root.light [class*="from-gray-9"] { background-image: none !important; background-color: #eef2ff !important; }
+/* Border opacity classes → gold tint */
+:root.light .border-white\/5    { border-color: rgba(200,168,74,0.08) !important; }
+:root.light .border-white\/10   { border-color: rgba(200,168,74,0.18) !important; }
+:root.light .border-white\/15   { border-color: rgba(200,168,74,0.25) !important; }
+:root.light .border-white\/20   { border-color: rgba(200,168,74,0.30) !important; }
+:root.light .border-white\/30   { border-color: rgba(200,168,74,0.38) !important; }
 
-/* ── Subtle panel / card backgrounds ─── */
-:root.light .bg-white\/5   { background-color: rgba(10,22,40,0.03) !important; }
-:root.light .bg-white\/8   { background-color: rgba(10,22,40,0.04) !important; }
-:root.light .bg-white\/10  { background-color: rgba(10,22,40,0.05) !important; }
-:root.light .bg-white\/15  { background-color: rgba(10,22,40,0.07) !important; }
-:root.light .bg-white\/20  { background-color: rgba(10,22,40,0.09) !important; }
-:root.light .bg-white\/25  { background-color: rgba(10,22,40,0.10) !important; }
-:root.light .bg-navy-800\/70,
-:root.light .bg-navy-800\/60,
-:root.light .bg-navy-800\/50 { background-color: rgba(255,255,255,0.9) !important; background-image: none !important; }
-:root.light .bg-navy-900\/60,
-:root.light .bg-navy-900\/50 { background-color: rgba(240,244,255,0.9) !important; background-image: none !important; }
-
-/* ── Text — preserve opacity hierarchy ─── */
-:root.light .text-white        { color: #0a1628 !important; }
-:root.light .text-white\/90    { color: rgba(10,22,40,0.90) !important; }
-:root.light .text-white\/85    { color: rgba(10,22,40,0.85) !important; }
-:root.light .text-white\/80    { color: rgba(10,22,40,0.80) !important; }
-:root.light .text-white\/70    { color: rgba(10,22,40,0.68) !important; }
-:root.light .text-white\/60    { color: rgba(10,22,40,0.58) !important; }
-:root.light .text-white\/50    { color: rgba(10,22,40,0.50) !important; }
-:root.light .text-white\/40    { color: rgba(10,22,40,0.40) !important; }
-:root.light .text-white\/30    { color: rgba(10,22,40,0.30) !important; }
-:root.light .text-white\/25    { color: rgba(10,22,40,0.25) !important; }
-:root.light .text-white\/20    { color: rgba(10,22,40,0.20) !important; }
-
-/* ── Borders ─── */
-:root.light .border-white\/5   { border-color: rgba(10,22,40,0.06) !important; }
-:root.light .border-white\/10  { border-color: rgba(10,22,40,0.09) !important; }
-:root.light .border-white\/15  { border-color: rgba(10,22,40,0.11) !important; }
-:root.light .border-white\/20  { border-color: rgba(10,22,40,0.14) !important; }
-:root.light .border-white\/30  { border-color: rgba(10,22,40,0.18) !important; }
-
-/* ── Inputs and textareas ─── */
+/* Inputs / textareas — gold border, dark navy bg */
 :root.light input[type="text"],
 :root.light input[type="number"],
 :root.light input[type="email"],
-:root.light textarea,
-:root.light select {
-  background-color: #ffffff !important;
-  color: #0a1628 !important;
-  border-color: #d1d9ef !important;
+:root.light textarea {
+  background-color: rgba(20,36,64,0.7) !important;
+  color: #ffffff !important;
+  border-color: rgba(200,168,74,0.3) !important;
 }
 :root.light input::placeholder,
-:root.light textarea::placeholder { color: rgba(10,22,40,0.30) !important; }
+:root.light textarea::placeholder { color: rgba(200,168,74,0.35) !important; }
 
-/* ── Smooth transitions on theme switch ─── */
-body, header, nav,
-.bg-navy-950, .bg-navy-900, .bg-navy-800,
-.bg-gray-900, .bg-gray-950,
-.bg-white\/5, .bg-white\/8, .bg-white\/10, .bg-white\/15, .bg-white\/20,
-.text-white,
-input, textarea, select {
+/* Gold scrollbar */
+:root.light ::-webkit-scrollbar-thumb       { background: rgba(200,168,74,0.3); }
+:root.light ::-webkit-scrollbar-thumb:hover { background: rgba(200,168,74,0.5); }
+
+/* Smooth transitions */
+body, header, nav, input, textarea, select {
   transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }

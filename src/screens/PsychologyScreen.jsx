@@ -71,28 +71,20 @@ function playXpPing() {
   } catch (e) {}
 }
 
-const adjustColorForLight = (hexColor) => {
-  const lightMap = {
-    '#5aae4a': '#2d7a1f',
-    '#ff8050': '#c04010',
-    '#a060f0': '#6020b0',
-    '#ff4444': '#c00000',
-  }
-  return lightMap[hexColor] || hexColor
-}
+const adjustColorForLight = (hexColor) => hexColor
 
 // ─── HUD ──────────────────────────────────────────────────────────────────────
 function Hud({ xp, gems, streak, isLight }) {
   const xpPct = Math.min(xp / 1000 * 100, 100)
-  const lbl = { color: isLight ? '#6b87a8' : '#4a6a9a' }
+  const lbl = { color: isLight ? 'rgba(200,168,74,0.65)' : '#4a6a9a' }
   return (
     <div
       className="px-3 py-1.5 flex items-center justify-between gap-3 flex-shrink-0 border-b-2 transition-colors duration-200"
-      style={{ background: isLight ? '#f0f4ff' : '#0a0a1a', borderColor: isLight ? '#c8d8f0' : '#1a1a3a' }}
+      style={{ background: isLight ? '#0d1a2e' : '#0a0a1a', borderColor: isLight ? 'rgba(200,168,74,0.35)' : '#1a1a3a' }}
     >
       <div className="flex flex-col items-center">
         <span className="text-[6px] font-bold uppercase tracking-widest" style={lbl}>Score</span>
-        <span className="text-xs font-bold font-mono" style={{ color: isLight ? '#c8900a' : '#facc15' }}>{(xp * 100).toLocaleString()}</span>
+        <span className="text-xs font-bold font-mono" style={{ color: isLight ? '#e8c870' : '#facc15' }}>{(xp * 100).toLocaleString()}</span>
       </div>
       <div className="flex flex-col items-center">
         <span className="text-[6px] font-bold uppercase tracking-widest" style={lbl}>Streak</span>
@@ -100,15 +92,15 @@ function Hud({ xp, gems, streak, isLight }) {
       </div>
       <div className="flex flex-col items-center">
         <span className="text-[6px] font-bold uppercase tracking-widest" style={lbl}>Rings</span>
-        <span className="text-xs font-bold" style={{ color: isLight ? '#c8900a' : '#facc15' }}>💎{gems}</span>
+        <span className="text-xs font-bold" style={{ color: isLight ? '#e8c870' : '#facc15' }}>💎{gems}</span>
       </div>
       <div className="flex-1 max-w-[90px]">
         <span className="text-[6px] font-bold uppercase tracking-widest block mb-1" style={lbl}>XP</span>
         <div
           className="h-1.5 rounded-full overflow-hidden"
           style={{
-            background: isLight ? '#d1ddf0' : '#1a1a3a',
-            border: `1px solid ${isLight ? '#b8c8e8' : '#2a2a5a'}`,
+            background: isLight ? '#0f2540' : '#1a1a3a',
+            border: `1px solid ${isLight ? 'rgba(200,168,74,0.25)' : '#2a2a5a'}`,
           }}
         >
           <div className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full transition-all" style={{ width: `${xpPct}%` }} />
@@ -175,18 +167,18 @@ function ActCard({ act, zone, actIndex, isActive, isDone, isLocked, onClick, isL
           <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-green-500 flex items-center justify-center text-[6px] font-bold text-white z-10">✓</div>
         )}
         {isLocked && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: isLight ? 'rgba(200,210,230,0.75)' : 'rgba(0,0,0,0.55)' }}>
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: isLight ? 'rgba(10,20,40,0.85)' : 'rgba(0,0,0,0.55)' }}>
             <span className="text-xs">🔒</span>
           </div>
         )}
       </div>
       {/* Footer */}
-      <div className="px-1.5 py-1 transition-colors duration-200" style={{ background: isLight ? '#ffffff' : '#0f0f24' }}>
-        <div className="text-[5px] font-bold uppercase tracking-wider" style={{ color: isLight ? '#6b87a8' : '#4a6a9a' }}>ACT {actIndex + 1}</div>
-        <div className="text-[7px] font-bold leading-tight min-h-[14px]" style={{ color: isLight ? '#0a1628' : '#e8f0fa' }}>{act.name}</div>
+      <div className="px-1.5 py-1 transition-colors duration-200" style={{ background: isLight ? '#0f1f38' : '#0f0f24' }}>
+        <div className="text-[5px] font-bold uppercase tracking-wider" style={{ color: isLight ? 'rgba(200,168,74,0.65)' : '#4a6a9a' }}>ACT {actIndex + 1}</div>
+        <div className="text-[7px] font-bold leading-tight min-h-[14px]" style={{ color: '#e8f0fa' }}>{act.name}</div>
         <div className="flex items-center justify-between mt-0.5">
-          <div className="text-[5px] font-bold uppercase" style={{ color: isLight ? '#6b87a8' : '#4a6a9a' }}>{tIcons[act.type]} {act.type}</div>
-          <div className="text-[5px] font-bold" style={{ color: isLight ? '#b8860b' : '#eab308' }}>+{act.xp}</div>
+          <div className="text-[5px] font-bold uppercase" style={{ color: isLight ? 'rgba(200,168,74,0.65)' : '#4a6a9a' }}>{tIcons[act.type]} {act.type}</div>
+          <div className="text-[5px] font-bold" style={{ color: isLight ? '#e8c870' : '#eab308' }}>+{act.xp}</div>
         </div>
       </div>
     </button>
@@ -223,11 +215,11 @@ function LessonOverlay({ act, zone, onClose, onComplete, isLight }) {
     return (
       <div
         className="absolute inset-0 z-50 flex flex-col items-center justify-center p-6 text-center transition-colors duration-200"
-        style={{ background: isLight ? '#f8faff' : '#0a0a1a' }}
+        style={{ background: isLight ? '#0d1a2e' : '#0a0a1a' }}
       >
         <div className="text-4xl mb-3">🚧</div>
-        <h3 className="font-bold text-lg mb-2" style={{ color: isLight ? '#0a1628' : '#ffffff' }}>{act.name}</h3>
-        <p className="text-sm mb-6" style={{ color: isLight ? '#6b87a8' : 'rgba(255,255,255,0.5)' }}>Full lesson coming soon! +{act.xp} XP on completion.</p>
+        <h3 className="font-bold text-lg mb-2 text-white">{act.name}</h3>
+        <p className="text-sm mb-6" style={{ color: isLight ? 'rgba(200,168,74,0.65)' : 'rgba(255,255,255,0.5)' }}>Full lesson coming soon! +{act.xp} XP on completion.</p>
         <button onClick={() => onComplete(50, 100)} className="px-6 py-2.5 bg-yellow-500 text-navy-900 font-bold rounded-xl text-sm">Claim XP →</button>
       </div>
     )
@@ -297,28 +289,28 @@ function LessonOverlay({ act, zone, onClose, onComplete, isLight }) {
   const typeBadge = { learn: 'Lesson', quiz: 'Quiz', fill: 'Fill in', match: 'Match' }
   const typeCls = { learn: 'bg-blue-900/60 text-blue-300', quiz: 'bg-yellow-900/60 text-yellow-300', fill: 'bg-green-900/60 text-green-300', match: 'bg-red-900/60 text-red-300' }
 
-  const barBg = isLight ? '#f0f4ff' : '#111122'
-  const barBorder = isLight ? '#e8eef8' : 'rgba(255,255,255,0.1)'
-  const bodyBg = isLight ? '#f8faff' : '#0a0a1a'
-  const cardBg = isLight ? '#f0f4ff' : 'rgba(26,107,191,0.08)'
-  const cardBorder = isLight ? '#d1ddf0' : 'rgba(255,255,255,0.1)'
-  const bubbleBg = isLight ? '#ffffff' : '#040d1a'
-  const speechColor = isLight ? '#0a1628' : 'rgba(255,255,255,0.8)'
-  const infoBg = isLight ? '#ffffff' : 'rgba(26,107,191,0.06)'
-  const infoHeadColor = isLight ? '#0a1628' : '#ffffff'
-  const infoBodyColor = isLight ? '#2d4a6e' : 'rgba(255,255,255,0.6)'
-  const infoQuoteColor = isLight ? '#b8860b' : '#c8a84a'
-  const questionColor = isLight ? '#0a1628' : '#ffffff'
-  const optUnselBg = isLight ? '#ffffff' : 'rgba(255,255,255,0.04)'
-  const optUnselBorder = isLight ? '#c8d8f0' : 'rgba(255,255,255,0.12)'
-  const optUnselColor = isLight ? '#0a1628' : '#ffffff'
-  const fillContBg = isLight ? '#f0f4ff' : 'rgba(26,107,191,0.1)'
-  const fillInputBg = isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'
-  const fillInputBorder = isLight ? '#c8d8f0' : 'rgba(255,255,255,0.15)'
-  const matchUnselBg = isLight ? '#ffffff' : 'rgba(255,255,255,0.04)'
-  const matchUnselBorder = isLight ? '#c8d8f0' : 'rgba(255,255,255,0.12)'
-  const matchSelBg = isLight ? '#e8f0ff' : 'rgba(26,107,191,0.2)'
-  const matchHintColor = isLight ? '#6b87a8' : 'rgba(255,255,255,0.4)'
+  const barBg = isLight ? '#0d1a2e' : '#111122'
+  const barBorder = isLight ? 'rgba(200,168,74,0.2)' : 'rgba(255,255,255,0.1)'
+  const bodyBg = isLight ? '#0d1a2e' : '#0a0a1a'
+  const cardBg = isLight ? '#111f38' : 'rgba(26,107,191,0.08)'
+  const cardBorder = isLight ? 'rgba(200,168,74,0.2)' : 'rgba(255,255,255,0.1)'
+  const bubbleBg = isLight ? '#0d1a2e' : '#040d1a'
+  const speechColor = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.8)'
+  const infoBg = isLight ? '#111f38' : 'rgba(26,107,191,0.06)'
+  const infoHeadColor = '#ffffff'
+  const infoBodyColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.6)'
+  const infoQuoteColor = isLight ? '#e8c870' : '#c8a84a'
+  const questionColor = '#ffffff'
+  const optUnselBg = isLight ? 'rgba(20,36,64,0.6)' : 'rgba(255,255,255,0.04)'
+  const optUnselBorder = isLight ? 'rgba(200,168,74,0.25)' : 'rgba(255,255,255,0.12)'
+  const optUnselColor = '#ffffff'
+  const fillContBg = isLight ? '#111f38' : 'rgba(26,107,191,0.1)'
+  const fillInputBg = isLight ? 'rgba(20,36,64,0.6)' : 'rgba(255,255,255,0.05)'
+  const fillInputBorder = isLight ? 'rgba(200,168,74,0.3)' : 'rgba(255,255,255,0.15)'
+  const matchUnselBg = isLight ? 'rgba(20,36,64,0.6)' : 'rgba(255,255,255,0.04)'
+  const matchUnselBorder = isLight ? 'rgba(200,168,74,0.25)' : 'rgba(255,255,255,0.12)'
+  const matchSelBg = isLight ? 'rgba(200,168,74,0.2)' : 'rgba(26,107,191,0.2)'
+  const matchHintColor = isLight ? 'rgba(200,168,74,0.55)' : 'rgba(255,255,255,0.4)'
 
   return (
     <div className="absolute inset-0 z-60 flex flex-col animate-fade-in transition-colors duration-200" style={{ background: bodyBg }}>
@@ -387,7 +379,7 @@ function LessonOverlay({ act, zone, onClose, onComplete, isLight }) {
                         ? { borderColor: '#22c55e', background: 'rgba(34,197,94,0.2)', color: '#166534' }
                         : i === selectedOpt
                         ? { borderColor: '#ef4444', background: 'rgba(239,68,68,0.2)', color: '#991b1b' }
-                        : { borderColor: optUnselBorder, background: optUnselBg, color: isLight ? 'rgba(10,22,40,0.35)' : 'rgba(255,255,255,0.3)' }
+                        : { borderColor: optUnselBorder, background: optUnselBg, color: 'rgba(255,255,255,0.3)' }
                       : selectedOpt === i
                       ? { borderColor: '#1a6bbf', background: 'rgba(26,107,191,0.2)', color: isLight ? '#1a6bbf' : '#ffffff' }
                       : { borderColor: optUnselBorder, background: optUnselBg, color: optUnselColor }
@@ -530,14 +522,14 @@ function CompleteOverlay({ elapsed, accuracy, xpEarned, streak, onContinue, isLi
   return (
     <div
       className="absolute inset-0 z-70 flex flex-col items-center justify-center p-6 text-center animate-fade-in transition-colors duration-200"
-      style={{ background: isLight ? 'rgba(248,250,255,0.97)' : '#0a0a1a' }}
+      style={{ background: isLight ? 'rgba(13,26,46,0.97)' : '#0a0a1a' }}
     >
       <div className="text-5xl mb-2 animate-scale-in">{trophy}</div>
       <BlitzIcon size={52} className="blitz-celebrate mb-2" />
-      <h3 className="text-lg font-bold mb-1" style={{ color: isLight ? '#0a1628' : '#ffffff' }}>
+      <h3 className="text-lg font-bold mb-1 text-white">
         {accuracy >= 90 ? 'Zone Cleared! 🔥' : accuracy >= 70 ? 'Act Complete! 💪' : 'Keep Running! 🎮'}
       </h3>
-      <p className="text-sm mb-5" style={{ color: isLight ? '#6b87a8' : 'rgba(255,255,255,0.5)' }}>
+      <p className="text-sm mb-5" style={{ color: isLight ? 'rgba(200,168,74,0.7)' : 'rgba(255,255,255,0.5)' }}>
         +{xpEarned} XP · {streak} day streak · Blitz is proud!
       </p>
       <div className="grid grid-cols-3 gap-3 w-full max-w-[200px] mb-5">
@@ -546,12 +538,12 @@ function CompleteOverlay({ elapsed, accuracy, xpEarned, streak, onContinue, isLi
             key={stat.l}
             className="rounded-xl p-2 text-center transition-colors duration-200"
             style={{
-              background: isLight ? '#ffffff' : 'rgba(26,107,191,0.08)',
-              border: `0.5px solid ${isLight ? '#d1ddf0' : 'rgba(255,255,255,0.1)'}`,
+              background: isLight ? '#111f38' : 'rgba(26,107,191,0.08)',
+              border: `0.5px solid ${isLight ? 'rgba(200,168,74,0.25)' : 'rgba(255,255,255,0.1)'}`,
             }}
           >
-            <div className="text-base font-bold text-closer-blue font-mono">{stat.v}</div>
-            <div className="text-[8px] uppercase tracking-wider" style={{ color: isLight ? '#6b87a8' : 'rgba(255,255,255,0.4)' }}>{stat.l}</div>
+            <div className="text-base font-bold font-mono" style={{ color: isLight ? '#e8c870' : '#1a6bbf' }}>{stat.v}</div>
+            <div className="text-[8px] uppercase tracking-wider" style={{ color: isLight ? 'rgba(200,168,74,0.55)' : 'rgba(255,255,255,0.4)' }}>{stat.l}</div>
           </div>
         ))}
       </div>
@@ -566,33 +558,33 @@ function ActPanel({ act, zone, actIndex, onStart, onClose, isLight }) {
   return (
     <div
       className="absolute inset-0 z-50 flex items-end animate-fade-in transition-colors duration-200"
-      style={{ background: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,10,0.87)' }}
+      style={{ background: 'rgba(0,0,10,0.87)' }}
       onClick={onClose}
     >
       <div
         className="rounded-t-2xl w-full animate-slide-up transition-colors duration-200"
         style={{
-          background: isLight ? '#ffffff' : '#0f0f24',
-          borderTop: `2px solid ${isLight ? '#d1ddf0' : '#2a2a5a'}`,
+          background: isLight ? '#0f1f38' : '#0f0f24',
+          borderTop: `2px solid ${isLight ? 'rgba(200,168,74,0.4)' : '#2a2a5a'}`,
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div
           className="flex items-center gap-3 px-4 py-3 transition-colors duration-200"
-          style={{ borderBottom: `1px solid ${isLight ? '#e8eef8' : '#1a1a3a'}` }}
+          style={{ borderBottom: `1px solid ${isLight ? 'rgba(200,168,74,0.2)' : '#1a1a3a'}` }}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xl" style={{ background: zone.nameColor + '22' }}>{zone.icon}</div>
           <div>
-            <h3 className="text-sm font-bold" style={{ color: isLight ? '#0a1628' : '#e8f0fa' }}>{act.name}</h3>
-            <p className="text-[9px]" style={{ color: isLight ? '#6b87a8' : '#4a6a9a' }}>{zone.name} · Act {actIndex + 1}</p>
+            <h3 className="text-sm font-bold text-white">{act.name}</h3>
+            <p className="text-[9px]" style={{ color: isLight ? 'rgba(200,168,74,0.65)' : '#4a6a9a' }}>{zone.name} · Act {actIndex + 1}</p>
           </div>
           <button
             onClick={onClose}
             className="ml-auto w-6 h-6 rounded-full flex items-center justify-center text-xs hover:opacity-80 transition-opacity"
             style={{
-              background: isLight ? '#f0f4ff' : 'rgba(255,255,255,0.06)',
-              color: isLight ? '#6b87a8' : '#8aaccc',
+              background: isLight ? 'rgba(200,168,74,0.12)' : 'rgba(255,255,255,0.06)',
+              color: isLight ? '#c8a84a' : '#8aaccc',
             }}
           >✕</button>
         </div>
@@ -602,15 +594,15 @@ function ActPanel({ act, zone, actIndex, onStart, onClose, isLight }) {
             <div
               className="rounded-r-lg p-3 mb-4 text-[9px] italic leading-relaxed"
               style={{
-                background: isLight ? '#fffef0' : '#050510',
+                background: isLight ? 'rgba(20,36,64,0.8)' : '#050510',
                 borderLeft: '2px solid #f59e0b',
               }}
             >
-              <span style={{ color: isLight ? '#4a6090' : '#8aaccc' }}>"{q.q}"</span>{' '}
-              <strong style={{ color: isLight ? '#b8860b' : '#f59e0b', fontStyle: 'normal' }}>{q.a}</strong>
+              <span style={{ color: isLight ? '#a0b8d0' : '#8aaccc' }}>"{q.q}"</span>{' '}
+              <strong style={{ color: isLight ? '#e8c870' : '#f59e0b', fontStyle: 'normal' }}>{q.a}</strong>
             </div>
           )}
-          <p className="text-xs leading-relaxed mb-4" style={{ color: isLight ? '#4a6090' : '#6a8aaa' }}>
+          <p className="text-xs leading-relaxed mb-4" style={{ color: isLight ? '#7a9ab8' : '#6a8aaa' }}>
             {act.name} — {zone.sub}. Complete this act to earn +{act.xp} XP.
           </p>
           <div className="grid grid-cols-3 gap-2 mb-4">
@@ -619,12 +611,12 @@ function ActPanel({ act, zone, actIndex, onStart, onClose, isLight }) {
                 key={stat.l}
                 className="rounded-lg p-2 text-center transition-colors duration-200"
                 style={{
-                  background: isLight ? '#f0f4ff' : '#050510',
-                  border: `1px solid ${isLight ? '#d1ddf0' : '#1a1a3a'}`,
+                  background: isLight ? '#0d1a2e' : '#050510',
+                  border: `1px solid ${isLight ? 'rgba(200,168,74,0.2)' : '#1a1a3a'}`,
                 }}
               >
-                <div className="text-xs font-bold font-mono" style={{ color: isLight ? '#b8860b' : '#f59e0b' }}>{stat.v}</div>
-                <div className="text-[7px] uppercase tracking-wider" style={{ color: isLight ? '#6b87a8' : '#4a6a9a' }}>{stat.l}</div>
+                <div className="text-xs font-bold font-mono" style={{ color: isLight ? '#e8c870' : '#f59e0b' }}>{stat.v}</div>
+                <div className="text-[7px] uppercase tracking-wider" style={{ color: isLight ? 'rgba(200,168,74,0.55)' : '#4a6a9a' }}>{stat.l}</div>
               </div>
             ))}
           </div>
@@ -663,12 +655,12 @@ export default function PsychologyScreen() {
     return prevZone.acts.filter(a => state.completedActs.includes(a.id)).length >= 3
   })
 
-  const lbl = { color: isLight ? '#6b87a8' : '#4a6a9a' }
+  const lbl = { color: isLight ? 'rgba(200,168,74,0.65)' : '#4a6a9a' }
 
   return (
     <div
       className="flex flex-col h-full relative transition-colors duration-200"
-      style={{ background: isLight ? '#f0f4ff' : '#0a0a1a' }}
+      style={{ background: isLight ? '#0d1a2e' : '#0a0a1a' }}
     >
       <Hud xp={state.xp} gems={state.gems} streak={state.streak} isLight={isLight} />
 
@@ -695,8 +687,8 @@ export default function PsychologyScreen() {
                     <div
                       className="flex-1 h-1 rounded-full overflow-hidden"
                       style={{
-                        background: isLight ? '#d1ddf0' : '#1a1a3a',
-                        border: `1px solid ${isLight ? '#c8d8f0' : '#2a2a5a'}`,
+                        background: isLight ? '#0f2540' : '#1a1a3a',
+                        border: `1px solid ${isLight ? 'rgba(200,168,74,0.25)' : '#2a2a5a'}`,
                       }}
                     >
                       <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: zoneNameColor }} />
@@ -708,7 +700,7 @@ export default function PsychologyScreen() {
                   className="text-[7px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-lg"
                   style={
                     isLocked
-                      ? { background: isLight ? '#e8eef8' : '#1a1a3a', color: isLight ? '#6b87a8' : '#4a6a9a', border: `1px solid ${isLight ? '#c8d8f0' : '#2a2a5a'}` }
+                      ? { background: isLight ? '#0f2540' : '#1a1a3a', color: isLight ? 'rgba(200,168,74,0.55)' : '#4a6a9a', border: `1px solid ${isLight ? 'rgba(200,168,74,0.2)' : '#2a2a5a'}` }
                       : { background: zone.nameColor + '22', color: zoneNameColor, border: `1px solid ${zone.nameColor}55` }
                   }
                 >

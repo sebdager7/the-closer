@@ -25,10 +25,10 @@ function ThemeToggle() {
         height: '28px',
         borderRadius: '14px',
         padding: '3px',
-        border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid #d1d9ef',
+        border: isDark ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(200,168,74,0.45)',
         background: isDark
           ? 'linear-gradient(135deg, #071428, #0a2744)'
-          : 'linear-gradient(135deg, #fef3c7, #fde68a)',
+          : 'linear-gradient(135deg, #0d1a2e, #142440)',
         transition: 'all 0.3s ease',
         flexShrink: 0,
       }}
@@ -112,8 +112,8 @@ export default function TopBar() {
           }}
           className="text-xs rounded-lg px-1.5 py-1 border focus:outline-none transition-colors cursor-pointer"
           style={{
-            background: 'rgba(255,255,255,0.12)',
-            borderColor: 'rgba(255,255,255,0.2)',
+            background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(200,168,74,0.12)',
+            borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(200,168,74,0.4)',
             color: '#ffffff',
           }}
         >
