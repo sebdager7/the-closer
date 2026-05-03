@@ -271,31 +271,43 @@ export async function runAutopsy(transcript, closePct, dealValue) {
   return parseJSON(raw)
 }
 
-export async function elevenLabsSpeak(text, gender, language = 'English') {
-  const FEMALE_ID = 'cNYrMw9glwJZXR8RwbuR'
-  const MALE_ID   = 'ljX1ZrXuDIIRVcmiVSyR'
+// ─── HARDCODED VOICE IDs ─────────────────────────────────────────────────────
+const FEMALE_ID = 'g6xIsTj2HwM6VR4iXFCw'
+const MALE_ID   = 'UgBBYS2sOqTuMpoF3BR0'
 
+const LANG_CODE = {
+  'English': 'en',
+  'Spanish': 'es',
+  'Portuguese': 'pt',
+  'French': 'fr',
+  'German': 'de',
+  'Italian': 'it',
+  'Mandarin Chinese': 'zh',
+  'Japanese': 'ja',
+  'Arabic': 'ar',
+  'Hindi': 'hi',
+}
+
+export async function getElevenLabsAudio(text, gender, language) {
   const voiceId = (gender === 'male') ? MALE_ID : FEMALE_ID
   const apiKey = import.meta.env.VITE_ELEVENLABS_API_KEY
+  const langCode = LANG_CODE[language] || 'en'
 
-  const langMap = {
-    'English': 'en', 'Spanish': 'es', 'French': 'fr',
-    'Portuguese': 'pt', 'German': 'de', 'Italian': 'it',
-    'Mandarin Chinese': 'zh', 'Japanese': 'ja',
-    'Arabic': 'ar', 'Hindi': 'hi',
-  }
-  const langCode = langMap[language] || 'en'
+  console.log('[ELEVEN] ─────────────────────────')
+  console.log('[ELEVEN] text:', text?.slice(0, 60))
+  console.log('[ELEVEN] gender:', gender)
+  console.log('[ELEVEN] voiceId:', voiceId)
+  console.log('[ELEVEN] language:', language, '→', langCode)
+  console.log('[ELEVEN] key:', apiKey ? `present (${apiKey.length} chars)` : 'MISSING ❌')
+  console.log('[ELEVEN] ─────────────────────────')
 
-  console.log('[ELEVEN] voiceId :', voiceId)
-  console.log('[ELEVEN] gender  :', gender)
-  console.log('[ELEVEN] apiKey  :', apiKey ? apiKey.length + ' chars' : 'MISSING')
-
-  if (!text?.trim()) {
-    console.error('[ELEVEN] empty text')
+  if (!text || !text.trim()) {
+    console.error('[ELEVEN] Empty text — aborting')
     return null
   }
+
   if (!apiKey || apiKey.length < 10) {
-    console.error('[ELEVEN] API key missing — check .env file')
+    console.error('[ELEVEN] No API key — add to .env file')
     return null
   }
 
@@ -315,89 +327,111 @@ export async function elevenLabsSpeak(text, gender, language = 'English') {
           model_id: 'eleven_turbo_v2',
           language_code: langCode,
           voice_settings: {
-            stability: 0.5,
+            stability: 0.50,
             similarity_boost: 0.85,
-            style: 0.3,
+            style: 0.30,
             use_speaker_boost: true,
           },
         }),
       }
     )
-  } catch (err) {
-    console.error('[ELEVEN] Network error:', err.message)
+  } catch (networkErr) {
+    console.error('[ELEVEN] Network error:', networkErr.message)
     return null
   }
 
   console.log('[ELEVEN] status:', response.status)
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '')
-    console.error('[ELEVEN] Error:', response.status, body)
-    if (response.status === 401) {
-      console.error('[ELEVEN] 401 = API key wrong or expired')
-    }
+    let body = ''
+    try { body = await response.text() } catch (e) {}
+    console.error('[ELEVEN] FAILED:', response.status)
+    console.error('[ELEVEN] body:', body)
+    if (response.status === 401) console.error('[ELEVEN] → Wrong API key')
     if (response.status === 404) {
-      console.error('[ELEVEN] 404 = Voice ID not in account:', voiceId)
+      console.error('[ELEVEN] → Voice ID not found in account')
+      console.error('[ELEVEN] → female:', FEMALE_ID)
+      console.error('[ELEVEN] → male:', MALE_ID)
     }
+    if (response.status === 429) console.error('[ELEVEN] → Rate limit hit')
     return null
   }
 
-  const blob = await response.blob().catch(err => {
-    console.error('[ELEVEN] Blob error:', err.message)
+  let blob
+  try {
+    blob = await response.blob()
+  } catch (blobErr) {
+    console.error('[ELEVEN] Blob error:', blobErr.message)
     return null
-  })
+  }
 
-  if (!blob || blob.size === 0) {
-    console.error('[ELEVEN] Empty blob')
+  if (!blob || blob.size < 100) {
+    console.error('[ELEVEN] Empty blob:', blob?.size)
     return null
   }
 
   console.log('[ELEVEN] ✅ Success:', blob.size, 'bytes')
-  return URL.createObjectURL(blob)
+
+  try {
+    return URL.createObjectURL(blob)
+  } catch (urlErr) {
+    console.error('[ELEVEN] URL error:', urlErr.message)
+    return null
+  }
 }
 
-// onAudioReady(audio) is an optional callback so callers can store the
-// Audio object in a ref for mid-playback cancellation (e.g. mute button).
-export function playAudioBlob(url, textLength, onAudioReady) {
+export function playAudioUrl(url, textLength) {
   return new Promise((resolve) => {
-    if (!url) { resolve(); return }
+    if (!url) {
+      console.error('[AUDIO] No URL provided')
+      resolve()
+      return
+    }
 
-    console.log('[AUDIO] Starting playback')
-    const audio = new Audio(url)
-    if (onAudioReady) onAudioReady(audio)
+    console.log('[AUDIO] Creating audio element')
+    const audio = new Audio()
 
-    let done = false
+    let finished = false
     const finish = (reason) => {
-      if (done) return
-      done = true
+      if (finished) return
+      finished = true
       console.log('[AUDIO] Done:', reason)
       try { URL.revokeObjectURL(url) } catch (e) {}
       resolve()
     }
 
-    const ms = Math.max((textLength || 60) * 100, 6000)
-    const timeout = setTimeout(() => finish('timeout'), ms)
+    const maxMs = Math.max((textLength || 60) * 100, 6000)
+    const timeout = setTimeout(() => {
+      console.warn('[AUDIO] Timeout after', maxMs, 'ms')
+      finish('timeout')
+    }, maxMs)
 
-    audio.onended = () => { clearTimeout(timeout); finish('ended') }
-    audio.onerror = (e) => {
+    audio.onended = () => { clearTimeout(timeout); finish('ended naturally') }
+
+    audio.onerror = () => {
       clearTimeout(timeout)
-      console.error('[AUDIO] Error:', audio.error?.code, audio.error?.message)
-      finish('error')
+      console.error('[AUDIO] Error code:', audio.error?.code, audio.error?.message)
+      finish('audio error')
     }
 
-    audio.play().then(() => {
-      console.log('[AUDIO] Playing ✅')
-    }).catch(err => {
-      clearTimeout(timeout)
-      console.error('[AUDIO] play() blocked:', err.name)
-      if (err.name === 'NotAllowedError') {
-        console.error('[AUDIO] Browser blocked autoplay.')
-        console.error('[AUDIO] User must interact with page first.')
-      }
-      finish('play blocked')
-    })
+    audio.oncanplaythrough = () => console.log('[AUDIO] Ready to play')
+
+    audio.src = url
+    audio.load()
+
+    const playResult = audio.play()
+    if (playResult) {
+      playResult
+        .then(() => console.log('[AUDIO] ✅ Playing'))
+        .catch(err => {
+          console.error('[AUDIO] play() blocked:', err.name)
+          console.error('[AUDIO] Message:', err.message)
+          if (err.name === 'NotAllowedError') {
+            console.error('[AUDIO] Browser blocked autoplay. User must interact with page first.')
+          }
+          clearTimeout(timeout)
+          finish('play blocked')
+        })
+    }
   })
 }
-
-// Backward-compat alias — existing callers still work
-export const playElevenLabsAudio = playAudioBlob
