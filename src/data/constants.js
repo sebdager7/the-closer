@@ -877,6 +877,17 @@ export const CHAT_USERS = {
   aw: { name: 'Aisha W.', initials: 'AW', color: '#059669', role: 'rep' },
 }
 
+export const ALL_TEAM_MEMBERS = [
+  { id: 'mt', name: 'Marcus T.',  initials: 'MT', color: '#1a6bbf', role: 'upline', online: true  },
+  { id: 'jr', name: 'Jordan R.',  initials: 'JR', color: '#e74c3c', role: 'rep',    online: false },
+  { id: 'pk', name: 'Priya K.',   initials: 'PK', color: '#8b5cf6', role: 'rep',    online: true  },
+  { id: 'dm', name: 'Devon M.',   initials: 'DM', color: '#0891b2', role: 'upline', online: true  },
+  { id: 'aw', name: 'Aisha W.',   initials: 'AW', color: '#059669', role: 'rep',    online: false },
+  { id: 'cs', name: 'Carlos S.',  initials: 'CS', color: '#dc2626', role: 'rep',    online: true  },
+  { id: 'tb', name: 'Tyler B.',   initials: 'TB', color: '#7c3aed', role: 'rep',    online: false },
+  { id: 'lf', name: 'Lena F.',    initials: 'LF', color: '#0d9488', role: 'rep',    online: false },
+]
+
 export const CHAT_META = {
   general: { icon: '#', name: 'general', desc: 'Agency-wide · 34 members', action: 'Post Deal', canAnnounce: true },
   announcements: { icon: '📢', name: 'announcements', desc: 'Official leadership announcements', action: 'Announce', canAnnounce: true },
