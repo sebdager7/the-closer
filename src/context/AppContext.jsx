@@ -25,7 +25,7 @@ const initialState = {
   // UI
   theme: 'dark',
   language: 'English',
-  activeTab: 'objections',
+  activeTab: 'progress',
 
   // Training
   callCount: 0,

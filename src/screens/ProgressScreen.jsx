@@ -37,6 +37,13 @@ export default function ProgressScreen() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-white leading-tight">
+          {state.user?.name || 'Closer'},{' '}
+          <span className="text-gold">your progress</span>
+        </h1>
+      </div>
+
       <BlitzBar message={`<strong>Blitz:</strong> Your real progress. Every call you do moves these bars. <strong>Close rate is king</strong> — the rest follows when that number goes up.`} />
 
       <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-3">Performance Metrics</div>
