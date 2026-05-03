@@ -308,6 +308,21 @@ textarea {
     0%, 100% { opacity: 0.5; transform: scale(1); }
     50%       { opacity: 1;   transform: scale(1.08); }
   }
+
+  @keyframes msgFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes toggleGlow {
+    0%, 100% { box-shadow: 0 0 6px rgba(200,168,74,0.4), 0 0 12px rgba(200,168,74,0.2); }
+    50%       { box-shadow: 0 0 14px rgba(200,168,74,0.75), 0 0 28px rgba(200,168,74,0.4); }
+  }
+
+  @keyframes slideInLeft {
+    from { transform: translateX(-20px); opacity: 0; }
+    to   { transform: translateX(0);     opacity: 1; }
+  }
 }
 
 /* ── Gold/Navy Day Mode overrides ───────────────────────────── */

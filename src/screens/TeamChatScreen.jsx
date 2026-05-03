@@ -1,65 +1,184 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import { CHAT_META, CHAT_USERS, INITIAL_CHAT_DATA } from '../data/constants'
 import { ReactionEmoji } from '../components/icons/CustomEmoji'
 
 const ME = { name: 'You (Owner)', initials: 'YN', color: '#c8a84a', role: 'owner' }
 
-function roleBadge(role) {
-  const s = {
-    owner: 'bg-gradient-to-r from-yellow-950/80 to-yellow-900/60 text-yellow-400 border border-yellow-600/40',
-    upline: 'bg-blue-900/60 text-blue-300',
-    rep: 'bg-green-900/60 text-green-400',
-  }
-  const labels = { owner: 'Owner', upline: 'Upline', rep: 'Rep' }
-  return <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded-full ${s[role] || ''}`}>{labels[role] || role}</span>
+function getRoleBadgeStyle(role) {
+  if (role === 'owner') return { background: 'linear-gradient(135deg,rgba(200,168,74,.22),rgba(200,168,74,.09))', color: '#e8c870', border: '1px solid rgba(200,168,74,.32)' }
+  if (role === 'upline') return { background: 'rgba(26,107,191,.2)', color: '#4a9eff', border: '1px solid rgba(26,107,191,.3)' }
+  return { background: 'rgba(5,150,105,.18)', color: '#34d399', border: '1px solid rgba(5,150,105,.25)' }
 }
 
-function Avatar({ user, size = 24 }) {
+function RoleBadge({ role }) {
+  const s = getRoleBadgeStyle(role)
+  const labels = { owner: 'Owner', upline: 'Upline', rep: 'Rep' }
+  return (
+    <span style={{ fontSize: 7, fontWeight: 700, padding: '1.5px 5px', borderRadius: 9999, flexShrink: 0, ...s }}>
+      {labels[role] || role}
+    </span>
+  )
+}
+
+function Avatar({ user, size = 32 }) {
   const u = user === 'me' ? ME : CHAT_USERS[user]
   if (!u) return null
   return (
-    <div className="flex-shrink-0 rounded-full flex items-center justify-center font-bold text-white"
-      style={{ width: size, height: size, background: u.color, fontSize: size * 0.37 }}>
+    <div style={{
+      width: size, height: size, borderRadius: 8,
+      background: u.color,
+      boxShadow: `0 0 8px ${u.color}55`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: Math.floor(size * 0.34), fontWeight: 900,
+      color: u.color === '#c8a84a' ? '#040d1a' : '#fff',
+      flexShrink: 0,
+    }}>
       {u.initials}
     </div>
   )
 }
 
-function MessageGroup({ msg, idx, channel, chatData, setChatData }) {
+function ChannelItem({ item, active, onClick }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+        padding: '6px 12px', textAlign: 'left',
+        background: active ? 'rgba(26,107,191,.13)' : hov ? 'rgba(255,255,255,.04)' : 'transparent',
+        borderTop: 'none', borderRight: 'none', borderBottom: 'none',
+        borderLeft: `2px solid ${active ? '#c8a84a' : 'transparent'}`,
+        transition: 'background .15s, border-color .15s',
+        position: 'relative', overflow: 'hidden',
+      }}
+    >
+      {hov && !active && (
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,rgba(200,168,74,.04) 0%,transparent 60%)', pointerEvents: 'none' }} />
+      )}
+      <span style={{ fontSize: 13, width: 18, textAlign: 'center', flexShrink: 0, color: active ? '#e8c870' : 'rgba(255,255,255,.38)' }}>
+        {item.icon}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? '#fff' : 'rgba(255,255,255,.5)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {item.label}
+      </span>
+    </button>
+  )
+}
+
+function DMItem({ item, active, onClick }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+        padding: '5px 12px',
+        background: active ? 'rgba(26,107,191,.13)' : hov ? 'rgba(255,255,255,.04)' : 'transparent',
+        borderTop: 'none', borderRight: 'none', borderBottom: 'none',
+        borderLeft: `2px solid ${active ? '#c8a84a' : 'transparent'}`,
+        transition: 'background .15s, border-color .15s',
+      }}
+    >
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{
+          width: 22, height: 22, borderRadius: '50%',
+          background: item.color,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 8, fontWeight: 900, color: '#fff',
+        }}>{item.icon}</div>
+        {item.online && (
+          <div style={{
+            position: 'absolute', bottom: -1, right: -1,
+            width: 7, height: 7, borderRadius: '50%',
+            background: '#22c55e', border: '1.5px solid #040d1a',
+          }} />
+        )}
+      </div>
+      <span style={{ fontSize: 11, fontWeight: 500, color: active ? '#fff' : 'rgba(255,255,255,.5)' }}>
+        {item.label}
+      </span>
+    </button>
+  )
+}
+
+function Reactions({ rxns, channel, idx }) {
   const { state, dispatch } = useApp()
+  if (!rxns?.length) return null
+  return (
+    <div style={{ display: 'flex', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
+      {rxns.map((r, ri) => {
+        const key = `${channel}-${idx}-${ri}`
+        const reacted = state.chatReacted[key]
+        return (
+          <button key={ri} onClick={() => dispatch({ type: 'TOGGLE_REACT', payload: key })}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              padding: '2px 7px', borderRadius: 9999,
+              border: reacted ? '1px solid rgba(200,168,74,.5)' : '1px solid rgba(255,255,255,.12)',
+              background: reacted ? 'rgba(200,168,74,.12)' : 'rgba(255,255,255,.04)',
+              color: reacted ? '#e8c870' : 'rgba(255,255,255,.42)',
+              fontSize: 9, fontWeight: reacted ? 700 : 400,
+              transition: 'all .15s ease',
+            }}
+          >
+            <ReactionEmoji emoji={r.e} size={11} /> {r.n + (reacted ? 1 : 0)}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MessageGroup({ msg, idx, channel }) {
+  const [hov, setHov] = useState(false)
   const user = msg.user === 'me' ? ME : CHAT_USERS[msg.user]
   if (!user) return null
 
-  const toggleReact = (ri) => {
-    const key = `${channel}-${idx}-${ri}`
-    dispatch({ type: 'TOGGLE_REACT', payload: key })
-  }
-
   if (msg.type === 'sys') {
     return (
-      <div className="text-center my-3">
-        <span className="text-[9px] text-white/30 bg-white/5 border border-white/10 px-3 py-1 rounded-full">{msg.text}</span>
+      <div style={{ textAlign: 'center', margin: '12px 0' }}>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.28)', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', padding: '3px 12px', borderRadius: 9999 }}>
+          {msg.text}
+        </span>
       </div>
     )
   }
 
   if (msg.type === 'ann') {
     return (
-      <div className="mb-3">
-        <div className="flex items-center gap-2 mb-1.5">
-          <Avatar user={msg.user} size={24} />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-white">{user.name}</span>
-            {roleBadge(user.role)}
-            {msg.pinned && <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-gold-500/15 text-gold-400 border border-gold-500/25">📌 pinned</span>}
-            <span className="text-[9px] text-white/25">{msg.time}</span>
+      <div style={{ marginBottom: 14, animation: 'msgFadeIn .3s ease-out both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Avatar user={msg.user} size={28} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{user.name}</span>
+            <RoleBadge role={user.role} />
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,.28)' }}>{msg.time}</span>
           </div>
         </div>
-        <div className="ml-8">
-          <div className="bg-gradient-to-br from-navy-800 to-navy-700 rounded-xl p-3 border border-closer-blue/25 max-w-sm">
-            <div className="text-[8px] font-bold text-gold-400 uppercase tracking-wider mb-1.5">📢 Announcement</div>
-            <p className="text-xs text-white/90 leading-relaxed">{msg.text}</p>
+        <div style={{ marginLeft: 38 }}>
+          <div style={{
+            background: 'linear-gradient(135deg,rgba(200,168,74,.07),rgba(200,168,74,.02))',
+            border: '1px solid rgba(200,168,74,.22)',
+            borderRadius: 12, overflow: 'hidden', maxWidth: 300,
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg,rgba(200,168,74,.28),rgba(200,168,74,.13))',
+              padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ fontSize: 8, fontWeight: 700, color: '#e8c870', textTransform: 'uppercase', letterSpacing: '.1em', flex: 1 }}>📢 Announcement</span>
+              {msg.pinned && (
+                <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 9999, background: 'rgba(200,168,74,.18)', color: '#c8a84a', border: '1px solid rgba(200,168,74,.3)' }}>📌 pinned</span>
+              )}
+            </div>
+            <div style={{ padding: '8px 12px' }}>
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,.9)', lineHeight: 1.5, margin: 0 }}>{msg.text}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -68,91 +187,109 @@ function MessageGroup({ msg, idx, channel, chatData, setChatData }) {
 
   if (msg.type === 'deal') {
     return (
-      <div className="mb-3">
-        <div className="flex items-center gap-2 mb-1.5">
-          <Avatar user={msg.user} size={24} />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-white">{user.name}</span>
-            {roleBadge(user.role)}
-            <span className="text-[9px] text-white/25">{msg.time}</span>
+      <div style={{ marginBottom: 14, animation: 'msgFadeIn .3s ease-out both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <Avatar user={msg.user} size={28} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{user.name}</span>
+            <RoleBadge role={user.role} />
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,.28)' }}>{msg.time}</span>
           </div>
         </div>
-        <div className="ml-8">
-          <div className="bg-navy-800/60 border border-white/10 border-l-2 border-l-green-500 rounded-r-xl p-3 max-w-xs">
-            <div className="text-[8px] font-bold text-green-400 uppercase tracking-wider mb-1">Closed Deal</div>
-            <div className="text-xl font-extrabold text-green-400 mb-1">${Number(msg.amount).toLocaleString()}</div>
-            <p className="text-[10px] text-white/60"><strong>{msg.industry}</strong> · {msg.client} · {msg.ttc}</p>
-            <p className="text-[10px] text-white/40 italic mt-1">"{msg.note}"</p>
-            <span className="inline-block text-[8px] font-bold px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 mt-2">{msg.industry}</span>
-          </div>
-          {msg.rxns?.length > 0 && (
-            <div className="flex gap-1.5 mt-1.5 flex-wrap">
-              {msg.rxns.map((r, ri) => {
-                const key = `${channel}-${idx}-${ri}`
-                const reacted = state.chatReacted[key]
-                return (
-                  <button key={ri} onClick={() => toggleReact(ri)} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] transition-all ${reacted ? 'border-closer-blue bg-closer-blue/20 text-closer-blue' : 'border-white/15 bg-white/5 text-white/50 hover:bg-white/10'}`}>
-                    <ReactionEmoji emoji={r.e} size={11} /> {r.n + (reacted ? 1 : 0)}
-                  </button>
-                )
-              })}
+        <div style={{ marginLeft: 38 }}>
+          <div style={{
+            background: 'linear-gradient(135deg,rgba(5,150,105,.1),rgba(5,150,105,.04))',
+            border: '1px solid rgba(5,150,105,.28)',
+            borderRadius: 12, overflow: 'hidden',
+            boxShadow: '0 0 14px rgba(5,150,105,.1)',
+            maxWidth: 280,
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg,rgba(5,150,105,.35),rgba(4,120,87,.22))',
+              padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontSize: 8, fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '.1em' }}>🏆 Closed Deal</span>
+              <span style={{ fontSize: 8, color: 'rgba(52,211,153,.55)' }}>{msg.time}</span>
             </div>
-          )}
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#34d399', lineHeight: 1, marginBottom: 4 }}>
+                ${Number(msg.amount).toLocaleString()}
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.72)', marginBottom: 3 }}>
+                <strong>{msg.industry}</strong> · {msg.client} · {msg.ttc}
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.38)', fontStyle: 'italic', marginBottom: 8 }}>
+                "{msg.note}"
+              </div>
+              <span style={{ fontSize: 8, fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: 'rgba(26,107,191,.2)', color: '#4a9eff', border: '1px solid rgba(26,107,191,.2)' }}>
+                {msg.industry}
+              </span>
+            </div>
+          </div>
+          <Reactions rxns={msg.rxns} channel={channel} idx={idx} />
         </div>
       </div>
     )
   }
 
-  // Normal message
-  const textHtml = msg.text.replace(/@(\w+)/g, '<span class="text-closer-blue font-bold">@$1</span>')
+  const textHtml = msg.text.replace(/@(\w+)/g, '<span style="color:#4a9eff;font-weight:700">@$1</span>')
   return (
-    <div className="mb-3">
-      <div className="flex items-start gap-2">
-        <Avatar user={msg.user} size={26} />
-        <div className="flex-1">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-xs font-bold text-white">{user.name}</span>
-            {roleBadge(user.role)}
-            <span className="text-[9px] text-white/25">{msg.time}</span>
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ marginBottom: 12, animation: 'msgFadeIn .3s ease-out both', paddingRight: 4 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <Avatar user={msg.user} size={32} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{user.name}</span>
+            <RoleBadge role={user.role} />
+            <span style={{ fontSize: 9, color: 'rgba(255,255,255,.25)', opacity: hov ? 1 : 0, transition: 'opacity .15s ease' }}>
+              {msg.time}
+            </span>
           </div>
-          <p className="text-xs text-white/85 leading-relaxed" dangerouslySetInnerHTML={{ __html: textHtml }} />
-          {msg.rxns?.length > 0 && (
-            <div className="flex gap-1.5 mt-1.5 flex-wrap">
-              {msg.rxns.map((r, ri) => {
-                const key = `${channel}-${idx}-${ri}`
-                const reacted = state.chatReacted[key]
-                return (
-                  <button key={ri} onClick={() => toggleReact(ri)} className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] transition-all ${reacted ? 'border-closer-blue bg-closer-blue/20 text-closer-blue' : 'border-white/15 bg-white/5 text-white/50 hover:bg-white/10'}`}>
-                    <ReactionEmoji emoji={r.e} size={11} /> {r.n + (reacted ? 1 : 0)}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.85)', lineHeight: 1.5, margin: 0, wordBreak: 'break-word' }}
+            dangerouslySetInnerHTML={{ __html: textHtml }} />
+          <Reactions rxns={msg.rxns} channel={channel} idx={idx} />
         </div>
       </div>
     </div>
   )
 }
 
+const SIDEBAR_ITEMS = [
+  { section: 'Agency', items: [
+    { id: 'general', icon: '#', label: 'general' },
+    { id: 'announcements', icon: '📢', label: 'announcements' },
+    { id: 'deals', icon: '💰', label: 'deal board' },
+  ]},
+  { section: 'Teams', items: [
+    { id: 'team-a', icon: '⚡', label: 'Team Alpha' },
+    { id: 'team-b', icon: '🔥', label: 'Team Bravo' },
+    { id: 'training', icon: '🎯', label: 'training tips' },
+  ]},
+  { section: 'Direct', items: [
+    { id: 'dm-marcus', icon: 'M', label: 'Marcus T.', color: '#1a6bbf', online: true, isDM: true },
+    { id: 'dm-jordan', icon: 'J', label: 'Jordan R.', color: '#e74c3c', isDM: true },
+  ]},
+]
+
 export default function TeamChatScreen() {
-  const { state } = useApp()
   const [currentCh, setCurrentCh] = useState('general')
   const [chatData, setChatData] = useState(INITIAL_CHAT_DATA)
   const [input, setInput] = useState('')
   const [showDealForm, setShowDealForm] = useState(false)
   const [showAnnForm, setShowAnnForm] = useState(false)
-  const [showSidebar, setShowSidebar] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(true)
+  const [toolHov, setToolHov] = useState(null)
   const msgsEndRef = useRef(null)
 
-  // Deal form state
   const [dfAmt, setDfAmt] = useState('')
   const [dfInd, setDfInd] = useState('Solar')
   const [dfClient, setDfClient] = useState('')
   const [dfTime, setDfTime] = useState('')
   const [dfNote, setDfNote] = useState('')
-
-  // Ann form state
   const [annText, setAnnText] = useState('')
 
   useEffect(() => { msgsEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [currentCh, chatData])
@@ -169,10 +306,7 @@ export default function TeamChatScreen() {
 
   const sendMsg = () => {
     if (!input.trim()) return
-    setChatData(prev => ({
-      ...prev,
-      [currentCh]: [...(prev[currentCh] || []), { type: 'msg', user: 'me', text: input, time: nowTime(), rxns: [] }]
-    }))
+    setChatData(prev => ({ ...prev, [currentCh]: [...(prev[currentCh] || []), { type: 'msg', user: 'me', text: input, time: nowTime(), rxns: [] }] }))
     setInput('')
   }
 
@@ -199,87 +333,149 @@ export default function TeamChatScreen() {
     setAnnText(''); setShowAnnForm(false)
   }
 
-  const SIDEBAR_ITEMS = [
-    { section: 'Agency', items: [
-      { id: 'general', icon: '#', label: 'general' },
-      { id: 'announcements', icon: '📢', label: 'announcements' },
-      { id: 'deals', icon: '💰', label: 'deal board' },
-    ]},
-    { section: 'Teams', items: [
-      { id: 'team-a', icon: '⚡', label: 'Team Alpha' },
-      { id: 'team-b', icon: '🔥', label: 'Team Bravo' },
-      { id: 'training', icon: '🎯', label: 'training tips' },
-    ]},
-    { section: 'Direct', items: [
-      { id: 'dm-marcus', icon: 'M', label: 'Marcus T.', color: '#1a6bbf', online: true },
-      { id: 'dm-jordan', icon: 'J', label: 'Jordan R.', color: '#e74c3c' },
-    ]},
+  const toolBtns = [
+    { id: 'deal', icon: '💰', label: 'Log deal', action: () => { setShowDealForm(true); setShowAnnForm(false) } },
+    ...(meta?.canAnnounce ? [{ id: 'ann', icon: '📢', label: 'Announce', action: () => { setShowAnnForm(true); setShowDealForm(false) } }] : []),
+    { id: 'mention', icon: '@', label: 'Mention', action: () => setInput(i => i + '@') },
   ]
 
   return (
-    <div className="flex h-full overflow-hidden relative">
-      {/* Overlay — mobile only, behind sidebar */}
-      {showSidebar && (
-        <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setShowSidebar(false)} />
-      )}
-      {/* Sidebar — slides in from LEFT */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-52 bg-gray-900 border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ease-out md:relative md:inset-auto md:z-auto md:translate-x-0 md:flex ${showSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
-          {SIDEBAR_ITEMS.map(sec => (
-            <div key={sec.section}>
-              <div className="px-3 pt-3 pb-1 text-[8px] font-bold text-white/30 uppercase tracking-widest">{sec.section}</div>
-              {sec.items.map(item => (
-                <button key={item.id} onClick={() => { setCurrentCh(item.id); setShowSidebar(false) }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${currentCh === item.id ? 'bg-closer-blue/20 text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'}`}>
-                  {item.color ? (
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0" style={{ background: item.color }}>{item.icon}</span>
-                  ) : (
-                    <span className="text-sm w-5 text-center flex-shrink-0">{item.icon}</span>
-                  )}
-                  <span className="text-xs font-medium truncate">{item.label}</span>
-                  {item.online && <div className="w-1.5 h-1.5 rounded-full bg-green-500 ml-auto flex-shrink-0" />}
-                </button>
-              ))}
-              <div className="h-px bg-white/8 mx-3 my-1" />
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
+
+      {/* Sidebar */}
+      <div style={{
+        width: showSidebar ? 220 : 0,
+        opacity: showSidebar ? 1 : 0,
+        transition: 'width .3s ease, opacity .25s ease',
+        overflow: 'hidden',
+        flexShrink: 0,
+        zIndex: 10,
+      }}>
+        <div style={{ width: 220, height: '100%', background: 'linear-gradient(180deg,#071428 0%,#040d1a 100%)', borderRight: '1px solid rgba(255,255,255,.07)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* User profile header */}
+          <div style={{ padding: '14px 12px 12px', borderBottom: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: '#c8a84a',
+                boxShadow: '0 0 0 2px #c8a84a, 0 0 0 4px rgba(4,13,26,1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 900, color: '#040d1a', flexShrink: 0,
+              }}>YN</div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', lineHeight: 1 }}>You (Owner)</div>
+                <div style={{ fontSize: 9, color: '#c8a84a', marginTop: 3 }}>Elite · Owner · Tier 3</div>
+              </div>
             </div>
-          ))}
-          {/* User */}
-          <div className="mt-auto flex items-center gap-2 px-3 py-3 border-t border-white/10">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-navy-900 text-xs flex-shrink-0" style={{ background: '#c8a84a' }}>YN</div>
-            <div>
-              <div className="text-xs font-bold text-white leading-none">You (Owner)</div>
-              <div className="text-[8px] text-white/40 mt-0.5">Elite · Tier 3</div>
+          </div>
+
+          {/* Channel list */}
+          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 6, paddingBottom: 6 }} className="scrollbar-none">
+            {SIDEBAR_ITEMS.map(sec => (
+              <div key={sec.section}>
+                <div style={{ padding: '8px 14px 4px', fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,.25)', textTransform: 'uppercase', letterSpacing: '.1em' }}>
+                  {sec.section}
+                </div>
+                {sec.items.map(item => (
+                  item.isDM ? (
+                    <DMItem key={item.id} item={item} active={currentCh === item.id}
+                      onClick={() => { setCurrentCh(item.id); setShowSidebar(false) }} />
+                  ) : (
+                    <ChannelItem key={item.id} item={item} active={currentCh === item.id}
+                      onClick={() => setCurrentCh(item.id)} />
+                  )
+                ))}
+                <div style={{ height: 1, background: 'rgba(255,255,255,.05)', margin: '5px 14px' }} />
+              </div>
+            ))}
+          </div>
+
+          {/* Online count */}
+          <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,.07)', flexShrink: 0 }}>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.22)', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block', flexShrink: 0 }} />
+              34 members online
             </div>
           </div>
         </div>
-      {/* end sidebar */}
+      </div>
 
-      {/* Main chat */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Sidebar toggle pill */}
+      <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, zIndex: 20 }}>
+        <button
+          onClick={() => setShowSidebar(s => !s)}
+          style={{
+            width: 16, height: 48,
+            borderTopLeftRadius: 0, borderBottomLeftRadius: 0,
+            borderTopRightRadius: 8, borderBottomRightRadius: 8,
+            background: showSidebar ? 'rgba(26,107,191,.7)' : 'rgba(200,168,74,.85)',
+            border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 10, lineHeight: 1,
+            transition: 'background .3s ease',
+            animation: showSidebar ? 'none' : 'toggleGlow 2s ease-in-out infinite',
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ transform: showSidebar ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .3s ease', display: 'block', lineHeight: 1 }}>›</span>
+        </button>
+      </div>
+
+      {/* Main chat area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+
         {/* Chat header */}
-        <div className="bg-gray-900 border-b border-white/10 px-3 py-2.5 flex items-center gap-2 flex-shrink-0">
-          <button onClick={() => setShowSidebar(true)} className="md:hidden w-7 h-7 rounded-lg bg-white/10 text-white/60 flex items-center justify-center text-sm hover:bg-white/15">☰</button>
-          <span className="text-sm">{meta?.icon}</span>
-          <div className="flex-1">
-            <div className="text-sm font-bold text-white leading-none">{meta?.name}</div>
-            <div className="text-[9px] text-white/40 mt-0.5">{meta?.desc}</div>
+        <div style={{
+          background: 'linear-gradient(135deg,rgba(10,39,68,.97),rgba(7,20,40,.99))',
+          borderBottom: '1px solid rgba(255,255,255,.07)',
+          padding: '10px 14px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          flexShrink: 0,
+        }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: 'linear-gradient(135deg,rgba(26,107,191,.28),rgba(26,107,191,.1))',
+            border: '1px solid rgba(26,107,191,.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, flexShrink: 0,
+          }}>
+            {meta?.icon}
           </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1 }}>{meta?.name}</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.38)', marginTop: 2 }}>{meta?.desc}</div>
+          </div>
+          <button style={{
+            width: 30, height: 30, borderRadius: 8,
+            background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)',
+            color: 'rgba(255,255,255,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, flexShrink: 0,
+          }}>🔍</button>
           {meta?.action && (
-            <button onClick={() => meta.action === 'Announce' ? setShowAnnForm(!showAnnForm) : setShowDealForm(!showDealForm)}
-              className="px-3 py-1.5 rounded-lg bg-closer-blue/80 text-white text-xs font-bold hover:bg-closer-blue transition-colors">
+            <button
+              onClick={() => meta.action === 'Announce' ? setShowAnnForm(a => !a) : setShowDealForm(d => !d)}
+              style={{
+                padding: '6px 14px', borderRadius: 8,
+                background: 'linear-gradient(135deg,#c8a84a,#e8c870)',
+                color: '#071428', fontWeight: 700, fontSize: 10,
+                border: 'none', flexShrink: 0,
+              }}
+            >
               {meta.action}
             </button>
           )}
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-3 pt-3">
+        {/* Messages scroll area */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px' }} className="scrollbar-none">
           {msgs.map((msg, i) => (
-            <MessageGroup key={i} msg={msg} idx={i} channel={currentCh} chatData={chatData} setChatData={setChatData} />
+            <MessageGroup key={i} msg={msg} idx={i} channel={currentCh} />
           ))}
           {msgs.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <div className="text-3xl mb-3 opacity-20">💬</div>
-              <p className="text-sm text-white/30">No messages yet — be the first to post.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', padding: '48px 0' }}>
+              <div style={{ fontSize: 32, marginBottom: 12, opacity: .2 }}>💬</div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.28)', margin: 0 }}>No messages yet — be the first to post.</p>
             </div>
           )}
           <div ref={msgsEndRef} />
@@ -287,51 +483,57 @@ export default function TeamChatScreen() {
 
         {/* Deal form */}
         {showDealForm && (
-          <div className="bg-gray-900 border-t border-white/10 px-3 py-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-white">Log a closed deal</span>
-              <button onClick={() => setShowDealForm(false)} className="text-white/30 hover:text-white/60 text-sm">✕</button>
+          <div style={{ background: 'linear-gradient(180deg,rgba(7,20,40,.98),rgba(4,13,26,.99))', borderTop: '1px solid rgba(255,255,255,.08)', padding: '12px 14px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>Log a closed deal</span>
+              <button onClick={() => setShowDealForm(false)} style={{ color: 'rgba(255,255,255,.3)', fontSize: 14, background: 'none', border: 'none' }}>✕</button>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <div>
-                <label className="block text-[7px] font-bold text-white/40 uppercase tracking-wider mb-1">Amount ($)</label>
-                <input type="number" value={dfAmt} onChange={e => setDfAmt(e.target.value)} placeholder="8500" className="w-full bg-navy-800 border border-white/15 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-closer-blue placeholder-white/25" />
+                <label style={{ display: 'block', fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Amount ($)</label>
+                <input type="number" value={dfAmt} onChange={e => setDfAmt(e.target.value)} placeholder="8500" className="input-dark" style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label className="block text-[7px] font-bold text-white/40 uppercase tracking-wider mb-1">Industry</label>
-                <select value={dfInd} onChange={e => setDfInd(e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-closer-blue">
+                <label style={{ display: 'block', fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Industry</label>
+                <select value={dfInd} onChange={e => setDfInd(e.target.value)} className="input-dark" style={{ width: '100%', boxSizing: 'border-box' }}>
                   {['Solar', 'Life Insurance', 'Real Estate', 'Door-to-Door', 'Car Sales', 'B2B / SaaS'].map(i => <option key={i}>{i}</option>)}
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mb-2">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <div>
-                <label className="block text-[7px] font-bold text-white/40 uppercase tracking-wider mb-1">Client type</label>
-                <input value={dfClient} onChange={e => setDfClient(e.target.value)} placeholder="homeowner, SMB..." className="w-full bg-navy-800 border border-white/15 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-closer-blue placeholder-white/25" />
+                <label style={{ display: 'block', fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Client type</label>
+                <input value={dfClient} onChange={e => setDfClient(e.target.value)} placeholder="homeowner, SMB..." className="input-dark" style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label className="block text-[7px] font-bold text-white/40 uppercase tracking-wider mb-1">Time to close</label>
-                <input value={dfTime} onChange={e => setDfTime(e.target.value)} placeholder="same day, 2 calls..." className="w-full bg-navy-800 border border-white/15 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-closer-blue placeholder-white/25" />
+                <label style={{ display: 'block', fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Time to close</label>
+                <input value={dfTime} onChange={e => setDfTime(e.target.value)} placeholder="same day, 2 calls..." className="input-dark" style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
             </div>
-            <div className="mb-2">
-              <label className="block text-[7px] font-bold text-white/40 uppercase tracking-wider mb-1">How you closed it</label>
-              <input value={dfNote} onChange={e => setDfNote(e.target.value)} placeholder="Used Cardone's urgency frame..." className="w-full bg-navy-800 border border-white/15 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-closer-blue placeholder-white/25" />
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>How you closed it</label>
+              <input value={dfNote} onChange={e => setDfNote(e.target.value)} placeholder="Used Cardone's urgency frame..." className="input-dark" style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
-            <button onClick={postDeal} className="w-full py-2 bg-closer-blue text-white font-bold rounded-lg text-xs">Post deal to board</button>
+            <button onClick={postDeal} style={{ width: '100%', padding: '9px', background: '#1a6bbf', color: '#fff', fontWeight: 700, borderRadius: 10, border: 'none', fontSize: 12 }}>
+              Post deal to board
+            </button>
           </div>
         )}
 
         {/* Announce form */}
         {showAnnForm && (
-          <div className="bg-gradient-to-b from-navy-900 to-navy-800 border-t border-gold-500/20 px-3 py-3">
-            <div className="text-[8px] font-bold text-gold-400 uppercase tracking-widest mb-2">📢 Post announcement to all members</div>
-            <textarea value={annText} onChange={e => setAnnText(e.target.value)} rows={2} placeholder="Type your announcement..." className="w-full bg-white/5 border border-gold-500/25 rounded-xl px-3 py-2 text-white text-xs placeholder-white/25 focus:outline-none focus:border-gold-500 resize-none mb-2" />
-            <div className="flex items-center justify-between">
-              <span className="text-[8px] text-white/30">Will be pinned and visible to all members</span>
-              <div className="flex gap-2">
-                <button onClick={() => setShowAnnForm(false)} className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white/40 text-xs">Cancel</button>
-                <button onClick={postAnn} className="px-3 py-1.5 btn-gold rounded-lg text-[10px] font-bold">Post to all</button>
+          <div style={{ background: 'linear-gradient(180deg,rgba(7,20,40,.97),rgba(4,13,26,.99))', borderTop: '1px solid rgba(200,168,74,.15)', padding: '12px 14px', flexShrink: 0 }}>
+            <div style={{ fontSize: 8, fontWeight: 700, color: '#e8c870', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>📢 Post announcement to all members</div>
+            <textarea
+              value={annText} onChange={e => setAnnText(e.target.value)} rows={2}
+              placeholder="Type your announcement..."
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(200,168,74,.2)', borderRadius: 10, padding: '8px 12px', color: '#fff', fontSize: 12, resize: 'none', outline: 'none', caretColor: '#c8a84a', marginBottom: 8 }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 8, color: 'rgba(255,255,255,.28)' }}>Pinned · visible to all members</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowAnnForm(false)} style={{ padding: '6px 12px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 11 }}>Cancel</button>
+                <button onClick={postAnn} className="btn-gold" style={{ padding: '6px 14px', borderRadius: 8, fontSize: 10, fontWeight: 700, border: 'none' }}>Post to all</button>
               </div>
             </div>
           </div>
@@ -339,25 +541,58 @@ export default function TeamChatScreen() {
 
         {/* Compose */}
         {!showDealForm && !showAnnForm && (
-          <div className="bg-gray-900 border-t border-white/10 px-3 py-2.5 flex-shrink-0">
-            <div className="flex gap-2 mb-2">
-              <button onClick={() => { setShowDealForm(true); setShowAnnForm(false) }} className="text-[9px] font-medium px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 text-white/50 hover:bg-white/10 flex items-center gap-1">💰 Log deal</button>
-              {meta?.canAnnounce && (
-                <button onClick={() => { setShowAnnForm(true); setShowDealForm(false) }} className="text-[9px] font-medium px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 text-white/50 hover:bg-white/10 flex items-center gap-1">📢 Announce</button>
-              )}
-              <button onClick={() => setInput(i => i + '@')} className="text-[9px] font-medium px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 text-white/50 hover:bg-white/10">@ Mention</button>
+          <div style={{ background: 'linear-gradient(180deg,rgba(7,20,40,.96),rgba(4,13,26,.99))', borderTop: '1px solid rgba(255,255,255,.07)', padding: '10px 14px 12px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              {toolBtns.map(btn => (
+                <button
+                  key={btn.id}
+                  onClick={btn.action}
+                  onMouseEnter={() => setToolHov(btn.id)}
+                  onMouseLeave={() => setToolHov(null)}
+                  style={{
+                    fontSize: 9, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
+                    border: `1px solid ${toolHov === btn.id ? 'rgba(200,168,74,.45)' : 'rgba(255,255,255,.12)'}`,
+                    background: toolHov === btn.id ? 'rgba(200,168,74,.1)' : 'rgba(255,255,255,.04)',
+                    color: toolHov === btn.id ? '#e8c870' : 'rgba(255,255,255,.45)',
+                    transition: 'all .15s ease',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  {btn.icon} {btn.label}
+                </button>
+              ))}
             </div>
-            <div className="flex gap-2">
+            <div style={{ display: 'flex', gap: 8 }}>
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg() } }}
                 placeholder={`Message ${meta?.name || ''}...`}
                 rows={1}
-                className="flex-1 bg-white/8 border border-white/15 rounded-xl px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-closer-blue resize-none"
-                style={{ minHeight: 34, maxHeight: 72 }}
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,.06)',
+                  border: input ? '1px solid rgba(200,168,74,.38)' : '1px solid rgba(255,255,255,.1)',
+                  borderRadius: 12, padding: '8px 12px',
+                  color: '#fff', fontSize: 12, resize: 'none',
+                  minHeight: 36, maxHeight: 72, outline: 'none',
+                  caretColor: '#c8a84a', transition: 'border-color .2s ease',
+                  boxSizing: 'border-box',
+                }}
               />
-              <button onClick={sendMsg} className="px-3 py-2 bg-closer-blue text-white font-bold rounded-xl text-xs">Send</button>
+              <button
+                onClick={sendMsg}
+                disabled={!input.trim()}
+                style={{
+                  padding: '8px 14px', borderRadius: 12,
+                  background: input.trim() ? 'linear-gradient(135deg,#c8a84a,#e8c870)' : 'rgba(255,255,255,.07)',
+                  color: input.trim() ? '#071428' : 'rgba(255,255,255,.22)',
+                  fontWeight: 700, fontSize: 11,
+                  border: 'none', flexShrink: 0,
+                  transition: 'all .2s ease',
+                }}
+              >
+                Send
+              </button>
             </div>
           </div>
         )}
