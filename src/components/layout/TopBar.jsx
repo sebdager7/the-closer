@@ -15,57 +15,59 @@ function ThemeToggle() {
 
   return (
     <button
-      onClick={() => {
-        const next = isDark ? 'light' : 'dark'
-        console.log('[TOGGLE] Switching from', state.theme, 'to', next)
-        dispatch({ type: 'SET_THEME', payload: next })
-      }}
+      onClick={() => dispatch({ type: 'SET_THEME', payload: isDark ? 'light' : 'dark' })}
       title={isDark ? 'Switch to day mode' : 'Switch to night mode'}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '7px',
-        padding: '5px 11px',
-        borderRadius: '20px',
-        border: isDark ? '1px solid rgba(26,107,191,0.4)' : '1px solid rgba(200,168,74,0.5)',
-        background: isDark
-          ? 'linear-gradient(135deg, #071428, #0a2744)'
-          : 'linear-gradient(135deg, #162847, #1f3c6a)',
-        transition: 'all 0.3s ease',
+        padding: '3px',
+        borderRadius: 20,
+        gap: 2,
+        border: isDark ? '1px solid rgba(26,107,191,0.45)' : '1px solid rgba(200,168,74,0.55)',
+        background: isDark ? '#071428' : '#162847',
+        transition: 'all 0.25s ease',
         flexShrink: 0,
       }}
     >
-      {/* Sun icon — glows gold in day mode */}
-      <svg
-        width="14" height="14" viewBox="0 0 24 24" fill="none"
-        stroke={!isDark ? '#f59e0b' : 'rgba(255,255,255,0.22)'}
-        strokeWidth="2.5" strokeLinecap="round"
-        style={{
-          transition: 'all 0.3s ease',
-          filter: !isDark ? 'drop-shadow(0 0 5px #f59e0b) drop-shadow(0 0 2px #f59e0b)' : 'none',
-        }}
-      >
-        <circle cx="12" cy="12" r="4"/>
-        <line x1="12" y1="2" x2="12" y2="5"/>
-        <line x1="12" y1="19" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="5" y2="12"/>
-        <line x1="19" y1="12" x2="22" y2="12"/>
-        <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
-        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
-        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
-        <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
-      </svg>
-      {/* Moon icon — glows blue in dark mode */}
-      <svg
-        width="13" height="13" viewBox="0 0 24 24"
-        fill={isDark ? '#1a6bbf' : 'rgba(255,255,255,0.2)'}
-        style={{
-          transition: 'all 0.3s ease',
-          filter: isDark ? 'drop-shadow(0 0 5px #1a6bbf) drop-shadow(0 0 2px #1a6bbf)' : 'none',
-        }}
-      >
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-      </svg>
+      {/* Sun — active bubble in light mode */}
+      <span style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 24, height: 24, borderRadius: 12,
+        background: !isDark ? 'rgba(245,158,11,0.22)' : 'transparent',
+        boxShadow: !isDark ? '0 0 8px rgba(245,158,11,0.5), inset 0 0 6px rgba(245,158,11,0.15)' : 'none',
+        transition: 'all 0.25s ease',
+      }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+          stroke={!isDark ? '#f59e0b' : 'rgba(255,255,255,0.22)'}
+          strokeWidth="2.5" strokeLinecap="round"
+          style={{ filter: !isDark ? 'drop-shadow(0 0 4px #f59e0b)' : 'none', transition: 'all 0.25s ease' }}
+        >
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2" x2="12" y2="5"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="5" y2="12"/>
+          <line x1="19" y1="12" x2="22" y2="12"/>
+          <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+          <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+          <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+          <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+        </svg>
+      </span>
+      {/* Moon — active bubble in dark mode */}
+      <span style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: 24, height: 24, borderRadius: 12,
+        background: isDark ? 'rgba(26,107,191,0.25)' : 'transparent',
+        boxShadow: isDark ? '0 0 8px rgba(26,107,191,0.55), inset 0 0 6px rgba(26,107,191,0.15)' : 'none',
+        transition: 'all 0.25s ease',
+      }}>
+        <svg width="12" height="12" viewBox="0 0 24 24"
+          fill={isDark ? '#4a9eff' : 'rgba(255,255,255,0.2)'}
+          style={{ filter: isDark ? 'drop-shadow(0 0 4px #1a6bbf)' : 'none', transition: 'all 0.25s ease' }}
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
     </button>
   )
 }
@@ -99,6 +101,17 @@ export default function TopBar() {
 
         {/* Theme toggle */}
         <ThemeToggle />
+
+        {/* Debug: tap to confirm current theme */}
+        <button
+          onClick={() => alert(`Theme: ${state.theme}\nHTML class: ${document.documentElement.className}`)}
+          style={{
+            width: 22, height: 22, borderRadius: 11, fontSize: 11, fontWeight: 'bold',
+            background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.4)', flexShrink: 0, cursor: 'pointer',
+          }}
+          title="Debug theme state"
+        >?</button>
 
         {/* Language selector */}
         <select

@@ -36,18 +36,6 @@ function MainApp() {
   const { state } = useApp()
   const ActiveScreen = TAB_SCREENS[state.activeTab] || ObjectionsScreen
 
-  useEffect(() => {
-    const root = document.documentElement
-    if (state.theme === 'light') {
-      root.classList.remove('dark')
-      root.classList.add('light')
-    } else {
-      root.classList.add('dark')
-      root.classList.remove('light')
-    }
-    console.log('[THEME] Applied class:', state.theme, '| HTML classes:', root.className)
-  }, [state.theme])
-
   return (
     <div className="flex flex-col h-screen max-w-lg mx-auto overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
       <TopBar />
@@ -61,8 +49,18 @@ function MainApp() {
 
 function AppRouter() {
   const { state } = useApp()
-  // Show quote on every page load — quoteShown is session-only state, not persisted
   const [quoteShown, setQuoteShown] = useState(false)
+
+  useEffect(() => {
+    const root = document.documentElement
+    if (state.theme === 'light') {
+      root.classList.remove('dark')
+      root.classList.add('light')
+    } else {
+      root.classList.add('dark')
+      root.classList.remove('light')
+    }
+  }, [state.theme])
 
   if (!state.isAuthenticated) {
     return <LoginScreen />
