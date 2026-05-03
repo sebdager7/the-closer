@@ -798,8 +798,8 @@ export const PLANS = [
   {
     id: 'pro',
     name: 'Pro Closer',
-    price: 17.99,
-    priceDisplay: '$17.99',
+    price: 21.99,
+    priceDisplay: '$21.99',
     period: '/month',
     badge: 'Most Popular',
     badgeColor: 'blue',
@@ -816,8 +816,8 @@ export const PLANS = [
   {
     id: 'elite',
     name: 'Elite Closer',
-    price: 49.99,
-    priceDisplay: '$49.99',
+    price: 59.99,
+    priceDisplay: '$59.99',
     period: '/month',
     badge: 'Elite Closer',
     badgeColor: 'gold',
@@ -830,7 +830,7 @@ export const PLANS = [
       'White-label options',
     ],
     locked: [],
-    agencyNote: '🏢 Agency Growth Program eligible. Earn 20–35% monthly recurring per member you bring in.',
+    agencyNote: '🏢 Agency Growth Program eligible. Earn 10–35% monthly recurring per member you bring in.',
   },
 ]
 
@@ -841,9 +841,9 @@ export const AGENCY_TIERS = [
     tier: 'Tier 1 — Starter',
     name: 'Growth Partner',
     req: '1–9 active members',
-    pct: 20,
+    pct: 10,
     detail: 'Monthly recurring',
-    perks: ['Pro: $3.60/user/mo', 'Elite: $10.00/user/mo', 'Team dashboard', 'Shareable code'],
+    perks: ['Pro: $2.20/user/mo', 'Elite: $6.00/user/mo', 'Team dashboard', 'Shareable code'],
     style: 't1',
   },
   {
@@ -851,9 +851,9 @@ export const AGENCY_TIERS = [
     tier: 'Tier 2 — Agency',
     name: 'Agency Director',
     req: '10–49 active members',
-    pct: 30,
+    pct: 20,
     detail: 'Monthly recurring',
-    perks: ['Pro: $5.40/user/mo', 'Elite: $15.00/user/mo', 'Priority support', 'Custom team code'],
+    perks: ['Pro: $4.40/user/mo', 'Elite: $12.00/user/mo', 'Priority support', 'Custom team code'],
     style: 't2',
   },
   {
@@ -863,7 +863,7 @@ export const AGENCY_TIERS = [
     req: '50+ active members',
     pct: 35,
     detail: 'Forever recurring',
-    perks: ['Pro: $7.20/user/mo', 'Elite: $20.00/user/mo', 'White-label', 'Dedicated account mgr'],
+    perks: ['Pro: $7.70/user/mo', 'Elite: $21.00/user/mo', 'White-label', 'Dedicated account mgr'],
     style: 't3',
   },
 ]

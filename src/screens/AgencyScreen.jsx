@@ -159,8 +159,8 @@ function ApplyForm() {
           <label className="block text-[8px] font-bold text-white/40 uppercase tracking-wider mb-1.5">Current plan</label>
           <select value={form.plan} onChange={e => setForm({ ...form, plan: e.target.value })} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             <option value="">Select plan</option>
-            <option value="elite">Elite Closer ($49.99)</option>
-            <option value="pro">Pro ($17.99)</option>
+            <option value="elite">Elite Closer ($59.99)</option>
+            <option value="pro">Pro ($21.99)</option>
             <option value="free">Free</option>
           </select>
         </div>
@@ -187,7 +187,7 @@ function ApplyForm() {
       {status === 'error' && (
         <div className="bg-red-500/15 border border-red-500/40 rounded-xl p-3">
           <p className="text-xs text-red-300 font-bold">Elite Closer subscription required.</p>
-          <p className="text-xs text-red-300/70 mt-1">Upgrade to $49.99/mo first, then reapply. The Agency Growth Program is only available to Elite subscribers.</p>
+          <p className="text-xs text-red-300/70 mt-1">Upgrade to $59.99/mo first, then reapply. The Agency Growth Program is only available to Elite subscribers.</p>
         </div>
       )}
       {status === 'success' && (
@@ -239,11 +239,11 @@ export default function AgencyScreen() {
               {/* Pricing */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="p-3 bg-blue-950/60 rounded-xl text-center border border-closer-blue/40">
-                  <div className="text-xl font-extrabold text-closer-blue">$17.99</div>
+                  <div className="text-xl font-extrabold text-closer-blue">$21.99</div>
                   <div className="text-[9px] font-bold text-blue-300">Pro Closer / mo</div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-navy-900 to-[#1a3050] rounded-xl text-center border border-gold-500/40">
-                  <div className="text-xl font-extrabold text-gold-400">$49.99</div>
+                  <div className="text-xl font-extrabold text-gold-400">$59.99</div>
                   <div className="text-[9px] font-bold text-gold-500">Elite Closer / mo</div>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function AgencyScreen() {
               <div className="bg-navy-800/60 border border-white/10 rounded-xl p-4 mb-4">
                 <div className="text-[9px] font-bold uppercase tracking-widest text-white/40 mb-3">Quality Filter — Who Gets a Code</div>
                 {[
-                  { ok: true, text: 'Active Elite Closer subscriber ($49.99/mo)' },
+                  { ok: true, text: 'Active Elite Closer subscriber ($59.99/mo)' },
                   { ok: true, text: 'Agency owner, broker, upline, or team leader' },
                   { ok: true, text: 'Manual approval — contact us directly' },
                   { ok: false, text: 'No open registration — not everyone gets a code' },
