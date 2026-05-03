@@ -68,7 +68,7 @@ function Dashboard() {
       <div className="bg-navy-800/60 border border-white/10 rounded-xl p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-white">Tier Progress</span>
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-navy-900 to-navy-800 text-gold-400 border border-gold-500/40">🔥 Elite Partner · 35%</span>
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-navy-900 to-navy-800 text-gold-400 border border-gold-500/40">🔥 Elite Partner · 30%</span>
         </div>
         <div className="flex items-center gap-3 mb-1">
           <span className="text-[9px] text-white/40 w-24">Active members</span>
@@ -160,7 +160,7 @@ function ApplyForm() {
           <select value={form.plan} onChange={e => setForm({ ...form, plan: e.target.value })} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             <option value="">Select plan</option>
             <option value="elite">Elite Closer ($59.99)</option>
-            <option value="pro">Pro ($21.99)</option>
+            <option value="pro">Pro ($29.99)</option>
             <option value="free">Free</option>
           </select>
         </div>
@@ -239,7 +239,7 @@ export default function AgencyScreen() {
               {/* Pricing */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="p-3 bg-blue-950/60 rounded-xl text-center border border-closer-blue/40">
-                  <div className="text-xl font-extrabold text-closer-blue">$21.99</div>
+                  <div className="text-xl font-extrabold text-closer-blue">$29.99</div>
                   <div className="text-[9px] font-bold text-blue-300">Pro Closer / mo</div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-navy-900 to-[#1a3050] rounded-xl text-center border border-gold-500/40">
