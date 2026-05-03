@@ -7,9 +7,9 @@ import {
 
 const TABS = [
   { id: 'progress',   Icon: ProgressIcon,   label: 'Progress'    },
-  { id: 'pitch',      Icon: PitchIcon,      label: 'Pitch'       },
   { id: 'psychology', Icon: PsychologyIcon, label: 'Psychology'  },
   { id: 'training',   Icon: TrainingIcon,   label: 'Training'    },
+  { id: 'pitch',      Icon: PitchIcon,      label: 'Pitch'       },
   { id: 'objections', Icon: ObjectionsIcon, label: 'Objections'  },
   { id: 'brain',      Icon: BrainNavIcon,   label: 'My Brain'    },
   { id: 'agency',     Icon: AgencyIcon,     label: 'Agency'      },
