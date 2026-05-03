@@ -272,8 +272,9 @@ export async function runAutopsy(transcript, closePct, dealValue) {
 }
 
 // ─── HARDCODED VOICE IDs ─────────────────────────────────────────────────────
-const FEMALE_ID = 'g6xIsTj2HwM6VR4iXFCw'
-const MALE_ID   = 'UgBBYS2sOqTuMpoF3BR0'
+// Bella (female) and Adam (male) — verified working on free ElevenLabs plan
+const FEMALE_ID = 'EXAVITQu4vr4xnSDxMaL'
+const MALE_ID   = 'pNInz6obpgDQGcFmaJgB'
 
 const LANG_CODE = {
   'English': 'en',

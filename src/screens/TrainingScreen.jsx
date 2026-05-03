@@ -1593,7 +1593,7 @@ export default function TrainingScreen() {
                   '• Check VITE_ELEVENLABS_API_KEY in .env\n' +
                   '• Restart dev server after changing .env\n' +
                   '• Verify key on elevenlabs.io\n\n' +
-                  'Voice ID: g6xIsTj2HwM6VR4iXFCw'
+                  'Voice ID: EXAVITQu4vr4xnSDxMaL (Bella)'
                 )
               }
             }}
@@ -1624,7 +1624,7 @@ export default function TrainingScreen() {
                   '• Check VITE_ELEVENLABS_API_KEY in .env\n' +
                   '• Restart dev server after .env change\n' +
                   '• Verify key on elevenlabs.io\n\n' +
-                  'Voice ID: UgBBYS2sOqTuMpoF3BR0'
+                  'Voice ID: pNInz6obpgDQGcFmaJgB (Adam)'
                 )
               }
             }}
