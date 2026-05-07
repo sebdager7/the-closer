@@ -50,18 +50,18 @@ const initialState = {
 
   // Performance metrics
   metrics: {
-    closeRate: 42,
-    objectionWin: 67,
-    toneStrength: 73,
-    avgDealValue: 55,
-    oneShotClose: 31,
+    closeRate: 0,
+    objectionWin: 0,
+    toneStrength: 0,
+    avgDealValue: 0,
+    oneShotClose: 0,
   },
   metricsPrev: {
-    closeRate: 28,
-    objectionWin: 51,
-    toneStrength: 58,
-    avgDealValue: 40,
-    oneShotClose: 18,
+    closeRate: 0,
+    objectionWin: 0,
+    toneStrength: 0,
+    avgDealValue: 0,
+    oneShotClose: 0,
   },
 }
 
