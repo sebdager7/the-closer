@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
+import { TranslationProvider } from './context/TranslationContext'
 import { checkAPIKey } from './utils/api'
 import MoneyTrail from './components/MoneyTrail'
 
@@ -87,8 +88,10 @@ export default function App() {
   useEffect(() => { checkAPIKey() }, [])
   return (
     <AppProvider>
-      <MoneyTrail />
-      <AppRouter />
+      <TranslationProvider>
+        <MoneyTrail />
+        <AppRouter />
+      </TranslationProvider>
     </AppProvider>
   )
 }

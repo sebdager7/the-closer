@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
+import { useT } from '../context/TranslationContext'
 import { callClaudeConversation, getBrutalFeedback, getReframes, generateProspectProfile, getElevenLabsAudio, playAudioUrl } from '../utils/api'
 import { TRAINING_MODES, DIFFICULTY_MAP, INDUSTRIES, PROSPECTS, PROSPECT_NAMES, PROSPECT_PERSONALITIES } from '../data/constants'
 import { vibrateBlitz, zapSound } from '../utils/blitz'
@@ -1482,6 +1483,7 @@ Return ONLY raw JSON, no markdown, no backticks:
 // ─── MAIN TRAINING SCREEN ─────────────────────────────────────────────────────
 export default function TrainingScreen() {
   const { state, dispatch } = useApp()
+  const t = useT()
   const [mode, setMode] = useState('std')
   const [industry, setIndustry] = useState('Door-to-Door')
   const [persona, setPersona] = useState(PROSPECTS[0])
@@ -1521,7 +1523,7 @@ export default function TrainingScreen() {
     <div className="flex flex-col h-full overflow-y-auto px-4 pt-4" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
       <BlitzBar message={`<strong>Blitz:</strong> ${modeMsg}`} />
 
-      <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">Training Mode</div>
+      <div className="text-[9px] font-bubble uppercase tracking-widest text-white/40 mb-2">{t('training_mode_label')}</div>
       <div className="grid grid-cols-2 gap-2 mb-4">
         {TRAINING_MODES.map(m => (
           <button key={m.id} onClick={() => setMode(m.id)}
@@ -1540,13 +1542,13 @@ export default function TrainingScreen() {
 
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
-          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Industry</label>
+          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">{t('training_industry')}</label>
           <select value={industry} onChange={e => setIndustry(e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Prospect</label>
+          <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">{t('training_prospect')}</label>
           <select value={persona} onChange={e => setPersona(e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-xs focus:outline-none focus:border-closer-blue">
             {PROSPECTS.map(p => <option key={p}>{p}</option>)}
           </select>
@@ -1554,13 +1556,13 @@ export default function TrainingScreen() {
       </div>
 
       <div className="mb-3">
-        <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">Deal value ($)</label>
+        <label className="block text-[9px] font-bubble text-white/40 uppercase tracking-wider mb-1.5">{t('training_deal_val')}</label>
         <input type="number" value={dealVal} onChange={e => setDealVal(+e.target.value)} className="w-full bg-navy-800 border border-white/15 rounded-lg px-2.5 py-2 text-white text-sm focus:outline-none focus:border-closer-blue" />
       </div>
 
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-[9px] font-bubble text-white/40 uppercase tracking-wider">Difficulty</label>
+          <label className="text-[9px] font-bubble text-white/40 uppercase tracking-wider">{t('training_difficulty')}</label>
           <span className="text-[10px] font-bold px-3 py-0.5 rounded-full bg-blue-900/60 text-blue-300">{DIFFICULTY_MAP[Math.round(difficulty)]}</span>
         </div>
         <div className="relative pt-1 pb-4">
@@ -1570,9 +1572,9 @@ export default function TrainingScreen() {
             style={{ background: `linear-gradient(to right, #1a6bbf 0%, #1a6bbf ${((difficulty - 1) / 4) * 100}%, rgba(255,255,255,0.1) ${((difficulty - 1) / 4) * 100}%, rgba(255,255,255,0.1) 100%)` }}
           />
           <div className="absolute bottom-0 left-0 right-0 flex justify-between">
-            <span className="text-[8px] text-white/30">Beginner</span>
-            <span className="text-[8px] text-white/30">Mid</span>
-            <span className="text-[8px] text-white/30">Elite</span>
+            <span className="text-[8px] text-white/30">{t('training_beginner')}</span>
+            <span className="text-[8px] text-white/30">{t('training_mid')}</span>
+            <span className="text-[8px] text-white/30">{t('training_elite_lbl')}</span>
           </div>
         </div>
       </div>
@@ -1662,30 +1664,43 @@ export default function TrainingScreen() {
         </div>
       )}
 
-      <button
-        onClick={() => {
-          // Unlock both speech synthesis and HTMLMediaElement audio
-          try {
-            window.speechSynthesis.cancel()
-            const prime = new SpeechSynthesisUtterance('')
-            window.speechSynthesis.speak(prime)
-          } catch (e) {}
-          try {
-            const unlock = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
-            unlock.play().catch(() => {})
-          } catch (e) {}
-          setInCall(true)
-        }}
-        className="w-full py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-[#1a6bbf] to-[#1557a0] text-white tracking-wide shadow-lg shadow-closer-blue/30 hover:shadow-xl hover:shadow-closer-blue/40 hover:from-[#1d78d6] hover:to-[#1a6bbf] active:scale-[0.98] transition-all duration-200 border border-closer-blue/30 relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/8 to-transparent pointer-events-none" />
-        <div className="flex items-center justify-center gap-3 relative">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l1.09-1.09a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          <span>Start Training Call</span>
+      {state.language !== 'English' ? (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 text-center">
+          <div className="text-3xl mb-2">🔒</div>
+          <div className="font-bold text-white mb-1">{t('training_locked_title')}</div>
+          <p className="text-xs text-white/60 leading-relaxed mb-4">{t('training_locked_body')}</p>
+          <button
+            onClick={() => dispatch({ type: 'SET_LANGUAGE', payload: 'English' })}
+            className="px-5 py-2.5 bg-closer-blue text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition-colors"
+          >
+            {t('training_switch_lang')}
+          </button>
         </div>
-      </button>
+      ) : (
+        <button
+          onClick={() => {
+            try {
+              window.speechSynthesis.cancel()
+              const prime = new SpeechSynthesisUtterance('')
+              window.speechSynthesis.speak(prime)
+            } catch (e) {}
+            try {
+              const unlock = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=')
+              unlock.play().catch(() => {})
+            } catch (e) {}
+            setInCall(true)
+          }}
+          className="w-full py-4 rounded-2xl font-bold text-base bg-gradient-to-r from-[#1a6bbf] to-[#1557a0] text-white tracking-wide shadow-lg shadow-closer-blue/30 hover:shadow-xl hover:shadow-closer-blue/40 hover:from-[#1d78d6] hover:to-[#1a6bbf] active:scale-[0.98] transition-all duration-200 border border-closer-blue/30 relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/8 to-transparent pointer-events-none" />
+          <div className="flex items-center justify-center gap-3 relative">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l1.09-1.09a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>{t('training_start_btn')}</span>
+          </div>
+        </button>
+      )}
     </div>
   )
 }

@@ -2,9 +2,11 @@ import React, { useState } from 'react'
 import BlitzBar from '../components/layout/BlitzBar'
 import BlitzIcon from '../components/layout/BlitzIcon'
 import { useApp } from '../context/AppContext'
+import { useT } from '../context/TranslationContext'
 
 export default function BrainScreen() {
   const { state, dispatch } = useApp()
+  const t = useT()
   const [offer, setOffer] = useState(state.customBrain.offer)
   const [icp, setIcp] = useState(state.customBrain.icp)
   const [objections, setObjections] = useState(state.customBrain.objections)
@@ -18,12 +20,12 @@ export default function BrainScreen() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4">
-      <BlitzBar message={`<strong>Blitz:</strong> Train me on YOUR business. Upload your offer, ICP, and the objections you hear most. Every rebuttal, pitch, and training call becomes 100% customized to you.`} />
+      <BlitzBar message={t('brain_blitz')} />
 
       {[
-        { label: '📋 Your offer / product', id: 'offer', val: offer, set: setOffer, rows: 3, ph: "What do you sell? What's the value prop? Price points? Key benefits..." },
-        { label: '👤 Ideal client profile', id: 'icp', val: icp, set: setIcp, rows: 2, ph: "Who is your perfect customer? Demographics, pain points, desires, income level..." },
-        { label: '🛡️ Top objections you hear', id: 'obj', val: objections, set: setObjections, rows: 2, ph: "e.g. 'too expensive', 'need to think about it', 'my spouse needs to decide'..." },
+        { label: t('brain_offer'), id: 'offer', val: offer, set: setOffer, rows: 3, ph: t('brain_offer_ph') },
+        { label: t('brain_icp'), id: 'icp', val: icp, set: setIcp, rows: 2, ph: t('brain_icp_ph') },
+        { label: t('brain_objections'), id: 'obj', val: objections, set: setObjections, rows: 2, ph: t('brain_obj_ph') },
       ].map(f => (
         <div key={f.id} className="bg-navy-800/60 border border-white/10 rounded-xl p-4 mb-3">
           <div className="text-xs font-bold text-white mb-3">{f.label}</div>
@@ -41,28 +43,32 @@ export default function BrainScreen() {
         onClick={handleTrain}
         className="w-full py-3.5 bg-closer-blue text-white font-bold text-sm rounded-xl hover:bg-blue-600 transition-colors mb-3"
       >
-        🧠 Train Blitz on my business
+        {t('brain_train_btn')}
       </button>
 
       {saved && (
         <div className="flex items-start gap-3 bg-navy-800/80 rounded-xl p-3 border border-gold-500/30 animate-fade-in">
           <BlitzIcon size={28} />
           <p className="text-sm text-white/90 leading-relaxed flex-1">
-            <strong className="text-gold-400">Blitz:</strong> Done! I've loaded your offer, ICP, and top objections. Every pitch, rebuttal, and training call is now tailored to your exact business.
+            <strong className="text-gold-400">Blitz:</strong> {t('brain_saved')}
           </p>
         </div>
       )}
 
       {state.customBrain.offer && !saved && (
         <div className="mt-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/30">
-          <p className="text-[10px] text-green-400 font-medium">✓ Custom brain active — Blitz is trained on your business</p>
+          <p className="text-[10px] text-green-400 font-medium">{t('brain_active')}</p>
         </div>
       )}
 
       <div className="bg-navy-800/60 border border-gold-500/25 rounded-xl p-4 mt-4">
-        <div className="text-[9px] font-bold text-gold-400 uppercase tracking-widest mb-2">🎙️ Real Human Voices</div>
+        <div className="text-[9px] font-bold text-gold-400 uppercase tracking-widest mb-2">{t('brain_voices_title')}</div>
         <p className="text-xs text-white/60 leading-relaxed mb-3">
-          For the most realistic prospect voices in training calls, add your ElevenLabs API key to your <span className="text-white/80 font-mono">.env</span> file. Free tier available.
+          {t('brain_voices_desc').split('.env').map((part, i, arr) =>
+            i < arr.length - 1
+              ? <span key={i}>{part}<span className="text-white/80 font-mono">.env</span></span>
+              : <span key={i}>{part}</span>
+          )}
         </p>
         <div className="bg-navy-950/60 rounded-lg px-3 py-2 font-mono text-xs text-white/40 mb-3 select-all">
           VITE_ELEVENLABS_API_KEY=your_key_here
@@ -73,7 +79,7 @@ export default function BrainScreen() {
           rel="noopener noreferrer"
           className="text-xs text-closer-blue underline"
         >
-          Get free API key at elevenlabs.io →
+          {t('brain_get_key')}
         </a>
       </div>
     </div>
