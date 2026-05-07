@@ -65,7 +65,7 @@ STRICT RULES:
 
 ${numbered}`
 
-  const raw = await callClaude(prompt, 4096)
+  const raw = await callClaude(prompt, 1500)
   console.log('[Translation] API returned. First 200 chars:', raw.slice(0, 200))
   return raw
 }
@@ -75,6 +75,7 @@ export function TranslationProvider({ children }) {
   const [translations, setTranslations] = useState({})
   const [status, setStatus] = useState('idle') // 'idle' | 'loading' | 'done' | 'error'
   const [errorMsg, setErrorMsg] = useState('')
+  const [retryTick, setRetryTick] = useState(0)
   const cacheRef = useRef(loadCache())
   const langRef = useRef(state.language)
 
@@ -121,12 +122,12 @@ export function TranslationProvider({ children }) {
       .catch(err => {
         if (cancelled) return
         console.error('[Translation] Error:', err)
-        setErrorMsg('Translation failed — check API key or try again.')
+        setErrorMsg(err.message || 'Translation failed — check API key or try again.')
         setStatus('error')
       })
 
     return () => { cancelled = true }
-  }, [state.language])
+  }, [state.language, retryTick])
 
   // Auto-hide 'done' banner after 2 seconds
   useEffect(() => {
@@ -177,7 +178,8 @@ export function TranslationProvider({ children }) {
         >
           <span>⚠️</span>
           <span className="flex-1">{errorMsg}</span>
-          <button onClick={() => setStatus('idle')} className="text-white/70 hover:text-white ml-2">✕</button>
+          <button onClick={() => { setStatus('idle'); setRetryTick(n => n + 1) }} className="text-white font-bold text-[10px] px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 mr-1">Retry</button>
+          <button onClick={() => setStatus('idle')} className="text-white/70 hover:text-white ml-1">✕</button>
         </div>
       )}
 
