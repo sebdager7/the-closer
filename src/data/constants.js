@@ -755,19 +755,21 @@ export const PROSPECTS = [
 ]
 
 export const PITCH_FRAMEWORKS = [
-  'Andy Elliott 10-Step',
-  'Belfort Straight Line',
-  'Cardone Tonality',
-  'Ziglar Story-Close',
-  'Hormozi Value Stack',
-  'Problem/Agitate/Solve',
+  'The Straight-Line Closer',
+  'The Certainty Closer',
+  'The Tactical Negotiator',
+  'The Story-Driven Persuader',
+  'The Aggressive Volume Closer',
+  'The Consultative Soft Closer',
 ]
 
 export const REBUILD_FRAMEWORKS = [
-  'Andy Elliott patterns',
-  'Belfort certainty framework',
-  'Cardone aggression',
-  'Hormozi value stacking',
+  'The Straight-Line Closer',
+  'The Certainty Closer',
+  'The Tactical Negotiator',
+  'The Story-Driven Persuader',
+  'The Aggressive Volume Closer',
+  'The Consultative Soft Closer',
 ]
 
 export const LANGUAGES = [
