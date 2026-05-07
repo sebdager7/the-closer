@@ -4,7 +4,20 @@ import { callClaude } from '../utils/api'
 import { EN_STRINGS } from '../i18n/strings'
 
 const TranslationContext = createContext(null)
-const CACHE_KEY = 'closer_ui_translations_v2'
+const CACHE_KEY = 'closer_ui_translations_v3'
+
+// Keys that contain "Blitz" branding — never translated, always stay in English
+const BLITZ_KEYS = new Set([
+  'progress_blitz', 'objections_blitz', 'pitch_blitz', 'brain_blitz',
+  'objections_loading_btn', 'pitch_loading_create', 'pitch_loading_rebuild',
+  'brain_train_btn', 'brain_saved', 'brain_active', 'blitz_prefix',
+  'translating', 'loading',
+])
+
+// Only translate strings that don't contain Blitz branding
+const TRANSLATABLE = Object.fromEntries(
+  Object.entries(EN_STRINGS).filter(([k]) => !BLITZ_KEYS.has(k))
+)
 
 function loadCache() {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}') } catch { return {} }
@@ -14,52 +27,105 @@ function saveCache(cache) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)) } catch {}
 }
 
+// Send as KEY|||VALUE lines — no JSON, no escaping issues
+function buildPayload() {
+  return Object.entries(TRANSLATABLE)
+    .map(([k, v]) => `${k}|||${v}`)
+    .join('\n')
+}
+
+// Parse KEY|||VALUE lines back into an object
+function parseResponse(raw) {
+  const result = {}
+  const lines = raw.split('\n')
+  for (const line of lines) {
+    const idx = line.indexOf('|||')
+    if (idx === -1) continue
+    const key = line.slice(0, idx).trim()
+    const value = line.slice(idx + 3).trim()
+    if (key && value && key in EN_STRINGS) {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 export function TranslationProvider({ children }) {
   const { state } = useApp()
-  const [translations, setTranslations] = useState(EN_STRINGS)
+  const [translations, setTranslations] = useState({})
   const [isTranslating, setIsTranslating] = useState(false)
   const cacheRef = useRef(loadCache())
 
   useEffect(() => {
     if (state.language === 'English') {
-      setTranslations(EN_STRINGS)
+      setTranslations({})
       return
     }
 
     const cached = cacheRef.current[state.language]
-    if (cached) {
+    if (cached && Object.keys(cached).length > 10) {
       setTranslations(cached)
       return
     }
 
     setIsTranslating(true)
+
     ;(async () => {
       try {
-        const prompt = `Translate all JSON string values to ${state.language}. Rules:\n1. Keep every JSON key exactly unchanged.\n2. Keep all HTML tags like <strong> intact in their positions.\n3. Keep all emojis exactly as they are.\n4. Return ONLY raw valid JSON — no markdown fences, no explanation.\n\n${JSON.stringify(EN_STRINGS)}`
+        const payload = buildPayload()
+        const prompt = `Translate the text values (after |||) to ${state.language}.
+Rules:
+- Keep every key (before |||) exactly unchanged
+- Keep all emojis exactly as they are
+- Do NOT translate the word "Blitz" — keep it as "Blitz"
+- Return ONLY the translated lines in the exact same KEY|||VALUE format, one per line, nothing else
+
+${payload}`
+
         const raw = await callClaude(prompt, 4096)
-        const clean = raw.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim()
-        const translated = JSON.parse(clean)
-        cacheRef.current = { ...cacheRef.current, [state.language]: translated }
+        const parsed = parseResponse(raw)
+
+        if (Object.keys(parsed).length < 10) {
+          console.error('[Translation] Too few keys parsed, keeping English. Raw:', raw.slice(0, 200))
+          setIsTranslating(false)
+          return
+        }
+
+        cacheRef.current = { ...cacheRef.current, [state.language]: parsed }
         saveCache(cacheRef.current)
-        setTranslations(translated)
+        setTranslations(parsed)
       } catch (e) {
         console.error('[Translation] Failed:', e)
-        setTranslations(EN_STRINGS)
       }
       setIsTranslating(false)
     })()
   }, [state.language])
 
-  const t = (key) => translations[key] ?? EN_STRINGS[key] ?? key
+  // t(key): return translated string, fall back to English
+  const t = (key) => {
+    if (state.language === 'English') return EN_STRINGS[key] ?? key
+    if (BLITZ_KEYS.has(key)) return EN_STRINGS[key] ?? key
+    return translations[key] ?? EN_STRINGS[key] ?? key
+  }
 
   return (
     <TranslationContext.Provider value={{ t, isTranslating }}>
       {isTranslating && (
         <div
-          className="fixed top-0 left-0 right-0 z-[9999] text-white text-center text-xs py-1.5 font-bold"
-          style={{ background: 'linear-gradient(90deg, #1a6bbf, #1557a0)' }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
         >
-          {EN_STRINGS.translating}
+          <div
+            className="px-6 py-4 rounded-2xl text-white text-sm font-bold flex items-center gap-3 shadow-2xl"
+            style={{ background: 'linear-gradient(135deg,#1a6bbf,#1557a0)', border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+              <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
+              <div className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            {EN_STRINGS.translating}
+          </div>
         </div>
       )}
       {children}
