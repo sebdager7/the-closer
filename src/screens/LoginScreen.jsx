@@ -344,52 +344,72 @@ export default function LoginScreen() {
   // Default: Login/Signup
   return (
     <div className="min-h-screen bg-navy-950 flex flex-col">
-      <div className="bg-navy-800 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BlitzIcon size={26} />
-          <div>
-            <div className="text-sm font-bold text-gold-400 leading-none">THE CLOSER</div>
-            <div className="text-[7px] text-white/30 tracking-widest uppercase mt-0.5">Sales Intelligence</div>
-          </div>
+      {/* Header */}
+      <div className="bg-navy-800 px-4 py-3 flex items-center gap-2 border-b border-white/8">
+        <BlitzIcon size={26} />
+        <div>
+          <div className="text-sm font-bold text-gold-400 leading-none">THE CLOSER</div>
+          <div className="text-[7px] text-white/30 tracking-widest uppercase mt-0.5">Sales Intelligence</div>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-5">
-        <div className="w-full max-w-sm">
+      <div className="flex-1 overflow-y-auto p-5">
+        <div className="w-full max-w-sm mx-auto">
+
           {/* Blitz greeting */}
-          <div className="flex items-start gap-3 bg-navy-800/80 rounded-2xl p-3 border border-white/10 mb-5">
+          <div className="flex items-start gap-3 bg-navy-800/80 rounded-2xl p-3 border border-white/10 mb-6 mt-2">
             <BlitzIcon size={44} />
             <div>
               <p className="text-sm font-bold text-white mb-0.5">Hey, I'm Blitz!</p>
-              <p className="text-xs text-white/50 leading-relaxed">Your personal sales coach. {isSignIn ? 'Sign in and let\'s get to work.' : 'Sign up and I\'ll show you everything.'}</p>
+              <p className="text-xs text-white/50 leading-relaxed">
+                {isSignIn ? "Welcome back. Let's get to work." : "Sign up and I'll have you closing at a whole new level."}
+              </p>
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-white mb-1">{isSignIn ? 'Welcome back' : 'Create account'}</h2>
-          <p className="text-white/40 text-sm mb-5">{isSignIn ? 'Sign in to continue your closer journey' : 'Join thousands of closers leveling up'}</p>
+          {/* Tab switcher — Sign In / Create Account */}
+          <div className="flex bg-navy-800 rounded-2xl p-1 mb-6 border border-white/10">
+            <button
+              onClick={() => setIsSignIn(true)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: isSignIn ? '#1a6bbf' : 'transparent',
+                color: isSignIn ? '#fff' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setIsSignIn(false)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+              style={{
+                background: !isSignIn ? 'linear-gradient(135deg,#c8a84a,#e8c870)' : 'transparent',
+                color: !isSignIn ? '#071428' : 'rgba(255,255,255,0.4)',
+              }}
+            >
+              Create Account
+            </button>
+          </div>
 
-          {/* Apple button — shown first per Apple HIG */}
+          {/* Social buttons */}
           <button
             onClick={handleAppleAuth}
             disabled={appleLoading}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-black border border-white/20 hover:bg-white/5 text-white text-sm font-medium transition-colors mb-3 disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl bg-black border border-white/20 text-white text-sm font-medium transition-colors mb-3 disabled:opacity-60"
           >
-            {appleLoading ? (
-              <span>Signing in...</span>
-            ) : (
+            {appleLoading ? <span>Connecting...</span> : (
               <>
                 <svg width="15" height="18" viewBox="0 0 24 24" fill="white">
                   <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.453 2.208 3.09 3.792 3.029 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.94 1.156-1.672 1.636-3.295 1.662-3.402-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
                 </svg>
-                {isSignIn ? 'Sign in with Apple' : 'Sign up with Apple'}
+                {isSignIn ? 'Continue with Apple' : 'Sign up with Apple'}
               </>
             )}
           </button>
 
-          {/* Google button */}
           <button
-            onClick={() => { isSignIn ? handleAuth() : setStep('plans') }}
-            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors mb-3"
+            onClick={() => isSignIn ? handleAuth() : setStep('plans')}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-white/20 bg-white/5 text-white text-sm font-medium transition-colors mb-4"
           >
             <svg width="16" height="16" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -400,12 +420,13 @@ export default function LoginScreen() {
             {isSignIn ? 'Continue with Google' : 'Sign up with Google'}
           </button>
 
-          <div className="flex items-center gap-3 my-3">
+          <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-white/10" />
             <span className="text-xs text-white/30">or</span>
             <div className="flex-1 h-px bg-white/10" />
           </div>
 
+          {/* Email form */}
           <div className="space-y-2.5">
             {!isSignIn && (
               <input
@@ -432,18 +453,18 @@ export default function LoginScreen() {
 
           <button
             onClick={() => isSignIn ? handleAuth() : setStep('plans')}
-            className="w-full mt-4 py-3 rounded-xl bg-closer-blue text-white font-bold text-sm hover:bg-blue-600 transition-colors"
+            className="w-full mt-4 py-3 rounded-xl font-bold text-sm transition-colors"
+            style={{
+              background: isSignIn ? '#1a6bbf' : 'linear-gradient(135deg,#c8a84a,#e8c870)',
+              color: isSignIn ? '#fff' : '#071428',
+            }}
           >
-            {isSignIn ? 'Sign in' : 'Create account'}
+            {isSignIn ? 'Sign In' : 'Create Account & Pick a Plan →'}
           </button>
 
-          <p className="text-center mt-3 text-xs text-white/40">
-            {isSignIn ? "No account?" : "Have an account?"}{' '}
-            <button onClick={() => setIsSignIn(!isSignIn)} className="text-closer-blue font-bold">
-              {isSignIn ? 'Sign up free' : 'Sign in'}
-            </button>
+          <p className="text-center mt-4 text-[10px] text-white/25">
+            By continuing you agree to The Closer's Terms & Privacy Policy
           </p>
-          <p className="text-center mt-2 text-[10px] text-white/25">By continuing you agree to The Closer's Terms & Privacy Policy</p>
         </div>
       </div>
     </div>
