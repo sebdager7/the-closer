@@ -79,12 +79,17 @@ function reducer(state, action) {
       return { ...state, activeTab: action.payload }
     case 'COMPLETE_CALL': {
       const { closed, dealValue } = action.payload
+      const newCallCount = state.callCount + 1
+      const newCloseCount = closed ? state.closeCount + 1 : state.closeCount
+      const newCloseRate = Math.round((newCloseCount / newCallCount) * 100)
       return {
         ...state,
-        callCount: state.callCount + 1,
-        closeCount: closed ? state.closeCount + 1 : state.closeCount,
+        callCount: newCallCount,
+        closeCount: newCloseCount,
         totalRevenue: closed ? state.totalRevenue + dealValue : state.totalRevenue,
         callStreak: closed ? state.callStreak + 1 : 0,
+        metricsPrev: { ...state.metrics },
+        metrics: { ...state.metrics, closeRate: newCloseRate },
       }
     }
     case 'ADD_XP':
@@ -105,7 +110,11 @@ function reducer(state, action) {
       }
     }
     case 'UPDATE_METRICS':
-      return { ...state, metrics: { ...state.metrics, ...action.payload } }
+      return {
+        ...state,
+        metricsPrev: { ...state.metrics },
+        metrics: { ...state.metrics, ...action.payload },
+      }
 
     // ─── Channel management ────────────────────────────────────────
     case 'ADD_CHANNEL':

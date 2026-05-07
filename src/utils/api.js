@@ -127,7 +127,7 @@ export async function generatePitch(product, industry, framework, audience, keyw
     ? `Seller context: ${customBrain.offer}. Target customer: ${customBrain.icp}.`
     : ''
 
-  const system = `You are an elite sales pitch writer trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, and Zig Ziglar. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
+  const system = `You are an elite sales pitch writer trained on The Straight-Line Closer, The Certainty Closer, The Tactical Negotiator, The Story-Driven Persuader, The Aggressive Volume Closer, and The Consultative Soft Closer. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
 
   const prompt = `Product: ${product}
 Industry: ${industry}
@@ -150,7 +150,7 @@ Write a sales pitch with:
 - No weak words: maybe, might, could, hope, try, think
 
 Return ONLY raw JSON, no markdown, no backticks, start with {:
-{"pitch":"full pitch in ${language}","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["Andy Elliott","Grant Cardone"],"technique_used":"technique name in ${language}","feedback":"coaching note in ${language}","strength_tags":["tag in ${language}","tag in ${language}","tag in ${language}"],"power_moments":["strongest line in ${language}","second line in ${language}","third line in ${language}"]}
+{"pitch":"full pitch in ${language}","hook_score":85,"confidence_score":82,"close_score":79,"closer_blend":["The Straight-Line Closer","The Certainty Closer"],"technique_used":"technique name in ${language}","feedback":"coaching note in ${language}","strength_tags":["tag in ${language}","tag in ${language}","tag in ${language}"],"power_moments":["strongest line in ${language}","second line in ${language}","third line in ${language}"]}
 
 FINAL REMINDER: Every word in the pitch, feedback, strength_tags, and power_moments must be in ${language}.`
 
@@ -165,7 +165,7 @@ FINAL REMINDER: Every word in the pitch, feedback, strength_tags, and power_mome
 }
 
 export async function improvePitch(existingPitch, industry, framework, language) {
-  const system = `You are an elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone, Alex Hormozi, and Zig Ziglar. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
+  const system = `You are an elite sales coach trained on The Straight-Line Closer, The Certainty Closer, The Tactical Negotiator, The Story-Driven Persuader, The Aggressive Volume Closer, and The Consultative Soft Closer. You MUST write your entire response in ${language}. Every word must be in ${language}. Do not use any other language.`
 
   const prompt = `Rebuild this sales pitch using ${framework}.
 
@@ -202,7 +202,7 @@ export async function getBrutalFeedback(userText, language = 'English') {
 
 export async function getReframes(objection, language) {
   const system = `You are an elite sales coach. Respond entirely in ${language}. Every word must be in ${language}.`
-  const prompt = `Prospect said: "${objection}". Give 3 elite reframes — Elliott (empathy+certainty), Belfort (logical certainty), Cardone (bold). Under 2 sentences each. Write entirely in ${language}. Respond with ONLY raw JSON, no markdown: {"r1":"Elliott reframe in ${language}","r2":"Belfort reframe in ${language}","r3":"Cardone reframe in ${language}"}`
+  const prompt = `Prospect said: "${objection}". Give 3 elite reframes — Consultative Soft Closer (empathy+certainty), Certainty Closer (logical certainty), Aggressive Volume Closer (bold). Under 2 sentences each. Write entirely in ${language}. Respond with ONLY raw JSON, no markdown: {"r1":"Consultative Soft Closer reframe in ${language}","r2":"Certainty Closer reframe in ${language}","r3":"Aggressive Volume Closer reframe in ${language}"}`
   const raw = await callClaude(prompt, 380, system)
   return parseJSON(raw)
 }
@@ -219,9 +219,9 @@ Objection: "${objection}"
 ${brainCtx}
 
 Generate 3 rebuttal scripts:
-- soft: Andy Elliott empathy-then-close style
-- direct: Jordan Belfort logical certainty style
-- aggressive: Grant Cardone bold energy style
+- soft: Consultative Soft Closer empathy-then-close style
+- direct: Certainty Closer logical certainty style
+- aggressive: Aggressive Volume Closer bold energy style
 
 MANDATORY LANGUAGE RULE:
 Write every word of every field in ${language}.
@@ -231,7 +231,7 @@ If ${language} is Portuguese — write in Portuguese.
 Do not include any English words if ${language} is not English.
 
 Return ONLY raw JSON, no markdown, no backticks:
-{"soft":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Andy Elliott","followup":"follow-up in ${language}"},"direct":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Jordan Belfort","followup":"follow-up in ${language}"},"aggressive":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"Grant Cardone","followup":"follow-up in ${language}"}}
+{"soft":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"The Consultative Soft Closer","followup":"follow-up in ${language}"},"direct":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"The Certainty Closer","followup":"follow-up in ${language}"},"aggressive":{"script":"rebuttal in ${language}","tone":"tone in ${language}","closer":"The Aggressive Volume Closer","followup":"follow-up in ${language}"}}
 
 FINAL REMINDER: All text values must be in ${language}.`
 
@@ -266,7 +266,7 @@ Respond with ONLY raw JSON, no markdown:
 }
 
 export async function runAutopsy(transcript, closePct, dealValue) {
-  const prompt = `You are Blitz, elite sales coach trained on Andy Elliott, Jordan Belfort, Grant Cardone. Analyze this call:\n${transcript}\n\nClose probability: ${closePct}%. Deal value: $${dealValue}.\n\nRespond with ONLY raw JSON, no markdown:\n{"result":"${closePct >= 70 ? 'Close' : 'No Close'}","score":${closePct},"close_probability":${closePct},"potential_value":${dealValue},"value_lost":${closePct < 70 ? dealValue : 0},"overall_feedback":"2-3 sentence Blitz coaching referencing Elliott/Belfort/Cardone","key_moments":[{"time":"0:45","type":"bad","what_said":"weak moment","better_version":"elite script"},{"time":"1:20","type":"good","what_said":"what they did right","build_on":"how to amplify"},{"time":"2:10","type":"bad","what_said":"another weak moment","better_version":"elite version"}],"biggest_mistake":"#1 thing that hurt this call","top_strength":"what they did well","blitz_coaching":"one line from Blitz referencing a real closer"}`
+  const prompt = `You are Blitz, elite sales coach trained on The Straight-Line Closer, The Certainty Closer, The Tactical Negotiator, The Story-Driven Persuader, The Aggressive Volume Closer, and The Consultative Soft Closer. Analyze this call:\n${transcript}\n\nClose probability: ${closePct}%. Deal value: $${dealValue}.\n\nRespond with ONLY raw JSON, no markdown:\n{"result":"${closePct >= 70 ? 'Close' : 'No Close'}","score":${closePct},"close_probability":${closePct},"potential_value":${dealValue},"value_lost":${closePct < 70 ? dealValue : 0},"overall_feedback":"2-3 sentence Blitz coaching referencing these frameworks","key_moments":[{"time":"0:45","type":"bad","what_said":"weak moment","better_version":"elite script"},{"time":"1:20","type":"good","what_said":"what they did right","build_on":"how to amplify"},{"time":"2:10","type":"bad","what_said":"another weak moment","better_version":"elite version"}],"biggest_mistake":"#1 thing that hurt this call","top_strength":"what they did well","blitz_coaching":"one line from Blitz referencing an elite framework"}`
   const raw = await callClaude(prompt, 1300)
   return parseJSON(raw)
 }

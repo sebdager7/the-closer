@@ -278,7 +278,7 @@ const analyzeUserTone = (text) => {
 
 // ─── CALL SCREEN ──────────────────────────────────────────────────────────────
 function CallScreen({ mode, industry, persona, difficulty, dealValue, language, customBrain, onEnd }) {
-  const { dispatch } = useApp()
+  const { dispatch, state } = useApp()
 
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
@@ -835,7 +835,7 @@ function CallScreen({ mode, industry, persona, difficulty, dealValue, language, 
     setResultsLoading(true)
 
     const transcriptText = msgs.map(m => `${m.role === 'usr' ? 'REP' : 'PROSPECT'}: ${m.text}`).join('\n')
-    const analysisPrompt = `You are Blitz, elite sales coach trained on Andy Elliott, Grant Cardone, and Jordan Belfort.
+    const analysisPrompt = `You are Blitz, elite sales coach trained on The Straight-Line Closer, The Certainty Closer, The Tactical Negotiator, The Story-Driven Persuader, The Aggressive Volume Closer, and The Consultative Soft Closer.
 
 Analyze this ${industry} training call transcript:
 
@@ -849,20 +849,42 @@ Difficulty: ${difficulty}
 Return ONLY raw JSON, no markdown, no backticks:
 {"overall_score":78,"deal_closed":${dealClosed},"exchanges":${exchanges},"grades":{"opening":85,"rapport":72,"pitch_clarity":80,"objection_handling":75,"closing_technique":70,"listening":82},"biggest_strength":"one specific thing they did well","biggest_mistake":"one specific thing that hurt them","best_line":"the single best line the rep said verbatim","worst_line":"the single weakest line the rep said verbatim","elite_version_of_worst":"how a top closer would have said it","key_moments":[{"exchange":2,"what_happened":"brief description","impact":"positive","coaching":"specific coaching note"}],"blitz_summary":"2-3 sentence coaching message in Blitz voice","next_focus":"the single most important skill to work on"}`
 
+    let finalGrades = null
     try {
       const raw = await callClaudeConversation([{ role: 'user', content: analysisPrompt }], 900)
       const cleaned = raw.trim().replace(/```json/gi, '').replace(/```/g, '').trim()
       const analysis = JSON.parse(cleaned)
+      finalGrades = analysis.grades
       setResultsData({ ...analysis, deal_closed: dealClosed, secs: finalSecs })
     } catch (e) {
       console.error('[RESULTS] Analysis failed:', e)
+      finalGrades = { opening: finalClosePct, rapport: finalClosePct, pitch_clarity: finalClosePct, objection_handling: finalClosePct, closing_technique: finalClosePct, listening: finalClosePct }
       setResultsData({
         overall_score: finalClosePct, deal_closed: dealClosed, exchanges,
-        grades: { opening: finalClosePct, rapport: finalClosePct, pitch_clarity: finalClosePct, objection_handling: finalClosePct, closing_technique: finalClosePct, listening: finalClosePct },
+        grades: finalGrades,
         biggest_strength: dealClosed ? 'You closed the deal!' : 'You stayed in the conversation',
         biggest_mistake: 'Keep working on objection handling',
         blitz_summary: dealClosed ? 'You closed the deal. Now sharpen every technique so you close faster.' : 'Good effort. Every call makes you better. Study the objections.',
         next_focus: 'Objection handling', secs: finalSecs,
+      })
+    }
+
+    if (finalGrades) {
+      const blend = (cur, next, w = 0.18) => Math.min(99, Math.max(1, Math.round(cur * (1 - w) + next * w)))
+      const g = finalGrades
+      dispatch({
+        type: 'UPDATE_METRICS',
+        payload: {
+          objectionWin: blend(state.metrics.objectionWin, g.objection_handling ?? 50),
+          toneStrength: blend(state.metrics.toneStrength, ((g.rapport ?? 50) + (g.listening ?? 50)) / 2),
+          avgDealValue: blend(state.metrics.avgDealValue, g.pitch_clarity ?? 50),
+          oneShotClose: blend(
+            state.metrics.oneShotClose,
+            dealClosed && exchanges <= 4
+              ? Math.min((g.closing_technique ?? 50) + 15, 99)
+              : Math.max((g.closing_technique ?? 50) - 10, 1)
+          ),
+        },
       })
     }
 
@@ -1438,11 +1460,11 @@ Return ONLY raw JSON, no markdown, no backticks:
           </div>
           {!reframes ? (
             <button onClick={loadReframes} disabled={reframeLoading} className="w-full py-2 bg-closer-blue/20 border border-closer-blue/30 rounded-lg text-white/80 text-xs font-medium hover:bg-closer-blue/30 disabled:opacity-40">
-              {reframeLoading ? 'Loading...' : '🔄 Show 3 elite reframes (Elliott / Belfort / Cardone)'}
+              {reframeLoading ? 'Loading...' : '🔄 Show 3 elite reframes (Soft / Certainty / Volume)'}
             </button>
           ) : (
             <div className="space-y-1.5">
-              {[{ text: reframes.r1, label: 'Andy Elliott' }, { text: reframes.r2, label: 'Jordan Belfort' }, { text: reframes.r3, label: 'Grant Cardone' }].map((r, i) => (
+              {[{ text: reframes.r1, label: 'The Consultative Soft Closer' }, { text: reframes.r2, label: 'The Certainty Closer' }, { text: reframes.r3, label: 'The Aggressive Volume Closer' }].map((r, i) => (
                 <div key={i} className="bg-closer-blue/15 border border-closer-blue/25 rounded-lg p-2">
                   <p className="text-xs text-white/85 leading-relaxed">{r.text}</p>
                   <p className="text-[8px] font-bold text-gold-500 mt-1">{r.label}</p>

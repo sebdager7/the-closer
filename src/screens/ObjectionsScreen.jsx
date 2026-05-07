@@ -33,7 +33,7 @@ export default function ObjectionsScreen() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4">
-      <BlitzBar message="Type any objection you're getting crushed on. I'll give you 3 battle-tested scripts — Andy Elliott soft close, Belfort direct, Cardone aggressive. Real frameworks, real money." />
+      <BlitzBar message="Type any objection you're getting crushed on. I'll give you 3 battle-tested scripts — Consultative Soft Closer, Certainty Closer, Aggressive Volume Closer. Real frameworks, real money." />
 
       {/* Industry pills */}
       <div className="mb-1">
